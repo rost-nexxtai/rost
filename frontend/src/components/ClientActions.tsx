@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { resetProfile, setDemoProfile } from '@/data/actions';
 
 async function post(url: string, body: unknown) {
   const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -9,27 +10,50 @@ async function post(url: string, body: unknown) {
   return res.json();
 }
 
-/** "Continue as Maria" for the stage demo. */
+/** "Continuă ca Maria" for the stage demo: a real backend session plus Maria's (mock) profile. */
 export function DemoLogin() {
   const router = useRouter();
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   return (
     <>
       <button
-        className="btn btn-light btn-block"
+        className="btn btn-secondary btn-block"
+        disabled={busy}
         onClick={async () => {
+          setBusy(true);
           try {
             await post('/api/users', { demo: 'maria' });
-            router.push('/today');
+            await setDemoProfile('maria');
+            router.push('/acasa');
           } catch (e) {
             setError(String((e as Error).message));
+            setBusy(false);
           }
         }}
       >
-        Continue as Maria (demo)
+        Continuă ca Maria (demo)
       </button>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error">Nu am putut porni demo-ul: {error}</p>}
     </>
+  );
+}
+
+/** Profil → Resetează: forgets the mock profile and the session, back to the landing page. */
+export function ResetButton() {
+  const router = useRouter();
+  return (
+    <button
+      className="btn btn-ghost btn-block"
+      onClick={async () => {
+        await resetProfile();
+        await fetch('/api/users', { method: 'DELETE' }).catch(() => undefined);
+        router.push('/');
+        router.refresh();
+      }}
+    >
+      Resetează
+    </button>
   );
 }
 
