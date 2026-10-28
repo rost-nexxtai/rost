@@ -17,19 +17,11 @@ const T = copy(
     inflation: 'Inflație pe an',
     inflationYours: (pct: string) => `Pornește de la inflația ta, ${pct}. Mut-o ca să vezi ce se întâmplă dacă urcă.`,
     yearsN: (n: number) => (n === 1 ? '1 an' : `${n} ani`),
-    eatsTitle: (y: string) => `În ${y}, inflația îți ia`,
-    eatsBody: (paper: string, real: string) => `Pe hârtie ai ${paper}. Cu ei cumperi cât cu ${real} azi.`,
     paper: 'Pe hârtie',
     real: 'În banii de azi',
     vsPaid: (paid: string) => `Față de ce ai depus (${paid}, adică atât în banii de azi)`,
-    barsTitle: 'Aceiași bani, în banii de azi',
-    barCash: 'Lăsați în cont curent',
-    barPaid: 'Cât ai depus',
-    barHere: 'Aici, la rata din listă',
-    barTypical: 'Aici, într-un deceniu tipic',
     beats: (rate: string) => `Randament real: ${rate} pe an. Rata bate inflația, deci banii chiar cresc.`,
     loses: (rate: string) => `Randament real: ${rate} pe an. Rata e sub inflație: suma crește pe hârtie, dar cumpără tot mai puțin.`,
-    cashLoss: (lost: string) => `Lăsați în cont curent, aceiași bani ar pierde ${lost} din puterea de cumpărare.`,
     fixedNote: (pct: string) => `La cea mai bună rată din listă, ${pct} pe an după impozit, presupunând că rata și inflația rămân la fel. Ambele se pot schimba.`,
     ifDecade: (y: string) => `După ${y}, dacă piața ar repeta un deceniu…`,
     weak: 'slab',
@@ -47,19 +39,11 @@ const T = copy(
     inflation: 'Inflation a year',
     inflationYours: (pct) => `Starts at your inflation, ${pct}. Move it to see what happens if it rises.`,
     yearsN: (n) => (n === 1 ? '1 year' : `${n} years`),
-    eatsTitle: (y) => `Over ${y}, inflation takes`,
-    eatsBody: (paper, real) => `On paper you have ${paper}. It buys what ${real} buys today.`,
     paper: 'On paper',
     real: "In today's money",
     vsPaid: (paid) => `Against what you paid in (${paid}, in today's money)`,
-    barsTitle: "The same money, in today's money",
-    barCash: 'Left in a current account',
-    barPaid: 'What you paid in',
-    barHere: 'Here, at the rate in the list',
-    barTypical: 'Here, in a typical decade',
     beats: (rate) => `Real return: ${rate} a year. The rate beats inflation, so your money really grows.`,
     loses: (rate) => `Real return: ${rate} a year. The rate is below inflation: the amount grows on paper but buys less and less.`,
-    cashLoss: (lost) => `Left in a current account, the same money would lose ${lost} of buying power.`,
     fixedNote: (pct) => `At the best rate in the list, ${pct} a year after tax, assuming the rate and inflation stay the same. Both can change.`,
     ifDecade: (y) => `After ${y}, if the market repeated a decade…`,
     weak: 'weak',
@@ -115,8 +99,7 @@ function FixedResult({ input, ratePct, inflationPct }: { input: Input; ratePct: 
   const { t, pct } = useSim();
   return (
     <>
-      <InflationTakes impact={impact} years={input.years} />
-      <Bars impact={impact} realLabel={t.barHere} />
+      <InflationTakes impact={impact} />
       <SimChart kind="fixed" value={value} paidIn={paidIn} today={today} cash={cash} />
       <p className="note">{t.fixedNote(pct(ratePct, 2))}</p>
     </>
@@ -136,8 +119,7 @@ function RangeResult({ input, basis, inflationPct }: { input: Input; basis: Extr
         <RangeRow label={t.typical} value={lei(end(r.typical))} strong />
         <RangeRow label={t.good} value={lei(end(r.best))} />
       </div>
-      <InflationTakes impact={impact} years={input.years} />
-      <Bars impact={impact} realLabel={t.barTypical} />
+      <InflationTakes impact={impact} />
       <SimChart kind="range" worst={r.worst} typical={r.typical} best={r.best} typicalToday={todayMoney(r.typical, inflationPct)} />
       <div className="card card-accent" style={{ padding: 14, gap: 4 }}>
         <strong className="small">{t.yearLike(basis.worstYear.year, pct(basis.worstYear.pct, 1))}</strong>
@@ -151,17 +133,12 @@ function RangeResult({ input, basis, inflationPct }: { input: Input; basis: Extr
   );
 }
 
-/** The headline: what inflation takes from the result, then paper vs today's money vs what you put in. */
-function InflationTakes({ impact, years }: { impact: InflationImpact; years: number }) {
+/** Paper vs today's money, against what you put in, and whether the rate beats inflation. */
+function InflationTakes({ impact }: { impact: InflationImpact }) {
   const { t, lei, leiSigned, pct } = useSim();
   const beats = impact.realRatePct > 0;
   return (
     <div className="stack" style={{ gap: 12 }}>
-      <div className="card card-accent" style={{ padding: 16, gap: 6 }}>
-        <span className="eyebrow">{t.eatsTitle(t.yearsN(years))}</span>
-        <span className="money display-xl neg">{lei(impact.eatenLei)}</span>
-        <p className="small">{t.eatsBody(lei(impact.nominalLei), lei(impact.realLei))}</p>
-      </div>
       <div className="grid2">
         <Stat label={t.paper} value={lei(impact.nominalLei)} />
         <Stat label={t.real} value={lei(impact.realLei)} strong />
@@ -176,34 +153,6 @@ function InflationTakes({ impact, years }: { impact: InflationImpact; years: num
         {beats ? t.beats(pct(impact.realRatePct, 2)) : t.loses(pct(impact.realRatePct, 2))}
       </p>
     </div>
-  );
-}
-
-/** Three bars on one scale, all in today's money: doing nothing, what you put in, this asset. */
-function Bars({ impact, realLabel }: { impact: InflationImpact; realLabel: string }) {
-  const { t, lei } = useSim();
-  const rows = [
-    { label: t.barCash, value: impact.cashRealLei, color: 'var(--accent-ink)' },
-    { label: t.barPaid, value: impact.paidInRealLei, color: 'var(--line-strong)' },
-    { label: realLabel, value: impact.realLei, color: impact.realLei >= impact.paidInRealLei ? 'var(--primary)' : 'var(--accent)' },
-  ];
-  const max = Math.max(1, ...rows.map((r) => r.value));
-  return (
-    <figure className="stack" style={{ margin: 0, gap: 8 }}>
-      <figcaption className="eyebrow">{t.barsTitle}</figcaption>
-      {rows.map((r) => (
-        <div key={r.label} className="stack" style={{ gap: 3 }}>
-          <div className="row small" style={{ justifyContent: 'space-between' }}>
-            <span>{r.label}</span>
-            <strong className="money">{lei(r.value)}</strong>
-          </div>
-          <div aria-hidden="true" style={{ height: 10, borderRadius: 5, background: 'var(--track)' }}>
-            <div style={{ width: `${Math.max(2, (r.value / max) * 100)}%`, height: '100%', borderRadius: 5, background: r.color }} />
-          </div>
-        </div>
-      ))}
-      <p className="note">{t.cashLoss(lei(Math.max(0, impact.paidInRealLei - impact.cashRealLei)))}</p>
-    </figure>
   );
 }
 

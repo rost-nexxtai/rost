@@ -4,6 +4,7 @@ import { getAsset, getLesson, getProfile } from '@/data';
 import { ApiDown } from '@/components/ui/ApiDown';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
+import { resumable } from '@/data/mock/momente';
 import { CORE_MOMENTS } from '@/data/mock/scoring';
 import type { Asset } from '@/data/types';
 
@@ -55,5 +56,14 @@ export default async function LibraryMomentPage({ params }: { params: Promise<{ 
   const done = new Set([...(profile?.completedMomentIds ?? []), moment.id]);
   const coreLeftAfter = CORE_MOMENTS[level].filter((id) => !done.has(id)).length;
 
-  return <LibraryMomentPlayer moment={moment} assets={assets} levelBefore={level} coreLeftAfter={coreLeftAfter} bufferMonths={profile?.bufferMonths} />;
+  return (
+    <LibraryMomentPlayer
+      moment={moment}
+      assets={assets}
+      levelBefore={level}
+      coreLeftAfter={coreLeftAfter}
+      bufferMonths={profile?.bufferMonths}
+      resume={profile && resumable(moment, profile)}
+    />
+  );
 }

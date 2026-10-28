@@ -293,3 +293,42 @@ func TestQuizPlacementOverHTTP(t *testing.T) {
 		}
 	}
 }
+
+// A quiz-only user has no salary or spending. The payslip moment is still offered: Momente asks
+// for a gross salary and the catch-up brings it. The inflation moments need spending, so they aren't.
+func TestCatchUpOnlyWhatCanOpen(t *testing.T) {
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	c.do("POST", "/api/quiz", quizAllNuStiu)
+	_, today := c.do("GET", "/api/today", "")
+	if ids := jsonString(today["catchUpMomentIds"]); ids != `["payslip_explained"]` {
+		t.Errorf("quiz-only user can catch up on %s", ids)
+	}
+	if needs := jsonString(today["catchUpNeeds"]); needs != `{"payslip_explained":["grossMonthly"]}` {
+		t.Errorf("needs = %s", needs)
+	}
+	// without the salary nothing opens; a silly salary is refused
+	if _, ev := c.do("POST", "/api/events", `{"type":"catch_up","payload":{"momentId":"payslip_explained"}}`); len(ev["runs"].([]any)) != 0 {
+		t.Errorf("opened without a salary: %v", ev)
+	}
+	if code, _ := c.do("POST", "/api/events", `{"type":"catch_up","payload":{"momentId":"payslip_explained","grossMonthly":5}}`); code != 400 {
+		t.Errorf("salary of 5 lei = %d", code)
+	}
+	_, ev := c.do("POST", "/api/events", `{"type":"catch_up","payload":{"momentId":"payslip_explained","grossMonthly":6000}}`)
+	runs, _ := ev["runs"].([]any)
+	if len(runs) != 1 {
+		t.Fatalf("catch-up with a salary didn't open: %v", ev)
+	}
+	if code, m := c.do("GET", "/api/moments/"+runs[0].(map[string]any)["id"].(string), ""); code != 200 {
+		t.Errorf("payslip moment = %d %v", code, m)
+	}
+	if _, today = c.do("GET", "/api/today", ""); jsonString(today["catchUpNeeds"]) != `{}` {
+		t.Errorf("still asks for a salary: %v", today["catchUpNeeds"])
+	}
+
+	m := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	m.do("POST", "/api/users", `{"demo":"maria"}`)
+	_, today = m.do("GET", "/api/today", "")
+	if !strings.Contains(jsonString(today["catchUpMomentIds"]), "personal_inflation") || jsonString(today["catchUpNeeds"]) != `{}` {
+		t.Errorf("maria's catch-ups = %v %v", today["catchUpMomentIds"], today["catchUpNeeds"])
+	}
+}

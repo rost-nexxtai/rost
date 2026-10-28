@@ -6,7 +6,7 @@ import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/pro
 import { getLibrary } from '.';
 import { firstLesson } from './mock/momente';
 import { levelWithMoments, passed, quizProfile } from './mock/scoring';
-import type { LibraryMoment, MoneyLine, Profile, QuizAnswers } from './types';
+import type { LessonProgress, LibraryMoment, MoneyLine, Profile, QuizAnswers } from './types';
 
 // MOCK until backend ships POST /api/quiz and profile progress on the server.
 
@@ -38,11 +38,30 @@ export async function setDemoProfile(persona: 'maria'): Promise<void> {
  * level, like the backend's POST /api/library/{id}/complete; a failed attempt changes nothing.
  */
 export async function completeLibraryMoment(momentId: string, correct: number, total: number): Promise<{ profile: Profile; passed: boolean } | undefined> {
-  const p = await current();
-  if (!p) return undefined;
-  if (!passed(correct, total)) return { profile: p, passed: false };
+  const found = await current();
+  if (!found) return undefined;
+  // finished, passed or not: it's no longer in progress
+  const p = { ...found, lessonProgress: withoutLesson(found.lessonProgress, momentId) };
+  if (!passed(correct, total)) return { profile: await write(p), passed: false };
   const completedMomentIds = p.completedMomentIds.includes(momentId) ? p.completedMomentIds : [...p.completedMomentIds, momentId];
   return { profile: await write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds) }), passed: true };
+}
+
+/** At most this many lessons are remembered halfway; the oldest is dropped first. */
+const MAX_IN_PROGRESS = 8;
+
+function withoutLesson(progress: Profile['lessonProgress'], momentId: string) {
+  if (!progress || !(momentId in progress)) return progress;
+  const { [momentId]: _, ...rest } = progress;
+  return rest;
+}
+
+/** Remembers where a lesson was left, so Momente shows it in progress and reopening resumes there. */
+export async function saveLessonProgress(momentId: string, progress: LessonProgress): Promise<void> {
+  const p = await current();
+  if (!p) return;
+  const others = Object.entries(withoutLesson(p.lessonProgress, momentId) ?? {}).slice(-(MAX_IN_PROGRESS - 1));
+  await write({ ...p, lessonProgress: Object.fromEntries([...others, [momentId, progress]]) });
 }
 
 export async function resetProfile(): Promise<void> {

@@ -30,6 +30,8 @@ const T = copy(
     now: (min: number) => `Acum, pe cifrele tale · ${min} min`,
     start: 'Începe',
     next: (min: number) => `Următoarea ta lecție · ${min} min`,
+    resume: (step: number, of: number) => `Ai rămas la pasul ${step} din ${of}`,
+    continue: 'Continuă',
     forLevel: 'Pentru nivelul tău',
     startAbove: 'Începe cu lecția de mai sus.',
     allDone: 'Le-ai terminat pe toate. Bravo!',
@@ -51,6 +53,8 @@ const T = copy(
     now: (min) => `Now, on your numbers · ${min} min`,
     start: 'Start',
     next: (min) => `Your next lesson · ${min} min`,
+    resume: (step, of) => `You stopped at step ${step} of ${of}`,
+    continue: 'Continue',
     forLevel: 'For your level',
     startAbove: 'Start with the lesson above.',
     allDone: "You've done them all. Well done!",
@@ -64,9 +68,10 @@ export default async function Momente() {
   const t = T[lang];
   if (!data || !profile) redirect('/quiz');
   const { triggered, forYourLevel, rest, progress, realApiDown, dueFollowUps } = data;
-  // One obvious next step: a moment the backend opened wins; otherwise the next lesson at your level.
+  // One obvious next step: a moment the backend opened wins; then a lesson left halfway; otherwise the next lesson at your level.
   const first = firstLesson(profile, library);
-  const nextUp = triggered.length === 0 ? [...forYourLevel, ...rest].find((m) => m.id === first?.id && m.status === 'todo') : undefined;
+  const all = [...forYourLevel, ...rest];
+  const nextUp = triggered.length === 0 ? (all.find((m) => m.status === 'started') ?? all.find((m) => m.id === first?.id && m.status === 'todo')) : undefined;
   const listed = forYourLevel.filter((m) => m !== nextUp);
 
   return (
@@ -112,14 +117,14 @@ export default async function Momente() {
       {nextUp && (
         <section className="stat rise" aria-label={t.nextAria}>
           <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>
-            {t.next(nextUp.minutes)}
+            {nextUp.progress ? t.resume(nextUp.progress.step, nextUp.progress.of) : t.next(nextUp.minutes)}
           </span>
           <div className="display-md" style={{ color: '#fff' }}>
             {nextUp.title}
           </div>
           {nextUp.hook && <span className="stat-label">{nextUp.hook}</span>}
           <Link href={nextUp.href!} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-            {t.start}
+            {nextUp.progress ? t.continue : t.start}
           </Link>
         </section>
       )}
@@ -139,7 +144,7 @@ export default async function Momente() {
             {t.rest}
           </h2>
           <Card style={{ gap: 0 }}>
-            {rest.map((m) => (
+            {rest.filter((m) => m !== nextUp).map((m) => (
               <MomentRow key={m.id} m={m} />
             ))}
           </Card>

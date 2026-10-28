@@ -28,6 +28,8 @@ type Broker struct {
 	URL          string   `json:"url"`
 	CheckedAt    string   `json:"checkedAt"`
 	Source       *Source  `json:"source,omitempty"`
+	// Clients is the broker's clients in Romania (data/seed/clients.json), when known.
+	Clients *Clients `json:"clients,omitempty"`
 }
 
 type RankedBroker struct {

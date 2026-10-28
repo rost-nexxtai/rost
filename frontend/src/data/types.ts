@@ -42,6 +42,16 @@ export interface Profile {
   horizon: MoneyHorizon;
   money: MoneyLines;
   completedMomentIds: string[];
+  /** Lessons started and left before the end, by id: where to pick up. */
+  lessonProgress?: Record<string, LessonProgress>;
+}
+
+/** A lesson left halfway: the screen to resume on and the graded answers so far. */
+export interface LessonProgress {
+  step: number;
+  results: boolean[];
+  /** How many screens the lesson had, so a lesson edited since starts over. */
+  of: number;
 }
 
 /** proposed: POST /api/quiz. Onboarding asks age, situation, buffer, debt and up to four knowledge questions (two per tier). */
@@ -82,6 +92,8 @@ export interface RankedProvider {
   /** "oct. 2026": when the rate or fee was last checked. */
   checked?: string;
   source?: { label: string; url: string };
+  /** "5,1 mil. clienți în România", when known. */
+  clientsLine?: string;
 }
 
 export interface Point {
@@ -192,10 +204,14 @@ export interface MomentSummary {
   level: Level | null;
   core: boolean;
   minutes: number;
-  status: 'open' | 'done' | 'todo' | 'soon';
+  status: 'open' | 'done' | 'todo' | 'soon' | 'started';
   href?: string;
+  /** Library lessons left halfway: the screen to resume on (1-based) out of how many. */
+  progress?: { step: number; of: number };
   /** Set for a real backend moment the user can open now with a "catch up" tap. */
   catchUpMomentId?: string;
+  /** The catch-up needs a gross salary first (the payslip moment, for someone who never gave one). */
+  catchUpNeedsSalary?: boolean;
 }
 
 /** proposed: GET /api/momente */

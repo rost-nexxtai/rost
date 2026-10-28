@@ -52,6 +52,8 @@ type Offer struct {
 	CheckedAt string  `json:"checkedAt,omitempty"`
 	Source    *Source `json:"source,omitempty"`
 	UpdatedAt string  `json:"updatedAt"`
+	// Clients is the provider's clients in Romania (data/seed/clients.json), when known.
+	Clients *Clients `json:"clients,omitempty"`
 }
 
 type RankedOffer struct {

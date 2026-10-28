@@ -151,6 +151,7 @@ p { margin: 0; }
 .tag-core { background: var(--primary-tint); color: var(--primary); }
 .tag-risk { background: #f9e7df; color: var(--risk-5); }
 .tag-done { background: var(--primary-tint); color: var(--primary); }
+.tag-progress { background: var(--accent-tint); color: var(--accent-ink); white-space: nowrap; }
 
 /* ---------- Indicators ---------- */
 .risk { display: inline-flex; align-items: center; gap: 3px; }

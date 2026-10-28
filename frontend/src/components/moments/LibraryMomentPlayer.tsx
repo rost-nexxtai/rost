@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LessonShell } from '@/components/lesson/LessonShell';
 import { ChoiceStep } from '@/components/lesson/steps/ChoiceStep';
 import { ExploreStep } from '@/components/lesson/steps/ExploreStep';
@@ -9,10 +9,10 @@ import { PredictStep } from '@/components/lesson/steps/PredictStep';
 import { RangeStep } from '@/components/lesson/steps/RangeStep';
 import { SortStep } from '@/components/lesson/steps/SortStep';
 import { StatStep } from '@/components/lesson/steps/StatStep';
-import { completeLibraryMoment } from '@/data/actions';
+import { completeLibraryMoment, saveLessonProgress } from '@/data/actions';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
-import type { Asset, Level, LibraryMoment } from '@/data/types';
+import type { Asset, LessonProgress, Level, LibraryMoment } from '@/data/types';
 
 const T = copy(
   {
@@ -38,6 +38,7 @@ export function LibraryMomentPlayer({
   levelBefore,
   coreLeftAfter,
   bufferMonths,
+  resume,
 }: {
   moment: LibraryMoment;
   assets: Partial<Record<string, Asset>>;
@@ -46,12 +47,22 @@ export function LibraryMomentPlayer({
   coreLeftAfter: number;
   /** Months of spending already saved (onboarding), so calculators start from there. */
   bufferMonths?: number;
+  /** Where the user left this lesson last time; it picks up there. */
+  resume?: LessonProgress;
 }) {
-  const [i, setI] = useState(0);
-  const [results, setResults] = useState<boolean[]>([]);
+  const [i, setI] = useState(resume?.step ?? 0);
+  const [results, setResults] = useState<boolean[]>(resume?.results ?? []);
   const started = useRef(Date.now());
   const t = T[useLang().lang];
   const step = moment.steps[i];
+  const last = moment.steps.length - 1;
+  // Remember the place on every new screen, so leaving keeps the lesson "in progress".
+  // The finish screen saves the completion instead.
+  useEffect(() => {
+    if (i > 0 && i < last) void saveLessonProgress(moment.id, { step: i, results, of: moment.steps.length }).catch(() => undefined);
+    // results change together with i on graded screens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i]);
   const next = () => setI((n) => Math.min(n + 1, moment.steps.length - 1));
   const graded = (ok: boolean) => {
     setResults((r) => [...r, ok]);

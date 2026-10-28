@@ -15,7 +15,8 @@ var providerAssets = []string{"cont_economii", "depozit", "titluri_stat", "etf",
 
 type assetProviders struct {
 	AssetID string `json:"assetId"`
-	// savings: ranked by net rate after tax; brokers: ranked by the cost of a 1,000 lei order.
+	// Both listed best-known first (clients in Romania). Savings show the net rate after tax,
+	// brokers the cost of a 1,000 lei order.
 	ProviderKind string               `json:"providerKind"`
 	AmountLei    float64              `json:"amountLei"`
 	Offers       []rules.RankedOffer  `json:"offers,omitempty"`
@@ -24,16 +25,16 @@ type assetProviders struct {
 
 func providersFor(assetID string, lang reference.Lang) (assetProviders, bool) {
 	if reference.IsBrokerAsset(assetID) {
-		return assetProviders{AssetID: assetID, ProviderKind: "brokers", AmountLei: rules.BrokerOrderLei, Brokers: rules.RankBrokers(reference.Brokers(lang))}, true
+		return assetProviders{AssetID: assetID, ProviderKind: "brokers", AmountLei: rules.BrokerOrderLei, Brokers: rules.BrokersByClients(rules.RankBrokers(reference.Brokers(lang)))}, true
 	}
 	offers := reference.AssetOffers(assetID, lang)
 	if len(offers) == 0 {
 		return assetProviders{}, false
 	}
-	return assetProviders{AssetID: assetID, ProviderKind: "savings", AmountLei: assetProvidersAmount, Offers: rules.RankByNet(offers, assetProvidersAmount)}, true
+	return assetProviders{AssetID: assetID, ProviderKind: "savings", AmountLei: assetProvidersAmount, Offers: rules.ByClients(rules.RankByNet(offers, assetProvidersAmount))}, true
 }
 
-// GET /api/providers/{assetId}: the real providers of one asset, in the neutral order. No session needed.
+// GET /api/providers/{assetId}: the real providers of one asset, best-known first. No session needed.
 func (s *server) assetProviders(w http.ResponseWriter, r *http.Request) {
 	out, ok := providersFor(r.PathValue("assetId"), langOf(r))
 	if !ok {

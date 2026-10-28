@@ -1,0 +1,21 @@
+{
+  "note": "Clienți în România, ca să listăm întâi băncile și brokerii pe care îi cunoaște toată lumea. Cifrele au baze diferite (clienți activi sau totali) și unele sunt estimări de presă: sunt pentru ordine, nu pentru calcule. Furnizorii fără o cifră publică pentru România vin la final. Actualizați anual.",
+  "banks": {
+    "Banca Transilvania": { "count": 5100000, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "BCR": { "count": 3000000, "estimate": true, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "Raiffeisen Bank": { "count": 2400000, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "CEC Bank": { "count": 2200000, "estimate": true, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "ING Bank": { "count": 2000000, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "BRD": { "count": 2000000, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "UniCredit Bank": { "count": 2000000, "estimate": true, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "Salt Bank": { "count": 800000, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "EXIM Banca Românească": { "count": 500000, "estimate": true, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "Garanti BBVA": { "count": 400000, "estimate": true, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "Intesa Sanpaolo Bank": { "count": 200000, "estimate": true, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } },
+    "Libra Internet Bank": { "count": 140000, "asOf": "2026-07", "source": { "label": "bancherul.ro, Câți clienți au băncile", "url": "https://www.bancherul.ro/cati-clienti-au-bancile/" } }
+  },
+  "brokers": {
+    "tradeville": { "count": 160000, "asOf": "2026", "source": { "label": "Ziarul Financiar, despre Tradeville", "url": "https://www.zf.ro/burse-fonduri-mutuale/lupta-clienti-tradeville-unul-dintre-cei-mari-brokeri-bursa-valori-reduce-comisioanele-reactie-imediata-intrarea-piata-romaneasca-platformei-globale-tranzactionare-interactive-brokers-23202336" } },
+    "bt-capital-partners": { "count": 90000, "asOf": "2026-10", "source": { "label": "Banca Transilvania, comunicat BT Capital Partners", "url": "https://www.bancatransilvania.ro/news/comunicate-de-presa/numarul-conturilor-bt-capital-partners-deschise-prin-bt-pay-a-ajuns-la-35000-dublu-fata-de-iunie-2026" } }
+  }
+}

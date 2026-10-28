@@ -1,6 +1,6 @@
 // Words for the backend's ranked providers (GET /api/providers). The backend owns the order and the
 // numbers; this only turns them into the lines an asset page and Acasă show.
-import type { AssetProvidersResponse, RankedBroker, RankedOffer } from '@/contract';
+import type { AssetProvidersResponse, Clients, RankedBroker, RankedOffer } from '@/contract';
 import { pct } from '@/lib/format';
 import { copy, type Lang } from '@/i18n/lang';
 import type { RankedProvider } from './types';
@@ -17,6 +17,7 @@ const T = copy(
     taxEU: 'Impozit 16% pe câștig, îl declari tu în Declarația unică',
     upTo: (rate: string) => `până la ${rate} pe an, după impozit`,
     costsFrom: (cost: string) => `costuri de la ${cost} la un ordin de 1.000 lei`,
+    clients: (n: string, estimate: boolean) => `${estimate ? 'cam ' : ''}${n} clienți în România`,
   },
   {
     perYear: (rate) => `${rate} a year, after tax`,
@@ -27,6 +28,7 @@ const T = copy(
     taxEU: 'Tax of 16% on gains, which you declare yourself in the Declarația unică',
     upTo: (rate) => `up to ${rate} a year, after tax`,
     costsFrom: (cost) => `costs from ${cost} on a 1,000 lei order`,
+    clients: (n, estimate) => `${estimate ? 'about ' : ''}${n} clients in Romania`,
   },
 );
 
@@ -41,6 +43,13 @@ export function checkedMonth(yyyyMm: string | undefined, lang: Lang): string | u
 export const lei2 = (n: number, lang: Lang) =>
   `${new Intl.NumberFormat(LOCALE[lang], { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' }).format(n)} lei`;
 
+/** "5,1 mil. clienți în România" / "about 400,000 clients in Romania". */
+function clientsLine(c: Clients | undefined, lang: Lang): string | undefined {
+  if (!c) return undefined;
+  const n = new Intl.NumberFormat(LOCALE[lang], { notation: c.count >= 1_000_000 ? 'compact' : 'standard', maximumFractionDigits: 1 }).format(c.count);
+  return T[lang].clients(n, Boolean(c.estimate));
+}
+
 function savingsRow(o: RankedOffer, lang: Lang): RankedProvider {
   return {
     id: o.id,
@@ -54,6 +63,7 @@ function savingsRow(o: RankedOffer, lang: Lang): RankedProvider {
     url: o.url,
     checked: checkedMonth(o.checkedAt, lang),
     source: o.source,
+    clientsLine: clientsLine(o.clients, lang),
   };
 }
 
@@ -71,6 +81,7 @@ function brokerRow(b: RankedBroker, lang: Lang): RankedProvider {
     url: b.url,
     checked: checkedMonth(b.checkedAt, lang),
     source: b.source,
+    clientsLine: clientsLine(b.clients, lang),
   };
 }
 
@@ -83,10 +94,9 @@ export function providerRows(res: AssetProvidersResponse, lang: Lang): RankedPro
 export function providersHeadline(res: AssetProvidersResponse | undefined, lang: Lang): string {
   const t = T[lang];
   if (!res) return '';
+  // the lists are ordered by how well known a provider is, so look for the best number
   if (res.providerKind === 'savings') {
-    const top = res.offers[0];
-    return top ? t.upTo(pct(top.netRatePct, 2, lang)) : '';
+    return res.offers.length ? t.upTo(pct(Math.max(...res.offers.map((o) => o.netRatePct)), 2, lang)) : '';
   }
-  const cheapest = res.brokers[0];
-  return cheapest ? t.costsFrom(lei2(cheapest.costLei, lang)) : '';
+  return res.brokers.length ? t.costsFrom(lei2(Math.min(...res.brokers.map((b) => b.costLei)), lang)) : '';
 }

@@ -34,5 +34,21 @@ export function parseProfile(raw: string | undefined): Profile | undefined {
     (p.money.known === undefined || (Array.isArray(p.money.known) && p.money.known.every((l) => LINES.includes(l)))) &&
     Array.isArray(p.completedMomentIds) &&
     p.completedMomentIds.every((id) => typeof id === 'string');
-  return ok ? (p as Profile) : undefined;
+  if (!ok) return undefined;
+  const profile = p as Profile;
+  if (profile.lessonProgress !== undefined && !validProgress(profile.lessonProgress)) delete profile.lessonProgress;
+  return profile;
+}
+
+function validProgress(v: unknown): boolean {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  return Object.values(v).every(
+    (x) =>
+      !!x &&
+      Number.isInteger(x.step) &&
+      x.step >= 0 &&
+      Number.isInteger(x.of) &&
+      Array.isArray(x.results) &&
+      x.results.every((r: unknown) => typeof r === 'boolean'),
+  );
 }

@@ -171,6 +171,19 @@ func init() {
 	load("seed/brokers.json", &b)
 	brokers, brokerAssets = b.Brokers, b.Assets
 
+	var c struct{ Banks, Brokers map[string]rules.Clients }
+	load("seed/clients.json", &c)
+	for i := range offers {
+		if n, ok := c.Banks[offers[i].Provider]; ok {
+			offers[i].Clients = &n
+		}
+	}
+	for i := range brokers {
+		if n, ok := c.Brokers[brokers[i].ID]; ok {
+			brokers[i].Clients = &n
+		}
+	}
+
 	var p struct{ Partners []Partner }
 	load("seed/partners.json", &p)
 	partners = p.Partners
@@ -216,7 +229,17 @@ func offerIn(o rules.Offer, lang Lang) rules.Offer {
 		o.Provider, o.Product, o.Conditions = t.Provider, t.Product, append([]string{}, t.Conditions...)
 	}
 	o.Source = sourceIn(o.Source, lang)
+	o.Clients = clientsIn(o.Clients, lang)
 	return o
+}
+
+func clientsIn(c *rules.Clients, lang Lang) *rules.Clients {
+	if c == nil {
+		return nil
+	}
+	out := *c
+	out.Source = *sourceIn(&c.Source, lang)
+	return &out
 }
 
 // Offers lists the real savings offers, with provider, product and conditions in the given
@@ -260,6 +283,7 @@ func Brokers(lang Lang) []rules.Broker {
 			b.Regulator, b.Conditions = t.Regulator, append([]string{}, t.Conditions...)
 		}
 		b.Source = sourceIn(b.Source, lang)
+		b.Clients = clientsIn(b.Clients, lang)
 		out = append(out, b)
 	}
 	return out

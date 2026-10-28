@@ -3,7 +3,7 @@ import type { TodayResponse } from '@/contract';
 import { PERSONAS } from '../fixtures/personas';
 import { SEED_LESSONS } from '../fixtures/seed-lessons';
 import type { Profile } from '../types';
-import { buildMomente } from './momente';
+import { buildMomente, resumable } from './momente';
 
 const today = {
   open: [{ id: 'run1', momentId: 'payslip_explained', state: 'pending' }],
@@ -50,5 +50,26 @@ describe('Momente order', () => {
 
   it('shows no lessons, not stale ones, when the lessons API is down', () => {
     expect(buildMomente(PERSONAS.maria, today, []).forYourLevel).toEqual([]);
+  });
+
+  it('shows a lesson left halfway as in progress, first, and resumes on the next visit', () => {
+    const etf = SEED_LESSONS.find((m) => m.id === 'etf')!;
+    const p: Profile = { ...PERSONAS.maria, lessonProgress: { etf: { step: 2, results: [true], of: etf.steps.length } } };
+    const m = buildMomente(p, today, SEED_LESSONS);
+    expect(m.forYourLevel[0]).toMatchObject({ id: 'etf', status: 'started', progress: { step: 3, of: etf.steps.length }, href: '/moment/lib/etf' });
+    expect(resumable(etf, p)).toEqual({ step: 2, results: [true], of: etf.steps.length });
+  });
+
+  it('starts over when the lesson changed since, or was left on the first or last screen', () => {
+    const etf = SEED_LESSONS.find((m) => m.id === 'etf')!;
+    const at = (step: number, of = etf.steps.length): Profile => ({ ...PERSONAS.maria, lessonProgress: { etf: { step, results: [], of } } });
+    expect(resumable(etf, at(2, etf.steps.length + 1))).toBeUndefined();
+    expect(resumable(etf, at(0))).toBeUndefined();
+    expect(resumable(etf, at(etf.steps.length - 1))).toBeUndefined();
+  });
+
+  it('keeps finished lessons open to replay', () => {
+    const p: Profile = { ...PERSONAS.maria, completedMomentIds: ['fondul_urgenta'] };
+    expect(buildMomente(p, today, SEED_LESSONS).rest.find((m) => m.id === 'fondul_urgenta')).toMatchObject({ status: 'done', href: '/moment/lib/fondul_urgenta' });
   });
 });

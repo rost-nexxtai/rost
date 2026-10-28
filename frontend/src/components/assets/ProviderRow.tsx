@@ -37,6 +37,7 @@ export function ProviderRow({ p }: { p: RankedProvider }) {
           <span className="small" style={{ fontWeight: 600 }}>
             {p.headline}
           </span>
+          {p.clientsLine && <span className="small muted">{p.clientsLine}</span>}
           {p.taxNote && <span className="small">{p.taxNote}</span>}
           {p.conditions.map((c) => (
             <span key={c} className="note">

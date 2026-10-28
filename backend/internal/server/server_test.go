@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -209,8 +210,12 @@ func TestProvidersOverHTTP(t *testing.T) {
 	if code != 200 || dep["providerKind"] != "savings" || len(offers) == 0 {
 		t.Fatalf("depozit = %d %v", code, dep)
 	}
+	// best-known bank first (most clients in Romania), with its best rate; the next row is another bank
+	if second := offers[1].(map[string]any); second["provider"] != "BCR" {
+		t.Errorf("second deposit = %v", second)
+	}
 	first := offers[0].(map[string]any)
-	if first["id"] != "procredit-12m" || first["url"] != "https://www.procreditbank.ro" || first["isPartner"] != false {
+	if first["id"] != "bt-36m" || first["url"] != "https://www.bancatransilvania.ro" || first["isPartner"] != false || first["clients"] == nil {
 		t.Errorf("first deposit = %v", first)
 	}
 	for _, o := range offers {
@@ -220,8 +225,17 @@ func TestProvidersOverHTTP(t *testing.T) {
 	}
 
 	code, etf := c.do("GET", "/api/providers/etf", "")
-	if brokers, _ := etf["brokers"].([]any); code != 200 || etf["providerKind"] != "brokers" || len(brokers) != 5 {
-		t.Errorf("etf = %d %v", code, etf)
+	brokers, _ := etf["brokers"].([]any)
+	if code != 200 || etf["providerKind"] != "brokers" || len(brokers) != 5 {
+		t.Fatalf("etf = %d %v", code, etf)
+	}
+	var ids []any
+	for _, b := range brokers {
+		ids = append(ids, b.(map[string]any)["id"])
+	}
+	// the two with a Romanian client count, then the rest cheapest first
+	if want := []any{"tradeville", "bt-capital-partners", "trading212", "xtb", "interactive-brokers"}; !reflect.DeepEqual(ids, want) {
+		t.Errorf("brokers = %v, want %v", ids, want)
 	}
 	if code, _ := c.do("GET", "/api/providers/nope", ""); code != 404 {
 		t.Errorf("unknown asset = %d", code)

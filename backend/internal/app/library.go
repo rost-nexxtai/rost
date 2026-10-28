@@ -11,6 +11,7 @@ import (
 	"rost/backend/internal/content"
 	"rost/backend/internal/domain"
 	"rost/backend/internal/learning"
+	"rost/backend/internal/moments"
 	"rost/backend/internal/reference"
 	"rost/backend/internal/rules"
 	"rost/backend/internal/store"
@@ -25,18 +26,20 @@ var (
 
 // was in the today handler, momente needs it too
 type TodayState struct {
-	Open         []domain.MomentRun
-	DoneIDs      []string
-	CatchUpIDs   []string
+	Open       []domain.MomentRun
+	DoneIDs    []string
+	CatchUpIDs []string
+	// CatchUpNeeds: data to ask before a catch-up can open, by moment id (moments.AskOnCatchUp).
+	CatchUpNeeds map[string][]string
 	DueFollowUps []domain.Action
 }
 
-func (s Service) Today(ctx context.Context, userID string) (TodayState, error) {
-	runs, err := s.Store.ListRuns(ctx, userID)
+func (s Service) Today(ctx context.Context, u domain.User) (TodayState, error) {
+	runs, err := s.Store.ListRuns(ctx, u.ID)
 	if err != nil {
 		return TodayState{}, err
 	}
-	t := TodayState{Open: []domain.MomentRun{}, DoneIDs: []string{}, CatchUpIDs: []string{}}
+	t := TodayState{Open: []domain.MomentRun{}, DoneIDs: []string{}, CatchUpIDs: []string{}, CatchUpNeeds: map[string][]string{}}
 	openIDs, done := map[string]bool{}, map[string]bool{}
 	for _, run := range runs {
 		switch run.State {
@@ -50,13 +53,20 @@ func (s Service) Today(ctx context.Context, userID string) (TodayState, error) {
 			}
 		}
 	}
-	// Ids are the same in every language.
+	// Ids are the same in every language. Only moments a catch-up can open, or open once the user
+	// types a salary: one that needs spending they never gave would be a Start button that does nothing.
 	for _, d := range reference.MomentDefs(reference.RO) {
-		if !done[d.ID] && !openIDs[d.ID] && d.Triggers[0] != domain.ShockScenario {
+		if done[d.ID] || openIDs[d.ID] || d.Triggers[0] == domain.ShockScenario {
+			continue
+		}
+		if ok, needs := moments.CatchUpNeeds(d, u); ok {
 			t.CatchUpIDs = append(t.CatchUpIDs, d.ID)
+			if len(needs) > 0 {
+				t.CatchUpNeeds[d.ID] = needs
+			}
 		}
 	}
-	t.DueFollowUps, err = s.DueFollowUps(ctx, userID)
+	t.DueFollowUps, err = s.DueFollowUps(ctx, u.ID)
 	return t, err
 }
 
@@ -295,7 +305,7 @@ func (s Service) Momente(ctx context.Context, u domain.User, lang reference.Lang
 	for i := range library {
 		library[i] = content.Localize(library[i], string(lang))
 	}
-	today, err := s.Today(ctx, u.ID)
+	today, err := s.Today(ctx, u)
 	if err != nil {
 		return learning.MomenteResponse{}, err
 	}

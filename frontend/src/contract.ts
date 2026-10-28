@@ -222,6 +222,15 @@ export interface Source {
   url: string;
 }
 
+/** How many clients a provider has in Romania, and where the figure comes from. */
+export interface Clients {
+  count: number;
+  /** A press estimate, not a figure the provider published. */
+  estimate?: boolean;
+  asOf: string;
+  source: Source;
+}
+
 export interface Offer {
   id: string;
   /** The Acasă asset it is listed under. */
@@ -245,6 +254,8 @@ export interface Offer {
   /** Month the rate was last checked, "2026-10". */
   checkedAt?: string;
   source?: Source;
+  /** Clients in Romania, when known: lists show the best-known providers first. */
+  clients?: Clients;
   updatedAt: string;
 }
 
@@ -341,6 +352,8 @@ export interface TodayResponse {
   doneMomentIds: string[];
   /** Moments the user can open now with a "catch up" tap. */
   catchUpMomentIds: string[];
+  /** Data to ask before a catch-up opens, by moment id: "grossMonthly" goes in the catch_up payload. */
+  catchUpNeeds?: Record<string, string[]>;
   /** Actions whose 7-day check is due. */
   dueFollowUps: Action[];
 }
@@ -396,6 +409,8 @@ export interface Broker {
   url: string;
   checkedAt: string;
   source?: Source;
+  /** Clients in Romania, when known: lists show the best-known providers first. */
+  clients?: Clients;
 }
 
 export interface RankedBroker extends Broker {

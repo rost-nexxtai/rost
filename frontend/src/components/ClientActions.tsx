@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Slider } from '@/components/ui/Slider';
 import { resetProfile, setDemoProfile } from '@/data/actions';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
@@ -15,6 +16,9 @@ const T = copy(
     weekLater: 'O săptămână mai târziu',
     yes: 'Da, gata',
     notYet: 'Încă nu',
+    salary: 'Salariul brut pe lună',
+    salaryNote: 'Nu ai încă salariu? Pune unul la care te aștepți. Îl folosim doar ca să-ți calculăm fluturașul.',
+    cancel: 'Renunță',
   },
   {
     demo: 'Continue as Maria (demo)',
@@ -24,6 +28,9 @@ const T = copy(
     weekLater: 'A week later',
     yes: 'Yes, done',
     notYet: 'Not yet',
+    salary: 'Gross monthly salary',
+    salaryNote: "No salary yet? Put in one you expect. We only use it to work out your payslip.",
+    cancel: 'Cancel',
   },
 );
 
@@ -84,24 +91,58 @@ export function ResetButton() {
 
 /** Opens a moment the user hasn't done yet (user-initiated, so no weekly cap). */
 export function CatchUpButton({ momentId }: { momentId: string }) {
-  const router = useRouter();
   const t = T[useLang().lang];
-  const [busy, setBusy] = useState(false);
+  const { busy, start } = useCatchUp(momentId);
   return (
-    <button
-      className="btn btn-secondary btn-sm"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        const out = await post('/api/events', { type: 'catch_up', payload: { momentId } });
-        const run = out.runs?.[0];
-        if (run) router.push(`/moment/${run.id}`);
-        else router.refresh();
-        setBusy(false);
-      }}
-    >
+    <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => start()}>
       {t.start}
     </button>
+  );
+}
+
+function useCatchUp(momentId: string) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const start = async (extra?: { grossMonthly: number }) => {
+    setBusy(true);
+    try {
+      const out = await post('/api/events', { type: 'catch_up', payload: { momentId, ...extra } });
+      const run = out.runs?.[0];
+      if (run) router.push(`/moment/${run.id}`);
+      else router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, start };
+}
+
+/** Start for a moment that needs a gross salary first (the payslip): one slider, then the moment. */
+export function CatchUpWithSalary({ momentId, children }: { momentId: string; children: React.ReactNode }) {
+  const { lang, f } = useLang();
+  const t = T[lang];
+  const { busy, start } = useCatchUp(momentId);
+  const [asking, setAsking] = useState(false);
+  const [gross, setGross] = useState(6000);
+  const panel = useId();
+  return (
+    <div>
+      <div className="list-row">
+        {children}
+        <button className="btn btn-secondary btn-sm" aria-expanded={asking} aria-controls={panel} onClick={() => setAsking((a) => !a)}>
+          {asking ? t.cancel : t.start}
+        </button>
+      </div>
+      {asking && (
+        <div id={panel} className="stack" style={{ gap: 10, paddingBottom: 12 }}>
+          <Slider label={t.salary} min={3000} max={30000} step={250} value={gross} onChange={setGross} format={f.lei} />
+          <p className="note">{t.salaryNote}</p>
+          <button className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }} disabled={busy} onClick={() => start({ grossMonthly: gross })}>
+            {t.start}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
