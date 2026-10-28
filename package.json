@@ -3,33 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "description": "Rost: your money moments, personal and on time. Hackathon MVP (Stripe NEXXT AI, Bucharest, Oct 2026).",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "db:migrate": "node scripts/migrate.mjs"
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev:backend": "npm run dev -w backend",
+    "dev:frontend": "npm run dev -w frontend",
+    "test": "npm test -w backend",
+    "typecheck": "npm run typecheck --workspaces",
+    "build": "npm run build --workspaces",
+    "db:migrate": "npm run db:migrate -w backend"
   },
   "engines": {
     "node": ">=20.12"
   },
-  "dependencies": {
-    "jose": "^6.2.13",
-    "next": "^16.4.3",
-    "pg": "^8.23.1",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "server-only": "^0.0.1"
-  },
   "devDependencies": {
-    "@types/node": "^22.20.5",
-    "@types/pg": "^8.11.0",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "pg-mem": "^3.0.14",
-    "typescript": "^5.9.3",
-    "vitest": "^5.0.5"
+    "concurrently": "^9.2.1"
   }
 }
