@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { LevelBadge } from './LevelBadge';
 
-type Level = 0 | 1 | 2;
-type RiskProfile = 'prudent' | 'echilibrat' | 'dinamic';
+import type { Level, RiskProfile } from '@/data/types';
 
 /** Wordmark, plus the level chip that opens Profil once the user has a profile. */
 export function TopBar({ profile }: { profile?: { level: Level; riskProfile: RiskProfile } }) {

@@ -1,0 +1,55 @@
+/**
+ * Response shapes the frontend expects for screens the backend doesn't serve yet.
+ * Each one notes the endpoint we're proposing. When the backend team agrees a shape,
+ * it moves to backend/src/contract.ts and data/index.ts switches to the real call.
+ */
+import type { Situation } from '@backend/contract';
+
+export type { Situation };
+
+export type Level = 0 | 1 | 2;
+export type RiskProfile = 'prudent' | 'echilibrat' | 'dinamic';
+export type AgeBand = 'sub_25' | '25_29' | '30_plus';
+export type MoneyHorizon = 'sub_1_an' | '1_3_ani' | 'peste_3_ani';
+export type KnowledgeAnswer = number | 'nu_stiu';
+export type AssetId = 'cont_economii' | 'depozit' | 'titluri_stat' | 'etf' | 'actiuni' | 'aur';
+export type Foundation = 'fond_urgenta' | 'datorii_scumpe' | null;
+
+/** Monthly money lines the Știri items read. inflationPct is personal when known, else national. */
+export interface MoneyLines {
+  fuelLei: number;
+  electricityLei: number;
+  savedLei: number;
+  inflationPct: number;
+}
+
+/** proposed: GET /api/me (extend the user with this profile) */
+export interface Profile {
+  name?: string;
+  quizScore: number;
+  quizLevel: Level;
+  /** max(quiz level, level earned from completed core moments) */
+  level: Level;
+  riskProfile: RiskProfile;
+  ageBand: AgeBand;
+  situation: Situation;
+  bufferMonths: number;
+  expensiveDebt: boolean;
+  horizon: MoneyHorizon;
+  money: MoneyLines;
+  completedMomentIds: string[];
+}
+
+/** proposed: POST /api/quiz */
+export interface QuizAnswers {
+  knowledge: KnowledgeAnswer[];
+  ageBand: AgeBand;
+  situation: Situation;
+  bufferMonths: number;
+  expensiveDebt: boolean;
+  horizon: MoneyHorizon;
+  grossMonthly?: number;
+  fuelLei?: number;
+  electricityLei?: number;
+  savedLei?: number;
+}
