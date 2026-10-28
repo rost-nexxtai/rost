@@ -1,0 +1,35 @@
+{
+  "note": "Onboarding knowledge check. Same questions as frontend/src/data/fixtures/quiz.ts. \"Nu știu\" scores 0.",
+  "knowledge": [
+    {
+      "id": "inflatie",
+      "question": "Ții 1.000 lei sub saltea un an, cu inflație de 6%. Cu ei cumperi…",
+      "options": [
+        "Mai mult",
+        "La fel",
+        "Mai puțin"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "dobanda_compusa",
+      "question": "1.000 lei la 10% pe an, 2 ani, fără să scoți nimic. Ai…",
+      "options": [
+        "Exact 1.200 lei",
+        "Peste 1.200 lei",
+        "Sub 1.200 lei"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "actiune_vs_etf",
+      "question": "Ce e mai riscant?",
+      "options": [
+        "Acțiunile unei singure companii",
+        "Un ETF cu sute de companii",
+        "La fel de riscante"
+      ],
+      "correct": 0
+    }
+  ]
+}

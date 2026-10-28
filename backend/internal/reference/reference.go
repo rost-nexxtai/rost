@@ -70,6 +70,15 @@ type Scenario struct {
 // DemoUser is a synthetic persona from data/seed/demo-users.json.
 type DemoUser = domain.User
 
+// Correct = index of the right option
+type QuizQuestion struct {
+	ID       string   `json:"id"`
+	Question string   `json:"question"`
+	Options  []string `json:"options"`
+	Correct  int      `json:"correct"`
+	Explain  string   `json:"explain,omitempty"`
+}
+
 var (
 	cpi       []CPIRelease
 	offers    []rules.Offer
@@ -77,6 +86,7 @@ var (
 	scenarios []Scenario
 	demoUsers []DemoUser
 	defs      []moments.Definition
+	quiz      []QuizQuestion
 )
 
 func load(path string, v any) {
@@ -109,6 +119,10 @@ func init() {
 	var u struct{ Users []DemoUser }
 	load("seed/demo-users.json", &u)
 	demoUsers = u.Users
+
+	var q struct{ Knowledge []QuizQuestion }
+	load("seed/quiz.json", &q)
+	quiz = q.Knowledge
 
 	for _, name := range []string{"payslip_explained", "personal_inflation", "whatif_shock"} {
 		var d moments.Definition
@@ -178,6 +192,8 @@ func GetMomentDef(id string) (moments.Definition, bool) {
 	}
 	return moments.Definition{}, false
 }
+
+func Quiz() []QuizQuestion { return append([]QuizQuestion(nil), quiz...) }
 
 // DemoUsers are the synthetic personas seeded into the database.
 func DemoUsers() []DemoUser { return append([]DemoUser(nil), demoUsers...) }
