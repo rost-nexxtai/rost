@@ -16,93 +16,109 @@ Money comes from bank, neobank and broker licences (main line), employer seats, 
 
 ---
 
+
+## Repo layout
+
+Two packages in one npm workspace, so backend and frontend can be built in parallel:
+
+| Package | What it is | Who owns it |
+| --- | --- | --- |
+| `backend/` | Hono API on :4000: rules engine, moment engine, store (demo JSON or Postgres), referrals, partner tokens, tests. Request and response shapes live in `backend/src/contract.ts`. | Backend team |
+| `frontend/` | Next.js app on :3000, Romanian UI. Talks to the backend only over HTTP (`/api/*` is proxied to it) and imports **types only** from `backend/src/contract.ts`. | Frontend team |
+
 ## Quick start: demo mode (offline, seeded JSON)
 
 ```bash
 npm install
-cp .env.example .env.local      # DATA_MODE=demo, ALLOW_DEMO_TOKEN=true
-npm run dev                     # http://localhost:3000
+cp backend/.env.example backend/.env.local     # DATA_MODE=demo, ALLOW_DEMO_TOKEN=true
+cp frontend/.env.example frontend/.env.local   # BACKEND_URL=http://localhost:4000
+npm run dev                                    # API on :4000, app on http://localhost:3000
 ```
 
-Click **Continue as Maria (demo)**. Maria is a synthetic persona: a graduate hired on 2026-09-01 with a 6,000 lei gross salary. Everything is held in memory and goes back to the seed on restart, or when you press **Reset demo** in the Simulator.
+Click **Continuă ca Maria (demo)**. Maria is a synthetic persona: a graduate hired on 2026-09-01 with a 6,000 lei gross salary, at level L1, with less than a month of emergency fund. Backend data is held in memory and goes back to the seed on restart, or when you press **Resetează demo-ul** in the Simulator.
 
 ## Working mode (Postgres)
 
 ```bash
 docker compose up -d db
-cp .env.example .env.local
-# in .env.local: DATA_MODE=db
-npm run db:migrate              # applies db/migrations/*.sql and seeds Maria
+# in backend/.env.local: DATA_MODE=db
+npm run db:migrate              # applies backend/db/migrations/*.sql and seeds Maria
 npm run dev
 ```
 
-Both modes run the same code through one `Store` interface: `JsonStore` in demo mode, `PgStore` in working mode. One contract test runs against both (`src/lib/store/store.test.ts`, which uses pg-mem).
+Both modes run the same backend code through one `Store` interface: `JsonStore` in demo mode, `PgStore` in working mode. One contract test runs against both (`backend/src/lib/store/store.test.ts`, using pg-mem).
+
+## Where the frontend gets its data
+
+Every screen reads through `frontend/src/data/index.ts`. Some functions call the real API; the rest return typed fixtures until the backend ships the endpoint.
+
+| Screen | Source today | Proposed endpoint |
+| --- | --- | --- |
+| Session, Maria login, moment runs and the player, follow-ups, simulator, clock, calendar, partner view, referral click → mock bank → funded, metrics | **Real API** | (exists) |
+| Quiz, level and risk profile | Fixtures + `data/mock/scoring.ts`, profile kept in the `rost_profile` cookie | `POST /api/quiz`, profile on `GET /api/me` |
+| Acasă | `data/mock/acasa.ts` | `GET /api/acasa` |
+| Asset pages (providers, simulation) | `data/mock/ranking.ts`, `data/mock/simulation.ts` | `GET /api/assets/:id` |
+| Momente (library, level progress) | `data/mock/momente.ts` + real triggered runs from `/api/today` | `GET /api/momente` |
+| Știri | `data/mock/stiri.ts` | `GET /api/stiri` |
+
+The proposed response types are in `frontend/src/data/types.ts`, each tagged with its endpoint. When the backend team agrees a shape, it moves to `backend/src/contract.ts` and one function body in `data/index.ts` switches to the real call. Every file in `data/mock/` says what replaces it; its tests (the MVP's definition-of-done checks) can move with the logic.
 
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Dev server |
-| `npm test` | Vitest: rules, engine, store parity, end-to-end flow |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run build` / `npm start` | Production build / server |
+| `npm run dev` | API and app together (`dev:backend`, `dev:frontend` for one) |
+| `npm test` | Backend tests: rules, engine, store parity, end-to-end flow |
+| `npm test -w frontend` | Frontend tests: mock scoring, ranking neutrality, simulation, Știri, copy |
+| `npm run typecheck` | `tsc --noEmit` in both packages |
+| `npm run build` | Both packages |
 | `npm run db:migrate` | Working mode: run migrations and seed the demo user |
 
-## Demo script (about 4 minutes)
+Don't run `npm run build -w frontend` while `npm run dev` is running: they share `frontend/.next`, and the dev server starts serving stale modules. Stop dev first, or delete `frontend/.next` afterwards.
 
-1. **Landing → Continue as Maria.**
-2. **Simulator → Clock +30 days, +7 days, then Run today's calendar.**
-   - The Pillar II deadline (hire date + 4 months = 2026-12-31) is now under 30 days away, so the calendar opens *Your payslip, explained* by itself. Nobody pressed a button for it.
-   - Alternative: press **Salary received**. This is what a bank webhook would send.
-3. **Play the payslip moment.**
-   - She guesses her pension contribution.
-   - The answer is 1,500 lei, of which 285 lei goes to her own Pillar II account.
-   - A card covers "the fund nobody chose".
-   - The action is a 400 lei payday savings rule.
-4. **Simulator → INS publishes inflation.** *Your inflation this month*:
-   - National inflation is 6.61%; Maria's is 8.48%, because services weigh more in her spending.
-   - Her 6,000 lei now buys what 5,531 lei did a year ago.
-   - 10,000 lei in a current account loses 782 lei a year against her inflation.
-   - A fuel what-if slider shows how much extra a fuel shortage would cost her.
-5. **Options.** A neutral ranking:
-   - State bonds come first, then deposits, ordered by return after tax.
-   - Partner badges are visible, and the fee is explained.
-   - Open → mock bank → Open → Fund. A fee is recorded only when a funded account belongs to a partner.
-6. **Simulator → Open as [PARTNER BANK].** The same inflation moment, in the bank's colours, from a signed token. Nothing is stored.
-7. **Simulator → +7 days → Today.** A follow-up asks "Did you set it up?". **Metrics** shows the action rate and the payslip-guess gap.
+## Demo script (about 5 minutes)
+
+1. **The hook:** "Who here knows which Pillar II fund they're in?"
+2. **The quiz.** Start the 2-minute test. Answer "Nu știu" a lot → L0, Acasă shows savings and deposits first. **Profil → Resetează**, retake it with all answers right → L2, the order changes. Every asset is always listed; only the order and the labels change.
+3. **Maria.** Resetează, then **Continuă ca Maria**. Acasă puts **Întâi fundația: fondul de urgență** on top, because she has less than a month saved.
+4. **An asset page.** Open *Titluri de stat*: all providers ranked by net rate after tax (Fidelis 7.75%, then Tezaur), partners labelled, the simulation sliders. Open *ETF-uri*: a worst-to-best band from history, never one rising line, plus "Un an ca 2008".
+5. **The business, part 1.** From *Depozit la termen*, **Deschide** on a partner bank → mock bank → **Deschide contul** → **Alimentează-l**. A fee is recorded only for a funded account at a partner.
+6. **A moment, live.** **Profil → Simulator → A intrat salariul.** Momente now shows the payslip moment on top. Play it: guess the pension contribution, see 1,500 lei (285 lei into Pillar II), set a 400 lei payday savings rule.
+7. **A library lesson.** Momente → *Fondul de urgență*: choice, guess, cards, done. Profil shows the progress to the next level.
+8. **Știri.** Fuel after 31 October: +32 lei a month on Maria's numbers; drag the slider. Electricity +30 lei. BNR: 2,500 lei in a current account loses 195 lei a year, 46 lei in Tezaur.
+9. **The business, part 2.** **Simulator → Deschide ca [PARTNER BANK]**: the inflation moment in the bank's colours, from a signed token. **Metrici** shows the action rate and the fee.
 
 ## How it works
 
 ```
-data/                     reference data, versioned JSON, reviewed like code
-  moments/*.json          moment definitions: triggers, conditions, steps
-  seed/macro.json         INS inflation (headline and 3 groups) with source
-  seed/offers.json        savings options (EXAMPLE rates)
-  seed/partners.json      partner banks (placeholders, example fees)
-  seed/scenarios.json     what-if shocks, editor-approved only
-  seed/demo-users.json    Maria (synthetic)
-db/migrations/            Postgres schema for runtime data
-src/lib/rules/            pure money rules 2026: payslip, inflation, ranking, dates
-src/lib/moments/          engine (decide which moment opens) and views (numbers per user)
-src/lib/store/            Store interface, JsonStore (demo), PgStore (db)
-src/lib/calendar.ts       payday, Pillar II deadline, INS release: computed triggers
-src/lib/partner-token.ts  HS256 token a bank signs to open the partner view
-src/lib/service.ts        handleEvent, guesses, actions, follow-ups, referrals
-src/app/                  Next.js pages and API routes
+backend/
+  data/                     reference data, versioned JSON, reviewed like code
+  db/migrations/            Postgres schema for runtime data
+  src/contract.ts           every request and response shape the API speaks
+  src/routes/               Hono routes under /api
+  src/lib/rules/            pure money rules 2026: payslip, inflation, ranking, dates
+  src/lib/moments/          engine (decide which moment opens) and views (numbers per user)
+  src/lib/store/            Store interface, JsonStore (demo), PgStore (db)
+frontend/
+  src/app/                  Next.js pages: /, /quiz, /acasa, /active/[id], /momente, /moment/…, /stiri, /profil, demo tools
+  src/components/ui/        design system: tokens in globals.css, TabBar, cards, RiskMeter, SimChart (SVG), Slider
+  src/data/                 the one door to data: types, fixtures, mock logic, server actions
+  src/lib/api.ts            server-side backend calls that forward the session cookie
 ```
 
-**Triggers.** Every trigger goes through `handleEvent` and then `decide()`. Triggers come from the user, the calendar, a bank webhook, or the news desk. The engine applies four rules:
+**Triggers.** Every trigger goes through the backend's `handleEvent` and then `decide()`. Triggers come from the user, the calendar, a bank webhook, or the news desk. The engine applies four rules:
 
 - **Conditions:** the user's situation and the data the moment needs.
 - **Never twice:** a completed "first" doesn't open again.
 - **No duplicates:** a moment that's already open isn't opened a second time.
 - **Weekly cap:** at most one moment every 7 days, unless the user asked for it.
 
-**Formulas.** All of these live in `src/lib/rules`:
+**Formulas.** In `backend/src/lib/rules` (and mirrored in `frontend/src/data/mock` until the new endpoints exist):
 
 - **Payslip:** CAS 25% (of which Pillar II 4.75%), CASS 10%, income tax 10% on gross − CAS − CASS.
 - **Personal inflation:** Σ (your share × INS group rate).
-- **Ranking:** net rate after tax, then access, then name. Deposit interest is taxed at 10%; state bonds are tax-free.
+- **Ranking:** net rate after tax, then access, then name. Deposit interest is taxed at 10%; state bonds are tax-free. Brokers: the cost of a 1,000 lei order. Partner status is never an input.
+- **Level:** quiz score 0–2 → L0, 3–4 → L1, 5–6 → L2; finishing a level's core lessons moves you up. **Risk profile:** level + 1 if under 30, capped by horizon, emergency fund and expensive debt.
 
 ## API
 
@@ -123,10 +139,10 @@ src/app/                  Next.js pages and API routes
 
 ## Suggested ownership (5 engineers)
 
-- **E1 Rules and data:** `src/lib/rules`, `data/seed`, personal deduction (TODO below), rates refresh.
-- **E2 Engine and triggers:** `src/lib/moments`, `calendar.ts`, events, the simulator.
-- **E3 App UI:** onboarding, Today, the moment player, options.
-- **E4 Partner and referrals:** `/embed`, the partner token, postbacks, the mock bank, metrics.
+- **E1 Rules and data:** `backend/src/lib/rules`, `backend/data/seed`, personal deduction (TODO below), rates refresh.
+- **E2 Engine and triggers:** `backend/src/lib/moments`, `calendar.ts`, events, the simulator.
+- **E3 App UI:** quiz, Acasă, Momente, the moment players (`frontend/`).
+- **E4 Assets and partner UI:** asset pages, Știri, `/embed`, the partner token, postbacks, the mock bank, metrics.
 - **E5 Platform:** the Store and Postgres, migrations, CI, deployment, the payslip reader.
 
 ## Known limits (say them before a judge does)
