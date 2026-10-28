@@ -1,10 +1,18 @@
-# Prima dată — the simple brief
+# Rost — the simple brief
 
 Oct 28, 2026 · @eddie
 
 ## The idea
 
-**Prima dată helps Romanians under 30 understand a money decision at the moment they face it, using their own numbers, and then take one small action.** It works like Brilliant (short, interactive, guess first), but the exercises are your real life, not textbook examples.
+**Rost helps Romanians under 30 learn what to do with their money, on their own numbers, and then take one small step.** It works like Brilliant (short, interactive, guess first), but the exercises use your real salary, your spending and the news. "Prima dată" stays as the name of the series of firsts: your first payslip, your first savings.
+
+**The app has three tabs:**
+
+- **Acasă:** every place to keep or grow money, from a savings account to gold, in the order you should learn them. Each one lists all banks or brokers, their rates or fees, and a simulation graph.
+- **Momente:** 5-minute lessons, one topic each. The ones triggered by your life (payday, a new inflation figure) come first, then the ones for your level.
+- **Știri:** 2–3 real news items that move your money, in lei a month for you. For example: diesel could cost more after 31 October.
+
+A 2-minute quiz sets your level (L0 beginner, L1 medium, L2 advanced). Finishing a level's lessons moves you up. Everyone sees every asset; your level only changes the order.
 
 **The problem**
 
@@ -49,14 +57,16 @@ A **moment** is one of those 3-minute lessons. It opens because something happen
 
 - **Banks, neobanks and brokers** put the moments inside their own apps and pay per active learner. They want young customers who actually start saving and investing, and the action (like the payday savings rule) happens in their app.
 - **Employers** pay per new hire to give young staff the payslip, pension and savings moments in their first weeks.
-- **Referrals, ranked neutrally.** At the end of a savings moment the app shows guaranteed options (deposits and state bonds) ranked by what you keep after tax. Partner banks pay a fee when you open and fund an account, but the order never changes and partners are labelled. This is the smallest stream: young savers hold small balances.
+- **Referrals, ranked neutrally.** Every asset page (savings, deposits, state bonds, ETFs, stocks, gold) lists all providers, ranked by a public formula: what you keep after tax, or what the broker charges. Partner banks and brokers pay a fee when you open and fund an account, but the order never changes and partners are labelled. This is the smallest stream: young savers hold small balances.
 
 **One rule we never break:** nobody can pay to be recommended. When options are compared, they're ranked by a public formula, the same for every partner.
 
 ## What we show in the demo
 
 1. **The hook:** "Who here knows which Pillar II fund they're in?"
-2. **One moment, live:** Maria guesses, sees her real payslip numbers, sets her savings rule.
-3. **The business:** the same moment running inside a bank's app, plus one slide on who pays.
+2. **The quiz:** Maria answers 6 questions and lands on L1. Acasă puts her missing emergency fund first.
+3. **One moment, live:** she guesses, sees her real numbers and takes one step.
+4. **Știri:** diesel after 31 October would cost her about 32 lei more a month.
+5. **The business:** the same app inside a bank's app, a neutral ranking with a partner label, and one slide on who pays.
 
 The full brief and the scores are in the next tab; the screens are on the design canvas.

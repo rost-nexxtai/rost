@@ -1,24 +1,37 @@
-# Prima dată — MVP and business plan
+# Rost — MVP and business plan
 
 Oct 28, 2026 · @eddie
 
 ## Summary
 
-**What we build.** Prima dată sends Romanians under 30 a 3-minute "moment" when something happens in their money life. Each moment uses their own numbers and ends in one action. Moments are triggered by the user, by the calendar, or later by the bank.
+**What we build.** Rost helps people under 30 in Romania (wedge: fresh graduates) learn what to do with their money, on their own numbers. The app has three tabs:
 
-**How we earn.** Users pay nothing. Revenue comes from three streams, in order of size:
+- **Acasă:** every place to keep or grow money, from a savings account to gold, in a learning order set by the user's level. Each asset has all providers, their rates or fees, and a simulation graph.
+- **Momente:** interactive lessons of 5 minutes or less, one topic each. Triggered moments (payslip arrived, inflation published) come first, then the ones for the user's level, then the rest. Finishing a level's core moments moves the user up.
+- **Știri:** 2–3 real news items that move the user's money, such as fuel prices after the Iran war, each turned into lei a month on the user's numbers.
 
-1. **Bank, neobank and broker licences:** our moments inside their app, paid per active learner.
-2. **Employer seats:** onboarding for first-job hires.
-3. **Neutral referrals:** a fee per funded savings account, which never affects the ranking.
+A 2-minute onboarding quiz sets the user's level and risk profile. **L0** means little or no knowledge, **L1** medium, **L2** advanced. The risk profile starts from age and level, then is capped by the emergency fund, expensive debt and when the money is needed.
+
+**Learning order, not advice.** Every asset is shown to every user. The level changes the order and the label ("pentru nivelul tău", "mai departe"), never access. Rost never writes "recommended for you" next to a financial instrument, and the broker partner runs the legal appropriateness test when an account is opened. Recommending specific instruments based on a profile counts as a personal recommendation under MiFID II, which needs ASF authorisation; a lawyer confirms this before launch.
+
+**Main selling point.** It lives inside the bank's app. The bank already knows the user's spending categories, so Știri and personal inflation are precise from day one. The standalone Rost app is the second front end on the same engine.
+
+**How we earn.** Users pay nothing.
+
+1. Bank, neobank and broker licences (main): Rost inside their app, paid per active user.
+2. Employer seats: onboarding for young hires.
+3. Neutral referrals from asset pages: a fee per funded savings, deposit or broker account. The ranking follows a public formula and never depends on who pays.
 
 **What the hackathon MVP must prove, live on stage:**
 
-1. **A trigger opens a moment.** A simulated event ("salary received") leads to a notification, then the moment.
-2. **The numbers are real.** A payslip, typed in or photographed, goes through a tested 2026 rules engine and comes out as a personal reveal.
-3. **It ends in action.** One action is recorded, ranked options show a partner link, and the same moment runs inside a mock bank app. That's the business, working.
+1. The quiz works: two users get different levels, and Acasă reorders. A user without an emergency fund sees it first, at any level.
+2. Asset pages are real: all providers ranked by a public formula, and simulations built from sourced data (fixed rates; historical ranges for ETFs, stocks and gold).
+3. Learning moves people: a moment takes under 5 minutes, triggered moments jump to the top, and core moments level the user up.
+4. Știri is personal: 3 real, sourced items, each with the user's lei-a-month impact.
+5. The business works: a partner token opens Rost in the bank's theme, and a referral from an asset page ends in a tracked funded account.
+6. The code is submittable: a demo mode (seeded JSON, works offline) and a working mode (Postgres).
 
-**What the 12-week pilot must prove:** young users take the action (not just read), one employer pays, and one bank or broker agrees to a paid pilot.
+**What the 12-week pilot must prove:** young users act, not just read; one bank or broker agrees to a paid pilot; one employer pays.
 
 ## Hackathon MVP scope
 
@@ -26,83 +39,208 @@ Build one path end to end and fake nothing that a juror can click. Everything si
 
 | Feature | In the MVP | How real |
 | --- | --- | --- |
-| Onboarding: 3 questions (situation, payday or hire date, firsts already done) | Must | Real |
-| Today screen: next moment, "Your moments", catch-up list | Must | Real |
-| Moment engine: moments defined as data (trigger → condition → steps → action → follow-up) | Must | Real |
-| Moment A, payslip: guess, reveal from your numbers, Pillar II card, payday savings rule | Must | Real numbers; typed in, photo as a bonus |
-| Moment B, savings: inflation reveal, then options ranked by net return, with partner links | Must | Real formula; example offers |
-| Event simulator: hidden panel firing *salary received*, *inflation published*, *graduated* | Must | Simulated, by design |
-| Referral tracking: click → mock bank page → "funded" postback → fee logged | Must | Real flow, mock bank |
-| Partner view: moment A inside a mock bank app, opened with a signed token | Must | Real embed, mock bank |
-| Metrics page: moments started, actions completed, referrals funded | Should | Real, from our events |
-| Payslip photo reading (vision model, per-field confidence) | Should | Real, with typed-in fallback |
-| Change moment ("your raise: what changed"), Romanian/English switch | Could | — |
-| Real bank data, real referrals, investing and PFA moments, app-store apps | Won't (roadmap) | — |
+| Onboarding quiz: 6 knowledge questions set the level (L0–L2); 5 profile questions (age band, situation, emergency fund, expensive debt, when the money is needed); optional salary and spending mix | Must | Real scoring, unit-tested |
+| Acasă: all 6 assets in learning order for the user's level, with "Întâi fundația" on top when the emergency fund is under 3 months | Must | Real |
+| Asset page: what it is, risk, access, 2026 tax; all providers ranked (rate after tax, or cost for brokers); simulation graph; "Vreau să aflu mai multe despre X" | Must | Real formulas; example banks and brokers; Tezaur rates real (October 2026) |
+| Momente: triggered first, then the user's level, then the rest; progress to the next level | Must | Real |
+| 10 moments in Romanian: payslip, personal inflation, what-if, emergency fund, savings vs deposit, compound interest, state bonds, ETFs, stocks, gold | Must: 6 core + payslip · Should: all 10 | Real content, sourced figures |
+| Știri: 3 real items, ordered by the user's exposure, with a lei-a-month slider | Must | Real news and sources; impact labelled as a scenario |
+| Event simulator and demo clock | Must | Simulated, by design |
+| Referral tracking from asset pages: click → mock bank or broker → "funded" postback → fee logged | Must | Real flow, mock provider |
+| Partner view: personal inflation inside a mock bank app, opened with a signed token | Must | Real embed, mock bank |
+| Metrics page: moments, actions, level-ups, referrals funded | Should | Real, from our events |
+| Payslip photo reading (vision model, per-field confidence) | Could | Real, with typed-in fallback |
+| Real bank data, live rates feed, real referrals, English UI, app-store apps | Won't (roadmap) | — |
 
 **Definition of done, checked at feature freeze:**
 
-- [ ] A fresh user finishes onboarding and sees a different Today screen for "student" vs "employed".
-- [ ] "Salary received" fires a notification that opens moment A in under 2 seconds.
-- [ ] For 5 test payslips, the reveal matches hand-checked numbers to the leu (rules-engine tests pass).
-- [ ] The savings action is stored and shows as done after a simulated follow-up.
-- [ ] The ranking is the same no matter which offers are partners (a unit test proves it).
-- [ ] A referral click ends in a "funded" event and a fee line on the metrics page.
-- [ ] Moment A runs inside the mock bank app, themed and from the same code.
+- [ ] Two fresh users who score 1 and 6 on the quiz get L0 and L2, and see Acasă in a different order.
+- [ ] A user with under 3 months of emergency fund sees "Întâi fundația" on top, at any level.
+- [ ] No screen says "recomandat pentru tine" next to Fidelis, an ETF, a stock or a commodity.
+- [ ] Every asset page ranks providers the same whether or not they're partners (a unit test proves it).
+- [ ] Simulation numbers match hand-checked cases (unit tests), and every historical range names its source.
+- [ ] Finishing the 3 core L0 moments moves an L0 user to L1.
+- [ ] "Salary received" puts the payslip moment at the top of Momente in under 2 seconds.
+- [ ] Știri shows 3 dated items with source links, and the user's lei-a-month figure moves with the slider.
+- [ ] A referral click from an asset page ends in a "funded" event and a fee line on the metrics page.
 - [ ] The whole demo runs offline from seeded data if the venue's wifi fails.
 
 ## Product spec
 
-**Onboarding (under 60 seconds):**
+Three tabs, one profile. The quiz sets the profile; Acasă and Momente read the level; Știri reads the spending mix. All UI text is in Romanian.
 
-1. *What's your money situation right now?* Studying, just graduated, employed, freelance (PFA), between jobs. Pick all that apply.
-2. *When do you get paid?* Day of the month; for the employed, also the hire date, which drives the Pillar II 4-month deadline.
-3. *Which of these have you already done?* Got a payslip, saved money, opened an investing app, freelanced, filed a tax return. Every ticked item becomes a catch-up moment.
+**Onboarding quiz (about 2 minutes):**
 
-**The moment engine.** A moment is data, not code, so new moments ship without a release. Every moment has the same fields:
+1. Knowledge, 6 questions, "Nu știu" always allowed: inflation and cash, compound interest, one stock vs an index ETF, tax on state bonds, bond prices when rates rise, what an ETF is. Score 0–2 gives L0, 3–4 gives L1, 5–6 gives L2.
+2. Profile: age band; situation (studying, just graduated, employed, PFA, between jobs); "if your income stopped, how many months could you live on savings?"; expensive debt (credit card, personal loan, buy now pay later); when the money might be needed.
+3. Optional: gross salary, payday and hire date (sets the Pillar II deadline), and a 60-second spending mix for personal inflation and Știri.
+
+**Levels:**
+
+|  | L0 | L1 | L2 |
+| --- | --- | --- | --- |
+| Knowledge | Little or none | Medium | Advanced |
+| Assets marked "pentru nivelul tău" | Savings account, term deposit | L0 + state bonds (Tezaur, Fidelis), index ETFs | L1 + stocks, gold and commodities |
+| Core moments to move up | Emergency fund, savings vs deposit, compound interest | State bonds, ETFs | Stocks, gold |
+
+**Risk profile** = level + 1 if under 30. A total of 0 is prudent, 1–2 echilibrat, 3 dinamic. Two caps apply:
+
+- Money needed within a year: prudent.
+- Emergency fund under 3 months, or expensive debt: at most echilibrat, and "Întâi fundația" shows on Acasă.
+
+The profile shows as a label and flags assets above it ("risc peste profilul tău"). It never hides an asset.
+
+**Acasă:**
+
+- "Întâi fundația" card, only when needed: emergency fund first, then expensive debt.
+- "Pentru nivelul tău": assets at or below the user's level, in a fixed order: savings account, deposit, state bonds, ETFs, stocks, gold and commodities.
+- "Mai departe": the rest, marked with the level that unlocks the lesson.
+- Each card: name, one line, risk 1–5, best rate after tax or lowest cost, "Vezi opțiuni și simulare".
+
+**Asset page:**
+
+- What it is, risk, access and 2026 tax.
+- All providers, ranked by a public formula. Savings, deposits and state bonds go by net yearly rate after tax, then easier access, then name. Brokers go by the cost of a 1,000 lei order (commission plus currency spread), then name. Partners are labelled "we may earn a fee"; partner status is never an input.
+- Simulation: sliders for starting amount, monthly amount and years, drawn as a line chart.
+  - Fixed products: the value at the best net rate, what was paid in, and the same value in today's money at the user's inflation.
+  - ETFs, stocks, gold: three lines from history (worst, typical, best 10-year period), never one rising line, plus "what a year like 2008 would do".
+- A "Vreau să aflu mai multe despre X" button opens that asset's moment.
+
+| Asset | Lesson level | Risk (1–5) | Simulation basis |
+| --- | --- | --- | --- |
+| Cont de economii | L0 | 1 | Best net rate in the list (10% tax on interest) |
+| Depozit la termen | L0 | 1 | Best net rate in the list |
+| Titluri de stat (Tezaur, Fidelis) | L1 | 1 | [Tezaur, October 2026 issue](https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026): 6.50% for 1 year, 7% for 3, 7.50% for 5, tax-free; Fidelis lei 6.60%–7.75% |
+| ETF-uri pe indici | L1 | 3 | [MSCI World](https://en.wikipedia.org/wiki/MSCI_World) 1970–2025, yearly return over 10-year periods: worst −0.19%, typical 10.15%, best 19.92%; worst year 2008, −40.33% |
+| Acțiuni | L2 | 5 | Same index band; one company can go to zero; [BET lost 70% in 2008](https://www.wall-street.ro/articol/Piete-de-capital/56291/cel-mai-prost-an-al-bursei-de-la-bucuresti-bet-a-pierdut-70.html) |
+| Aur și mărfuri | L2 | 4 | [Gold via GLD](https://chartrow.com/gold/returns) 2005–2025, 10-year periods: worst 0.47%, typical 5.11%, best 14.61%; worst year 2013, −28.3% |
+
+We computed the 10-year figures from the yearly returns on those pages (47 periods for MSCI World, 12 for gold). They are in dollars, before fees, taxes and currency moves, and the app says so.
+
+**2026 tax on gains** ([impozitul.ro](https://impozitul.ro/impozit-bursa), to check against the Fiscal Code): through a Romanian broker, 3% if held over a year and 6% under a year, withheld at source. Through a foreign broker, 16%, declared in the Declarația unică.
+
+**Momente:**
+
+- Order: open triggered moments first (payslip arrived, inflation published, a what-if from Știri). Then "pentru nivelul tău" moments not yet done, core first. Then the rest, with done ones marked.
+- Each takes 5 minutes or less. Step types: guess on a slider, multiple choice with an explanation, a reveal on the user's numbers, a card, then one action or a link to the asset page.
+- Finishing a level's core moments moves the user up. The quiz level is the floor.
+- At most one pushed moment a week, never two at once. Moments the user starts aren't capped. A follow-up comes 7 days after an action, and an action counts only once confirmed.
+
+| Moment | Level | Opens when |
+| --- | --- | --- |
+| Fluturașul tău, explicat | L0 | Salary received, payslip uploaded, or the Pillar II deadline is within 30 days |
+| Inflația ta luna asta | L0 | INS publishes inflation (monthly) |
+| Ce-ar fi dacă… | L0 | A what-if from Știri |
+| Fondul de urgență (core) | L0 | Library; pinned while the fund is under 3 months |
+| Cont de economii sau depozit? (core) | L0 | Library |
+| Dobânda la dobândă (core) | L0 | Library |
+| Titluri de stat (core) | L1 | Library |
+| ETF-uri (core) | L1 | Library |
+| Acțiuni (core) | L2 | Library |
+| Aur și mărfuri (core) | L2 | Library |
+
+**The moment engine.** A moment is data, not code, so new moments ship without a release:
 
 ```json
 {
-  "id": "payslip_explained",
-  "triggers": ["salary_received", "payslip_uploaded", "catch_up"],
-  "conditions": {"situation": ["employed"], "not_done": "payslip_explained"},
+  "id": "etf",
+  "series": "Investiții",
+  "level": 1,
+  "core": true,
+  "assetIds": ["etf"],
+  "triggers": [],
   "steps": [
-    {"type": "predict", "question": "Out of your gross, how much goes to your future?", "answer": "rules.payslip.pension_total"},
-    {"type": "reveal", "breakdown": "rules.payslip.split"},
-    {"type": "card", "content": "pillar2_assigned"},
-    {"type": "action", "action": "payday_savings_rule"}
-  ],
-  "follow_up_days": 7,
-  "repeat_on": ["raise_detected", "new_year_rules"]
+    {"type": "choice", "question": "Ce cumperi când cumperi un ETF pe un indice global?", "correct": 1},
+    {"type": "predict", "question": "Cât a scăzut MSCI World în 2008?", "answerValue": -40.33},
+    {"type": "reveal", "view": "asset_range", "assetId": "etf"},
+    {"type": "card", "title": "Costuri și impozit"},
+    {"type": "finish", "cta": {"label": "Vezi ETF-urile", "href": "/active/etf"}}
+  ]
 }
 ```
 
-**Notification rules:** at most one moment a week, never two at once, silent when the conditions fail. A follow-up check comes 7 days after the action. Without a confirmed action the moment isn't counted as done.
+**Event simulator (demo only):** salary received, payslip uploaded, inflation published, a what-if, raise, and a demo clock. Each one writes an event and runs the same trigger code real events will use.
 
-**Moment A: your payslip, explained** (works on any payslip, not just the first)
+**Partner view:** the bank's app opens Rost with a signed token. The token carries only an age band, the triggering event and spending shares by category, so no customer data reaches us. The action button sends the user back to the bank's own screen.
 
-1. Predict: a slider guesses how much of gross goes to the pension.
-2. Reveal from the user's numbers: pension contribution 25% (4.75% of gross into their own Pillar II account), health 10%, income tax, take-home.
-3. Card: "the fund you were assigned", with a link to check it, and no fund recommendation.
-4. Action: a payday savings amount and target (3 months of expenses), done in the user's own bank.
+## Știri: what the news means for your money
 
-**Moment B: your first savings**
+Știri shows 2–3 real items that move the user's money, each with dated facts, linked sources and "Ce înseamnă pentru tine" in lei a month. Items are ordered by the user's own exposure, so a driver sees fuel first and someone without a car sees the interest-rate item first. Each item links to one moment.
 
-1. Trigger: "inflation published" (monthly) for users with savings ticked or a balance entered.
-2. Reveal: what a year did to their amount in cash, a deposit after the 10% tax, and a tax-free state bond.
-3. Ranked options (rules below), then the action: open, or add the next state-bond window to the calendar.
+The items for the demo, as of 28 October 2026, with Maria's numbers (fuel 400 lei, electricity 150 lei a month, 2,500 lei saved, personal inflation 8.48%):
 
-**Ranked options rules:** guaranteed products only (deposits and state bonds), filtered by when the money is needed, ranked by net yearly return after tax. Ties go to easier access, then alphabetical. Partners are labelled, and the fee is paid only on funded accounts. The formula is behind a "How we rank" link.
+| Item | Facts we quote | On Maria's numbers | Moment |
+| --- | --- | --- | --- |
+| Oil stays expensive and the diesel excise cut ends on 31 October ([Ziarul Profit](https://www.ziarulprofit.ro/pret-carburanti-28-octombrie-2026-benzina-a-sazut-sub-10-lei-la-unele-statii/), [comparison](https://www.ziarulprofit.ro/preturile-carburantilor-au-explodat-in-romania-cat-costa-un-plin-de-benzina-sau-motorina-comparativ-cu-2025-si-cum-se-schimba-pretul-produselor-de-la-raft-din-aceasta-cauza/), [context](https://en.wikipedia.org/wiki/Economic_impact_of_the_2026_Iran_war)) | Brent $114.22 a barrel on 27 Oct. Petrol 10.10 and diesel 10.90 lei/L, against 7.46 and 7.66 a year ago. Without the excise cut, diesel could rise about 0.85 lei/L. Oil rose with the Iran war, which began on 28 Feb 2026 | +8% on fuel = +32 lei a month (slider 0–25%) | Fondul de urgență |
+| Electricity bills could rise 20–22% this winter and spring ([Capital](https://www.capital.ro/facturile-la-gaze-si-energie-electrica-in-iarna-2026-2027-vor-exista-si-scumpiri-cu-peste-20.html)) | Estimate by the Ministry of Energy's secretary of state. Household gas has a regulated price, so no rise is expected there | +20% on electricity = +30 lei a month (slider 0–35%) | Inflația ta |
+| BNR keeps its rate at 6.50% and expects inflation to rise again ([Bankingnews](https://bankingnews.ro/bnr-mentine-dobanda-cheie-la-650.html)) | Decided 8 Oct, the eighth meeting in a row. Drivers: fuel, energy, severe drought, the Middle East conflict, a weaker leu. Erste/BCR expect no cut before May 2027 | 2,500 lei in a current account loses about 195 lei a year; in Tezaur at 6.50%, tax-free, the loss shrinks to about 46 lei | Titluri de stat |
 
-**Event simulator (demo only):**
+Item types we cover:
 
-- *salary received*, *payslip uploaded*, *inflation published*, *bond window open*, *graduated*, *raise*.
-- Each one writes an event and runs the same trigger code real events will use.
+| Event | Official source | How often | What we compute for the user |
+| --- | --- | --- | --- |
+| Inflation release | INS | Monthly | Personal inflation, real salary, savings vs inflation |
+| Interest-rate decision | BNR | Several times a year (BNR calendar) | Change on deposits and variable-rate loans |
+| IRCC index | BNR | Quarterly, known a quarter ahead | Next payment on a variable-rate mortgage |
+| Exchange rate | BNR daily EUR/RON | Monthly summary | Change in euro-priced rent or loan payments, in lei |
+| Rule change | Monitorul Oficial | When published | What changes in your net pay, taxes or thresholds |
+| Shock (war, shortage, energy) | Editorial, reviewed by a person | Rarely | A what-if scenario with a slider, never a forecast |
 
-**Partner view:** the bank's app opens our moment with a signed token. The token carries only an age band, the triggering event and the bank's theme, so no customer data reaches us. The action button sends the user back into the bank's own screen.
+**Formulas to add to the rules engine:**
+
+- Personal inflation = Σ (your share of spending in a category × that category's 12-month inflation).
+- Real salary = salary ÷ (1 + inflation since your last raise).
+- Euro exposure = monthly euro costs × the change in EUR/RON, shown in lei.
+- Rate exposure ≈ variable loan balance × change in rate ÷ 12. The amortization engine gives the exact payment.
+- Scenario = your monthly spend in the category × the shock the user sets on the slider.
+
+**Worked example (demo data, September 2026):**
+
+- INS figures: national inflation 6.61%; services +11.12%, non-food +7.06%, food +3%.
+- Personal inflation: Maria spends 55% on services, 25% on non-food and 20% on food. 0.55 × 11.12 + 0.25 × 7.06 + 0.20 × 3 = 8.48%.
+- Real salary: her 6,000 lei today buys what about 5,531 lei did a year ago.
+- Scenario: fuel spend 400 lei a month × 8% = +32 lei a month.
+- Savings: 2,500 lei × (1 ÷ 1.0848 − 1) = −195 lei a year in a current account.
+
+**Where the spending mix comes from:**
+
+- **Standalone app:** a 60-second "money mix" (rent and its currency, commute, food, utilities, loans).
+- **Inside a bank's app:** transaction categories, aggregated on the bank's side. We receive category shares, never transactions.
+
+**Actions a news moment can end in:**
+
+- Update the buffer target to match personal inflation.
+- A "raise conversation" card with the real-salary figure.
+- A heads-up on the next variable-loan payment.
+- The neutral ranked savings options.
+
+**Guardrails:**
+
+- Facts are quoted from named sources, each linked and dated.
+- The user's figure is labelled "scenariu, nu prognoză". Its default is tied to a cited estimate where one exists (8% for diesel, 20% for electricity).
+- No predictions of wars, markets or prices, and no "buy gold".
+- Calm tone, no politics.
+- An editor approves every item. An AI model may draft one, but never publishes it.
+
+**Data model additions:**
+
+| Table | Key fields |
+| --- | --- |
+| macro\_series | source, series, period, value, published\_at, url |
+| news | id, date, title, facts\[\], sources\[\], impact (spend line + scenario, or savings), moment\_id, status (draft / approved), reviewed\_by |
+| scenarios | id, title, context, spend\_line, default / min / max shock, status, reviewed\_by |
+| spending\_profiles | user\_id, category shares, monthly fuel / electricity / food, source (self / bank) |
+
+**Done when:** Maria's Știri shows the three items above in that order (+32, +30 and −195 lei a year), each with working source links, and each slider moves her figure live.
 
 ## Architecture and data model
 
 One engine serves both our app and the partner view, so the bank screen in the demo is the real product, not a mock-up.
+
+The repo is being split into two packages so backend and frontend can be built in parallel:
+
+- **backend/**: an HTTP API (Node, Hono) holding the rules engine, moment engine, store (demo JSON or Postgres), referrals and partner tokens, with its own tests.
+- **frontend/**: the Next.js app. It talks to the backend only over HTTP and imports response types from `backend/src/contract.ts`, types only.
 
 &#91;embedded content: MVP architecture · 3 trigger sources, 1 engine, 2 front ends, 3 outputs\]
 
@@ -112,24 +250,30 @@ Events from all three sources pass the same trigger service. The engine computes
 
 | Table | Key fields |
 | --- | --- |
-| users | id, situation\[\], payday, hire\_date, age\_band, firsts\_done\[\], locale |
-| events | id, user\_id, type, payload, source (simulator / calendar / bank), created\_at |
+| users | id, situation\[\], payday, hire\_date, gross\_monthly, monthly\_expenses, firsts\_done\[\], spending, profile (age\_band, quiz\_score, quiz\_level, level, risk\_profile, buffer\_months, expensive\_debt, horizon) |
+| events | id, user\_id, type, payload, source (simulator / calendar / bank / user / editor), created\_at |
 | moment\_runs | id, user\_id, moment\_id, trigger\_event\_id, state, guess, result, started\_at, completed\_at |
 | actions | id, user\_id, moment\_run\_id, type, params, status (set / confirmed / skipped), follow\_up\_at |
-| offers | id, provider, product, kind (deposit / state bond), gross\_rate, tax\_rate, term\_months, access\_rank, min\_amount, conditions, is\_partner, updated\_at, source\_url |
-| referrals | id, user\_id, offer\_id, click\_id, status (clicked / opened / funded), fee, updated\_at |
-| partners | id, kind (bank / broker / employer), theme, token\_key, referral\_terms |
+| referrals | id, user\_id, offer\_id, partner\_id, click\_id, status (clicked / opened / funded), fee, updated\_at |
+| offers (JSON) | id, asset\_id, provider, product, kind (deposit / state bond), gross\_rate, term\_months, access\_rank, min\_amount, conditions, partner\_id, example, source |
+| brokers (JSON) | id, name, country (RO / EU), assets\[\], commission %, minimum commission, currency spread %, partner\_id, example |
+| assets (JSON) | id, name, lesson level, risk 1–5, access, tax, simulation (fixed, or worst / typical / best yearly return + worst year + source), moment\_id |
+| partners (JSON) | id, kind (bank / broker / employer), theme, token key, fee per funded account |
 
-Moment definitions live as JSON files in the repo, not in the database, so they're reviewed like code.
+Reference data lives as JSON files in the repo, not in the database, so it's reviewed like code: moment definitions, assets, offers, brokers, partners, inflation, scenarios and Știri items.
 
 **Rules-engine formulas (2026):**
 
 - Pension contribution (CAS) = 25% × gross, of which Pillar II = 4.75% × gross.
 - Health contribution (CASS) = 10% × gross.
-- Income tax = 10% × (gross − CAS − CASS − personal deduction). The personal deduction depends on gross salary and dependants (**verify** the 2026 table).
+- Income tax = 10% × (gross − CAS − CASS − personal deduction). The personal deduction depends on gross salary and dependants (verify the 2026 table).
 - Net rate = gross rate × (1 − 10%) for deposits; gross rate for state bonds, which are tax-free.
 - Real change in a year = amount × ((1 + net rate) ÷ (1 + inflation) − 1).
-- Ranking = sort by net rate, then easier access, then name. Partner status is not an input.
+- Ranking for savings and bonds = sort by net rate, then easier access, then name. Partner status is not an input.
+- Broker cost for an order = max(commission % × amount, minimum commission) + currency spread % × amount. Brokers are ranked by that cost, then name.
+- Simulation = starting amount and monthly amount compounded monthly at the yearly rate, year by year. Run once for fixed products, three times (worst, typical, best) for market assets.
+- Level = the higher of the quiz level and the highest level whose lower-level core moments are all done.
+- Risk profile = level + 1 if under 30 (0 prudent, 1–2 echilibrat, 3 dinamic). Need the money within a year: prudent. Under 3 months of emergency fund or expensive debt: at most echilibrat.
 
 Every formula gets tests with hand-checked cases, and every number on screen shows its formula and the year of the rules.
 
@@ -137,29 +281,30 @@ Every formula gets tests with hand-checked cases, and every number on screen sho
 
 **Suggested stack (swap anything the team knows better):**
 
-- Next.js + TypeScript as a mobile-first web app.
-- Postgres via Supabase, hosted on Vercel.
-- The rules engine as a pure TypeScript package with Vitest tests.
+- Frontend: Next.js + TypeScript, a mobile-first web app, Romanian UI.
+- Backend: a separate Node API (Hono + TypeScript) with Vitest tests; the rules engine is pure TypeScript inside it.
+- Postgres via Supabase or Docker; a demo mode on seeded JSON that works offline.
+- Charts drawn as SVG in the frontend, from series the backend computes.
 - A vision model for payslip photos, returning JSON against a fixed schema.
 - Signed JWTs for the partner view.
 
 | Who | Owns | Must work by |
 | --- | --- | --- |
-| E1 · Rules & engine | Rules engine (payslip split, real return, ranking), condition evaluator, moment schema; tests with 5 hand-checked payslips plus the "partners don't change the order" test | Payslip H8 · ranking H12 |
-| E2 · Backend & triggers | Database, API, event simulator, trigger service (one moment a week), follow-ups, referral tracker with "funded" postback, partner token signing, metric events | Triggers H8 · referrals and token H14 |
-| E3 · App UI | App shell, onboarding, Today, moment player (predict, reveal, card, action), offline seeded mode | Moment A H8 · moment B H14 |
-| E4 · Savings & partner UI | Ranked options screen, mock bank page for referrals, partner view in a mock bank theme, metrics page | H14 |
-| E5 · Payslip reader & pitch | Photo reading with confidence and typed fallback (H12); then test payslips, offer seed data, validation calls, slides, video; owns the demo script | Reader H12 · video H21 |
+| E1 · Rules & simulation (backend) | Rules engine (payslip, real return, savings ranking, broker cost), simulation series, quiz scoring, levels and risk profile; tests with hand-checked cases plus the "partners don't change the order" test | Quiz and levels H6 · simulation H10 |
+| E2 · API & triggers (backend) | API routes and contract types, store (demo and Postgres), event simulator, trigger service (one pushed moment a week), follow-ups, referral tracker with "funded" postback, partner token, Știri tailoring, metrics | Contract H2 · triggers H8 · Știri and referrals H12 |
+| E3 · App UI (frontend) | App shell with Acasă, Momente, Știri; onboarding quiz; Acasă in learning order; moment player (choice, guess, reveal, card, action, finish) | Quiz and Acasă H8 · moment player H12 |
+| E4 · Assets & partner UI (frontend) | Asset page with ranked providers and the simulation chart, Știri cards with sliders, mock bank and broker pages, partner view in a mock bank theme, metrics page | Asset page H10 · Știri H14 |
+| E5 · Content & pitch | The 10 moments in Romanian and their sourced figures, Știri items (editor role), offer and broker seed data, payslip reader if time allows; slides, video, demo script | 6 core moments H8 · video H21 |
 
 | Hours | Milestone |
 | --- | --- |
-| H0–H1 | Everyone: freeze scope from this tab, repo and CI, database schema, moment schema, design tokens from the canvas, seed data |
-| H1–H8 | Build in parallel |
-| **H8** | **Checkpoint 1:** "salary received" → moment A → action, on a phone, typed-in payslip |
-| H8–H14 | Moment B, ranking, referrals, partner view |
-| **H14** | **Checkpoint 2:** the whole demo path works (ugly is fine) |
-| H14–H18 | Polish, photo reading, metrics page, copy review |
-| **H18** | **Feature freeze:** run the definition-of-done checklist |
+| H0–H2 | Everyone: freeze scope from this tab; split repo (backend/ and frontend/) and CI; API contract types; database and moment schema; design tokens from the canvas; seed data |
+| H2–H8 | Build in parallel; the frontend works against the contract and the demo backend |
+| H8 | Checkpoint 1: quiz → level → Acasă in order; "salary received" → payslip moment → action, on a phone |
+| H8–H14 | Asset pages with simulation, Momente levels, Știri, referrals, partner view |
+| H14 | Checkpoint 2: the whole demo path works (ugly is fine) |
+| H14–H18 | Polish, the remaining moments, metrics page, Romanian copy review |
+| H18 | Feature freeze: run the definition-of-done checklist |
 | H18–H21 | Record the 3-minute video; bug fixes only |
 | H21–H24 | Rehearse the live demo 5 times; backup recording; test offline mode |
 
@@ -167,12 +312,13 @@ Every formula gets tests with hand-checked cases, and every number on screen sho
 
 **If time runs short, cut in this order:**
 
-1. Photo reading (keep typed-in).
+1. Payslip photo reading (keep typed-in).
 2. Metrics page (show one slide).
-3. Change moment.
-4. The live partner view (keep a screenshot).
+3. Moments beyond the 6 core ones and the payslip.
+4. Broker providers on the ETF, stock and gold pages (keep the simulation).
+5. The live partner view (keep a screenshot).
 
-Never cut: trigger → moment A → action, and the ranked options with a partner label. Those two are the product and the business.
+Never cut: quiz → level → Acasă in learning order, an asset page with ranked providers and a partner label, and one Știri item on the user's numbers. Those are the product and the business.
 
 ## After the hackathon: the 12-week pilot MVP
 
@@ -207,7 +353,7 @@ We're a business-to-business-to-consumer company: banks and employers bring the 
 | People under 30 | Romanian money rules nobody explains when it matters | Moments on their own numbers, ending in actions | Nothing |
 | Banks, neobanks, brokers (licence) | Young customers sign up but never start saving or investing; activation is bought with cashback | Moments inside their app, with the action completed in their product; activation measured | Yearly platform fee + monthly fee per active learner; optional fee per completed action |
 | Employers with many young hires | New hires' money stress and payslip questions | First-job onboarding: payslip, pension fund, savings rule, PFA vs contract | Per new hire onboarded |
-| Banks (referrals) | Acquiring savers who actually fund the account | Users who arrive with a goal and money ready, under neutral ranking | Per funded account |
+| Banks and brokers (referrals) | Acquiring savers who actually fund the account | Users who arrive from an asset page with a goal, a simulation and money ready, under neutral ranking | Per funded account |
 
 **Price anchors, not prices.** Set prices in the first conversations, anchored to what each payer already spends:
 
@@ -218,7 +364,7 @@ We're a business-to-business-to-consumer company: banks and employers bring the 
 **Unit economics, as formulas to fill with pilot data:**
 
 - Licence revenue per month = active learners × price per learner + platform fee ÷ 12.
-- Referral revenue per month = users who see ranked options × click rate × funded rate × fee per funded account.
+- Referral revenue per month = users who open an asset page × click rate × funded rate × fee per funded account.
 - Employer revenue per year = hires onboarded × price per hire.
 - Cost to serve per active user = photo-reading calls + hosting + support. Small, and falling as moments are reused.
 - Fixed costs: the yearly rules update and finance review, the security and compliance work banks require, the team.
@@ -242,6 +388,7 @@ We're a business-to-business-to-consumer company: banks and employers bring the 
 | Banks' own education pages and youth programmes | Generic articles under one brand | Triggered by your event, on your numbers, neutral across products |
 | Rate-comparison sites | Tables for people already shopping | We reach people before they shop, and explain why before showing options |
 | Finance creators and videos | Attention and generic advice | Romanian rules kept current, your own numbers, actions tracked |
+| Finance learning apps (lessons, levels, streaks) | Generic lessons, gamified | Romanian products and rules, the user's own numbers and news, and every lesson ends at a real, neutrally ranked next step |
 | Neobank tools (savings vaults, round-ups) | Tools without the "why" | Complementary: the action happens in their tools, which makes them licence customers |
 | Zogo (US) | Youth financial education built on 200+ bank and credit-union partners | Proof the partner model works abroad. Not in Romania, and not triggered by real events |
 
@@ -287,7 +434,7 @@ Lesson content on its own is easy to copy; don't count it as a moat.
 
 | Risk | Mitigation |
 | --- | --- |
-| Seen as investment advice | Education only: no personal product recommendations, guaranteed products in rankings, a lawyer's opinion in week 1 |
+| Seen as investment advice | Learning order, not recommendations: every asset shown to every user, no "recommended for you" on instruments, the broker runs the appropriateness test, historical ranges instead of a forecast line; a lawyer's opinion in week 1 |
 | Users read but don't act | Measure confirmed actions, not opens; cut moments that don't lead to action |
 | Banks buy slowly | Neobanks and brokers first, referrals before licences, employer revenue in the meantime |
 | A partner wants to steer content | Neutrality clause in every contract; walk away if it's refused |
@@ -309,3 +456,13 @@ Market and rule sources for the idea itself are in the "Young adults: Prima dat�
 - [ProCredit "Parteneri de bancă": 500 lei per referred business](https://www.procreditbank.ro/wp-content/uploads/2026/04/Regulament-Campanie-Parteneri-de-banca-01.04.2026-–-31.07.2026.pdf) — ProCredit Bank, 2026
 - [Zogo signs 200+ financial-institution partners](https://www.cuinsight.com/press-release/gen-z-targeted-zogo-app-reaches-milestone-signing-200-financial-institution-partners/) — CUInsight, 21 Jun 2022
 - [Under-35s must join Pillar II within 4 months](https://www.mediafax.ro/?p=2532063) — Mediafax, 8 Apr 2008
+- [Tezaur and Fidelis rates, October 2026 issue](https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026) — Goldring, October 2026
+- [MSCI World gross annual returns, 1970–2025](https://en.wikipedia.org/wiki/MSCI_World) — Wikipedia; 10-year figures computed by us
+- [Gold (GLD) returns by year, 2005–2026](https://chartrow.com/gold/returns) — chartrow.com, as of 26 Oct 2026; 10-year figures computed by us
+- [BET lost 70% in 2008](https://www.wall-street.ro/articol/Piete-de-capital/56291/cel-mai-prost-an-al-bursei-de-la-bucuresti-bet-a-pierdut-70.html) — Wall-Street.ro
+- [Tax on stock and ETF gains in 2026](https://impozitul.ro/impozit-bursa) — impozitul.ro (check against the Fiscal Code)
+- [Fuel prices on 28 October 2026](https://www.ziarulprofit.ro/pret-carburanti-28-octombrie-2026-benzina-a-sazut-sub-10-lei-la-unele-statii/) and [the comparison with 2025 and the excise cut](https://www.ziarulprofit.ro/preturile-carburantilor-au-explodat-in-romania-cat-costa-un-plin-de-benzina-sau-motorina-comparativ-cu-2025-si-cum-se-schimba-pretul-produselor-de-la-raft-din-aceasta-cauza/) — Ziarul Profit, 28 Oct 2026
+- [Gas and electricity bills in winter 2026–2027](https://www.capital.ro/facturile-la-gaze-si-energie-electrica-in-iarna-2026-2027-vor-exista-si-scumpiri-cu-peste-20.html) — Capital, 7 Oct 2026
+- [BNR keeps the key rate at 6.50%](https://bankingnews.ro/bnr-mentine-dobanda-cheie-la-650.html) — Bankingnews, 8 Oct 2026
+- [Economic impact of the 2026 Iran war](https://en.wikipedia.org/wiki/Economic_impact_of_the_2026_Iran_war) — Wikipedia
+- [Annual inflation 6.61% in September 2026](https://www.wall-street.ro/articol/economie/inflatia-anuala-creste-la-661-in-septembrie.html) — INS, via Wall-Street.ro
