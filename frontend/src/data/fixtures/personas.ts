@@ -1,6 +1,6 @@
 import type { Profile } from '../types';
 
-/** FIXTURE: synthetic demo personas. Maria matches backend/data/seed/demo-users.json and the MVP's Știri numbers. */
+/** FIXTURE: synthetic demo personas. Maria matches backend/internal/reference/data/seed/demo-users.json and the MVP's Știri numbers. */
 export const PERSONAS = {
   maria: {
     name: 'Maria',

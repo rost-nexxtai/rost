@@ -2,7 +2,7 @@
   "name": "@rost/frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "Rost web app (Next.js). Talks to the backend only over HTTP; types come from backend/src/contract.ts.",
+  "description": "Rost web app (Next.js). Talks to the backend only over HTTP; types live in src/contract.ts.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

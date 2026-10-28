@@ -13,7 +13,9 @@ import (
 
 	"rost/backend/internal/config"
 	"rost/backend/internal/database"
+	"rost/backend/internal/reference"
 	"rost/backend/internal/server"
+	"rost/backend/internal/store"
 )
 
 func main() {
@@ -40,9 +42,15 @@ func run(logger *slog.Logger) error {
 	defer db.Close()
 	logger.Info("connected to postgres")
 
+	st := store.NewPostgres(db)
+	if err := st.Migrate(ctx, reference.DemoUsers()); err != nil {
+		return err
+	}
+	logger.Info("migrations applied", "demoTools", cfg.AllowDemoTools)
+
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           server.New(logger, db),
+		Handler:           server.New(server.Deps{Logger: logger, DB: db, Store: st, Config: cfg}),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

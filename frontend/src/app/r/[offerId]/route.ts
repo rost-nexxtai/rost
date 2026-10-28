@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { ReferralClickResponse } from '@backend/contract';
+import type { ReferralClickResponse } from '@/contract';
 import { api } from '@/lib/api';
 
 /** Referral link: the backend records the click, then we send the user on (to the mock bank in the demo). */

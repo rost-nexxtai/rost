@@ -18,4 +18,38 @@ jobs:
           cache-dependency-path: backend/go.sum
       - run: go vet ./...
       - run: go test ./...
+      - run: go test ./internal/store/
+        env:
+          ROST_TEST_DATABASE_URL: postgres://rost:rost@localhost:5432/rost?sslmode=disable
       - run: docker build -t rost-backend .
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rost
+          POSTGRES_PASSWORD: rost
+          POSTGRES_DB: rost
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rost -d rost"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TodayResponse } from '@backend/contract';
+import type { TodayResponse } from '@/contract';
 import { PERSONAS } from '../fixtures/personas';
 import type { Profile } from '../types';
 import { buildMomente } from './momente';

@@ -1,9 +1,9 @@
 /**
  * Response shapes the frontend expects for screens the backend doesn't serve yet.
  * Each one notes the endpoint we're proposing. When the backend team agrees a shape,
- * it moves to backend/src/contract.ts and data/index.ts switches to the real call.
+ * it moves to src/contract.ts (and the Go handler) and data/index.ts switches to the real call.
  */
-import type { Action, Situation } from '@backend/contract';
+import type { Action, Situation } from '@/contract';
 
 export type { Situation };
 
@@ -66,7 +66,7 @@ export interface SavingsProvider {
   accessRank: 1 | 2 | 3;
   isPartner: boolean;
   example: boolean;
-  /** Offer id in backend/data/seed/offers.json; set only when a real referral link exists. */
+  /** Offer id in backend/internal/reference/data/seed/offers.json; set only when a real referral link exists. */
   offerId?: string;
 }
 

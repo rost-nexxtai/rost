@@ -1,7 +1,7 @@
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
 import { lei } from '@/lib/format';
-import type { MetricsResponse } from '@backend/contract';
+import type { MetricsResponse } from '@/contract';
 import { api } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';

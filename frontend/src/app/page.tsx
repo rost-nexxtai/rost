@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import type { MeResponse } from '@backend/contract';
+import type { MeResponse } from '@/contract';
 import { DemoLogin } from '@/components/ClientActions';
 import { getProfile } from '@/data';
 import { entryRoute } from '@/data/mock/scoring';

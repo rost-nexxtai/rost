@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { InflationView } from '@backend/contract';
+import type { InflationView } from '@/contract';
 import { lei, pct } from '@/lib/format';
 import { ScenarioSlider, type ScenarioSliderProps } from './ScenarioSlider';
 

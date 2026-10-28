@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { EmbedMoment } from '@/components/embed/EmbedMoment';
 import { scenarioProps } from '@/lib/scenario';
-import type { EmbedResponse } from '@backend/contract';
+import type { EmbedResponse } from '@/contract';
 import { apiOrNothing } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';

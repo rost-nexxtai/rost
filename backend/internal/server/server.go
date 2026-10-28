@@ -1,12 +1,18 @@
-// Package server wires HTTP routes to handlers.
+// Package server wires HTTP routes to handlers. App routes live under /api; the request and
+// response shapes match frontend/src/contract.ts.
 package server
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
+
+	"rost/backend/internal/app"
+	"rost/backend/internal/config"
+	"rost/backend/internal/store"
 )
 
 // Pinger is the slice of the database pool the health check needs.
@@ -14,7 +20,20 @@ type Pinger interface {
 	Ping(ctx context.Context) error
 }
 
-func New(logger *slog.Logger, db Pinger) http.Handler {
+type Deps struct {
+	Logger *slog.Logger
+	DB     Pinger
+	Store  store.Store
+	Config config.Config
+}
+
+type server struct {
+	Deps
+	svc app.Service
+}
+
+func New(d Deps) http.Handler {
+	s := &server{Deps: d, svc: app.Service{Store: d.Store}}
 	mux := http.NewServeMux()
 
 	// Liveness: the process is up.
@@ -26,15 +45,16 @@ func New(logger *slog.Logger, db Pinger) http.Handler {
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
-		if err := db.Ping(ctx); err != nil {
-			logger.Warn("readiness check failed", "err", err)
+		if err := d.DB.Ping(ctx); err != nil {
+			d.Logger.Warn("readiness check failed", "err", err)
 			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"status": "unavailable", "database": "down"})
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "database": "up"})
 	})
 
-	return logRequests(logger, mux)
+	s.routes(mux)
+	return logRequests(d.Logger, mux)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -42,6 +62,32 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
+
+type apiError struct {
+	Error string `json:"error"`
+	Hint  string `json:"hint,omitempty"`
+}
+
+func fail(w http.ResponseWriter, status int, msg string) {
+	writeJSON(w, status, apiError{Error: msg})
+}
+
+// internal logs the error and answers 500 without details.
+func (s *server) internal(w http.ResponseWriter, r *http.Request, err error) {
+	s.Logger.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
+	fail(w, http.StatusInternalServerError, "internal error")
+}
+
+// readJSON decodes the request body into v, answering 400 when it isn't valid JSON.
+func readJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(v); err != nil {
+		fail(w, http.StatusBadRequest, "invalid JSON body")
+		return false
+	}
+	return true
+}
+
+func isNotFound(err error) bool { return errors.Is(err, store.ErrNotFound) }
 
 type statusRecorder struct {
 	http.ResponseWriter

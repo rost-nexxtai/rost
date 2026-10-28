@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { TodayResponse } from '@backend/contract';
+import type { TodayResponse } from '@/contract';
 import { api } from '@/lib/api';
 import { parseProfile, PROFILE_COOKIE } from './mock/profile';
 import { ASSETS } from './fixtures/assets';

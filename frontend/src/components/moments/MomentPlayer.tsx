@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { MomentResponse, Step } from '@backend/contract';
+import type { MomentResponse, Step } from '@/contract';
 import { lei } from '@/lib/format';
 import { scenarioProps } from '@/lib/scenario';
 import { ActionStep } from './steps/ActionStep';

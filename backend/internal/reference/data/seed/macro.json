@@ -1,0 +1,12 @@
+{
+  "cpi": [
+    {
+      "period": "2026-09",
+      "headlinePct": 6.61,
+      "groupsPct": { "services": 11.12, "nonFood": 7.06, "food": 3.0 },
+      "source": "INS, annual inflation September 2026, as reported by Wall-Street.ro",
+      "url": "https://www.wall-street.ro/articol/economie/inflatia-anuala-creste-la-661-in-septembrie.html",
+      "publishedAt": "2026-10-13"
+    }
+  ]
+}

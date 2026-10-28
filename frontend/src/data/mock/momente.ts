@@ -1,5 +1,5 @@
 // MOCK until backend ships GET /api/momente. Triggered moments are real (from GET /api/today).
-import type { TodayResponse } from '@backend/contract';
+import type { TodayResponse } from '@/contract';
 import { LIBRARY } from '../fixtures/moments';
 import type { LibraryMoment, Level, MomenteResponse, MomentSummary, Profile } from '../types';
 import { CORE_MOMENTS } from './scoring';

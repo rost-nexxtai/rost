@@ -2,7 +2,7 @@ import type { SavingsProvider } from '../types';
 
 /**
  * FIXTURE until backend ships GET /api/assets/:id.
- * Banks: the same example offers as backend/data/seed/offers.json (placeholder names, example rates).
+ * Banks: the same example offers as backend/internal/reference/data/seed/offers.json (placeholder names, example rates).
  * State bonds: the real October 2026 issue (Goldring, MFP), tax-free.
  */
 export const SAVINGS: SavingsProvider[] = [

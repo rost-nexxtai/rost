@@ -14,26 +14,38 @@ The product we are building is described in [Architecture.md](Architecture.md). 
 ## Run it
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build        # Postgres on :5432, Go API on :8080 (demo tools on)
 curl localhost:8080/readyz
 ```
 
-This starts Postgres 16 (`db`, port 5432) and the Go API (`backend`, port 8080). See [backend/README.md](backend/README.md) for configuration and local development.
+The API applies its migrations and seeds the demo persona (Maria) on start. See [backend/README.md](backend/README.md) for configuration and local development without Docker.
 
-The UI is a Next.js app. It covers the adult experience only so far and gets its data from mock fixtures in `frontend/src/data/`, not from the backend yet. Its design and plan are in [docs/superpowers](docs/superpowers):
+The UI is a Next.js app. It covers the adult experience only so far; its design and plan are in [docs/superpowers](docs/superpowers). Run it with Node 20.12 or newer:
 
 ```bash
 cd frontend
+cp .env.example .env.local          # BACKEND_URL=http://localhost:8080
 npm install
-npm run dev        # http://localhost:3000
+npm run dev                          # http://localhost:3000
 ```
+
+Click **Continuă ca Maria (demo)**. The browser only talks to the Next.js app; it proxies `/api/*` to the Go API, so the session cookie stays first-party.
+
+## Where the frontend gets its data
+
+| Screen | Source today |
+| --- | --- |
+| Session, Maria login, triggered moments and the moment player, follow-ups, simulator, clock, calendar, partner view, referral click → mock bank → funded, metrics | **Go API** |
+| Quiz, level and risk profile, Acasă, asset pages, Știri, library moments | Fixtures and mock logic in `frontend/src/data/` (each file names the endpoint that will replace it) |
+
+Request and response shapes live in `frontend/src/contract.ts` and match the Go handlers' JSON tags in `backend/internal/server`.
 
 ## Layout
 
 ```
 Architecture.md      target product: adult accounts (Home, Moments, News; levels L0–L2) and child accounts (games)
-backend/             Go API (net/http, pgx), Dockerfile
-frontend/            Next.js UI, adults only so far: quiz, Acasă, Momente, Știri, profile (mock data)
+backend/             Go API (net/http, pgx): rules engine, moment engine, Postgres store, referrals, partner tokens
+frontend/            Next.js app, Romanian UI, adults only so far: quiz, Acasă, asset pages, Momente, Știri, demo tools
 docs/                frontend design spec and implementation plan
-docker-compose.yml   Postgres + backend
+docker-compose.yml   Postgres + Go API
 ```

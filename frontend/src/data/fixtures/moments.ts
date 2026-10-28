@@ -1,7 +1,7 @@
 import type { LibraryMoment } from '../types';
 
 /**
- * FIXTURE until backend ships library moments as data (backend/data/moments).
+ * FIXTURE until backend ships library moments as data (backend/internal/reference/data/moments).
  * Two are written; the rest are listed so the learning path is visible, marked "în curând".
  */
 export const LIBRARY: LibraryMoment[] = [

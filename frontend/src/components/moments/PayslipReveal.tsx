@@ -1,4 +1,4 @@
-import type { PayslipBreakdown } from '@backend/contract';
+import type { PayslipBreakdown } from '@/contract';
 import { lei } from '@/lib/format';
 
 const PARTS = [

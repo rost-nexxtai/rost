@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import type { ReferralResponse } from '@backend/contract';
+import type { ReferralResponse } from '@/contract';
 import { api, apiOrNothing } from '@/lib/api';
 import { lei } from '@/lib/format';
 
