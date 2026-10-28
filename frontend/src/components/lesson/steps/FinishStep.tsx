@@ -86,9 +86,11 @@ export function FinishStep({
             </ul>
           </div>
         )}
-        <Link href="/momente" className="small">
-          {t.backToMoments}
-        </Link>
+        {cta.href !== '/momente' && (
+          <Link href="/momente" className="small">
+            {t.backToMoments}
+          </Link>
+        )}
       </div>
       <LessonBar label={cta.label} onClick={() => router.push(cta.href)} />
     </>

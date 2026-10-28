@@ -1,5 +1,6 @@
 'use client';
 
+import { QUIZ } from '@/data/fixtures/quiz';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LessonBar } from '@/components/lesson/LessonBar';
@@ -14,7 +15,7 @@ const T = copy(
   {
     kicker: 'Gata, te-am cunoscut',
     startAt: 'Pornești de la nivelul',
-    score: (n: number, risk: string, line: string) => `${n} din 3 corecte · profil ${risk}: ${line}`,
+    score: (n: number, of: number, risk: string, line: string) => `${n} din ${of} corecte · profil ${risk}: ${line}`,
     first: (min: number) => `Prima ta lecție · ${min} minute`,
     browse: 'Mai întâi vreau să mă uit prin aplicație',
     note: 'Nivelul schimbă doar ordinea în care îți arătăm lucrurile. Nu e o recomandare de investiții.',
@@ -23,7 +24,7 @@ const T = copy(
   {
     kicker: 'Done, nice to meet you',
     startAt: "You're starting at",
-    score: (n, risk, line) => `${n} of 3 right · ${risk} profile: ${line}`,
+    score: (n, of, risk, line) => `${n} of ${of} right · ${risk} profile: ${line}`,
     first: (min) => `Your first lesson · ${min} minutes`,
     browse: "I'd rather look around the app first",
     note: "Your level only changes the order we show things in. It's not investment advice.",
@@ -32,7 +33,7 @@ const T = copy(
 );
 
 /** Where you start, said in one screen, and straight into the first lesson. */
-export function QuizResult({ profile, note }: { profile: Profile; note?: string }) {
+export function QuizResult({ profile }: { profile: Profile }) {
   const router = useRouter();
   const { lang } = useLang();
   const t = T[lang];
@@ -49,7 +50,7 @@ export function QuizResult({ profile, note }: { profile: Profile; note?: string 
         <div className="row-start rise">
           <LevelBadge level={profile.level} />
           <span className="muted">
-            {t.score(profile.quizScore, terms.risk[profile.riskProfile], terms.riskLine[profile.riskProfile].toLowerCase())}
+            {t.score(profile.quizScore, QUIZ.knowledge.length, terms.risk[profile.riskProfile], terms.riskLine[profile.riskProfile].toLowerCase())}
           </span>
         </div>
         {lesson && (
@@ -66,7 +67,6 @@ export function QuizResult({ profile, note }: { profile: Profile; note?: string 
         <Link href="/acasa" className="small" style={{ alignSelf: 'center' }}>
           {t.browse}
         </Link>
-        {note && <p className="note">{note}</p>}
         <p className="note">{t.note}</p>
       </div>
       <LessonBar label={t.start} onClick={() => router.push(lesson ? `/moment/lib/${lesson.id}` : '/acasa')} />

@@ -91,7 +91,7 @@ describe('English content mirrors Romanian', () => {
 
   it('quiz: same questions, options and right answers', () => {
     expect(QUIZ_EN.knowledge.map((q) => [q.id, q.options.length, q.correct])).toEqual(QUIZ.knowledge.map((q) => [q.id, q.options.length, q.correct]));
-    for (const key of ['ageBand', 'situation', 'bufferMonths'] as const) {
+    for (const key of ['ageBand', 'situation', 'bufferMonths', 'expensiveDebt'] as const) {
       expect(QUIZ_EN.profile[key].map((o) => o.value)).toEqual(QUIZ.profile[key].map((o) => o.value));
     }
   });

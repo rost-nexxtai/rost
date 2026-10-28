@@ -42,7 +42,13 @@ export default async function Acasa() {
         <p className="muted">{t.sub}</p>
       </section>
 
-      {foundation && <FoundationCard kind={foundation} bufferMonths={profile.bufferMonths} />}
+      {foundation && (
+        <FoundationCard
+          kind={foundation}
+          bufferMonths={profile.bufferMonths}
+          lessonDone={profile.completedMomentIds.includes('fondul_urgenta')}
+        />
+      )}
 
       <section className="section" aria-labelledby="nivel">
         <h2 id="nivel" className="section-title">

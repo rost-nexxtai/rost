@@ -41,7 +41,8 @@ export function buildMomente(p: Profile, today: TodayResponse | undefined, lang:
   const done = new Set(p.completedMomentIds);
   const forYourLevel = LIBRARY.filter((m) => m.level <= p.level && !done.has(m.id))
     .map((m, i) => ({ m, i }))
-    .sort((a, b) => b.m.level - a.m.level || a.i - b.i)
+    // Lessons you can play first; ones still being written ("în curând") last. Then own level first.
+    .sort((a, b) => Number(!a.m.steps.length) - Number(!b.m.steps.length) || b.m.level - a.m.level || a.i - b.i)
     .map(({ m }) => summary(m, false));
 
   const realRest: MomentSummary[] = (today?.moments ?? [])

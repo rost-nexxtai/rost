@@ -9,6 +9,13 @@ describe('profile cookie parsing', () => {
     expect(parseProfile(JSON.stringify({ level: 7 }))).toBeUndefined();
   });
 
+  it('rejects a cookie whose answered-lines list is not a list of known lines', () => {
+    const bad = { ...PERSONAS.maria, money: { ...PERSONAS.maria.money, known: 'fuelLei' } };
+    expect(parseProfile(JSON.stringify(bad))).toBeUndefined();
+    const ok = { ...PERSONAS.maria, money: { ...PERSONAS.maria.money, known: ['fuelLei'] } };
+    expect(parseProfile(JSON.stringify(ok))).toEqual(ok);
+  });
+
   it('reads back a valid profile unchanged', () => {
     expect(parseProfile(JSON.stringify(PERSONAS.maria))).toEqual(PERSONAS.maria);
   });

@@ -22,6 +22,8 @@ const T = copy(
     afterYear: 'După un an ai',
     ofTarget: (have: string, target: string) => `${have} din ${target}`,
     reach: 'Ajungi la țintă în',
+    already: (x: string) => `Ai deja cam ${x} puși deoparte, din ce ne-ai spus la început.`,
+    reached: 'Ești deja la țintă. Bravo!',
     // Compound
     afterYears: (y: string) => `După ${y} ai`,
     split: (paid: string) => `tu ai pus ${paid}, dobânda a adus`,
@@ -61,6 +63,8 @@ const T = copy(
     afterYear: 'After a year you have',
     ofTarget: (have, target) => `${have} of ${target}`,
     reach: 'You reach it in',
+    already: (x) => `You already have about ${x} saved, from what you told us at the start.`,
+    reached: "You're already there. Well done!",
     afterYears: (y) => `After ${y} you have`,
     split: (paid) => `you put in ${paid}, interest added`,
     growthChart: (y) => `Growth over ${y}`,
@@ -118,16 +122,21 @@ function Bar({ label, value, max, color, right }: { label: string; value: number
   );
 }
 
-/** Emergency fund: your expenses set the target, your monthly saving sets how long it takes. */
-function FundBuilder({ onTouch }: { onTouch: () => void }) {
+/**
+ * Emergency fund: your expenses set the target, your monthly saving sets how long it takes.
+ * Starts from the months you said you already have saved at onboarding.
+ */
+function FundBuilder({ onTouch, haveMonths = 0 }: { onTouch: () => void; haveMonths?: number }) {
   const { t, f } = useWidget();
   const touch = useTouch(onTouch);
   const [spend, setSpend] = useState(2500);
   const [span, setSpan] = useState(3);
   const [save, setSave] = useState(300);
   const target = fundTarget(spend, span);
-  const n = monthsToGoal(target, save);
-  const firstYear = Math.min(1, (save * 12) / target);
+  const have = Math.min(target, fundTarget(spend, haveMonths));
+  const n = monthsToGoal(target, save, have);
+  const afterYear = Math.min(target, have + save * 12);
+  const firstYear = target > 0 ? afterYear / target : 1;
   return (
     <div className="play">
       <Slider label={t.spend} min={1000} max={8000} step={100} value={spend} onChange={touch(setSpend)} format={f.lei} />
@@ -143,9 +152,16 @@ function FundBuilder({ onTouch }: { onTouch: () => void }) {
         <div className="play-big pos">{f.lei(target)}</div>
       </div>
       <Slider label={t.save} min={100} max={2000} step={50} value={save} onChange={touch(setSave)} format={f.lei} />
-      <Bar label={t.afterYear} value={firstYear} max={1} color="var(--primary)" right={t.ofTarget(f.lei(Math.min(target, save * 12)), f.lei(target))} />
+      {have > 0 && <p className="note">{t.already(f.lei(have))}</p>}
+      <Bar label={t.afterYear} value={firstYear} max={1} color="var(--primary)" right={t.ofTarget(f.lei(afterYear), f.lei(target))} />
       <p className="lesson-text">
-        {t.reach} <strong>{t.months(n)}</strong>.
+        {n === 0 ? (
+          t.reached
+        ) : (
+          <>
+            {t.reach} <strong>{t.months(n)}</strong>.
+          </>
+        )}
       </p>
     </div>
   );
@@ -279,10 +295,10 @@ function BondsVsDeposit({ onTouch }: { onTouch: () => void }) {
   );
 }
 
-export function Widget({ id, onTouch }: { id: WidgetId; onTouch: () => void }) {
+export function Widget({ id, onTouch, haveMonths }: { id: WidgetId; onTouch: () => void; haveMonths?: number }) {
   switch (id) {
     case 'fund_builder':
-      return <FundBuilder onTouch={onTouch} />;
+      return <FundBuilder onTouch={onTouch} haveMonths={haveMonths} />;
     case 'compound':
       return <Compound onTouch={onTouch} />;
     case 'savings_vs_deposit':

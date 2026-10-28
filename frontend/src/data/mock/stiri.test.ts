@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PERSONAS } from '../fixtures/personas';
 import type { Profile } from '../types';
-import { buildStiri, savingsLossLei, spendImpactLei } from './stiri';
+import { buildStiri, needsAmount, savingsLossLei, spendImpactLei } from './stiri';
 
 describe('Știri impact on Maria', () => {
   it('turns a price shock into lei a month', () => {
@@ -22,5 +22,18 @@ describe('Știri impact on Maria', () => {
   it('moves fuel last for someone without a car', () => {
     const noCar: Profile = { ...PERSONAS.maria, money: { ...PERSONAS.maria.money, fuelLei: 0 } };
     expect(buildStiri(noCar).items[2].id).toBe('motorina');
+  });
+});
+
+describe('asking for an amount', () => {
+  const money = { fuelLei: 0, electricityLei: 150, savedLei: 0, inflationPct: 6.61 };
+
+  it('asks only for lines the user has not answered yet', () => {
+    expect(needsAmount(money, 'fuelLei')).toBe(true);
+    expect(needsAmount(money, 'electricityLei')).toBe(false);
+  });
+
+  it('treats an answered 0 ("I have no car") as an answer, not a question', () => {
+    expect(needsAmount({ ...money, known: ['fuelLei'] }, 'fuelLei')).toBe(false);
   });
 });

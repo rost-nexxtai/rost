@@ -11,8 +11,12 @@ import { num } from '@/lib/format';
 export const showValue = (v: number, unit: string, lang: Lang = 'ro') =>
   (unit === '%' ? `${num(v, lang)}%` : `${num(Math.round(v), lang)} ${unit}`).replace('-', '−');
 
-/** Close enough counts: within one step, or a tenth of the scale. */
-export function isClose(guess: number, answer: number, min: number, max: number, step: number) {
+/**
+ * Close enough counts: within one step, or a tenth of the scale. When the honest answer is a range
+ * (3–6 months of spending), anything inside it is right.
+ */
+export function isClose(guess: number, answer: number, min: number, max: number, step: number, accept?: [number, number]) {
+  if (accept && guess >= accept[0] && guess <= accept[1]) return true;
   return Math.abs(guess - answer) <= Math.max(step, (max - min) / 10);
 }
 
@@ -29,6 +33,7 @@ export function PredictStep({
   unit,
   start,
   answer,
+  acceptRange,
   explain,
   onCheck,
   onDone,
@@ -42,6 +47,8 @@ export function PredictStep({
   /** Where the slider starts. Keep it away from the real answer. */
   start?: number;
   answer: number;
+  /** Every guess in this range is right; `answer` is still the value shown. */
+  acceptRange?: [number, number];
   explain?: string;
   /** Real moments record the guess on the server before showing the answer. */
   onCheck?: (value: number) => Promise<void>;
@@ -54,7 +61,8 @@ export function PredictStep({
   const { lang } = useLang();
   const t = LESSON[lang];
   const show = (v: number) => showValue(v, unit, lang);
-  const close = isClose(value, answer, min, max, step);
+  const inRange = !!acceptRange && value >= acceptRange[0] && value <= acceptRange[1];
+  const close = isClose(value, answer, min, max, step, acceptRange);
   const at = (v: number) => `${Math.min(100, Math.max(0, ((v - min) / (max - min)) * 100))}%`;
 
   return (
@@ -91,6 +99,9 @@ export function PredictStep({
                 setValue(Number(e.target.value));
                 setTouched(true);
               }}
+              // Touching the slider is enough: a guess can be exactly where it started.
+              onPointerDown={() => setTouched(true)}
+              onKeyDown={() => setTouched(true)}
             />
           )}
         </div>
@@ -102,7 +113,7 @@ export function PredictStep({
       {checked ? (
         <LessonBar
           tone={close ? 'correct' : 'wrong'}
-          title={close ? t.veryClose : t.theAnswer(show(answer))}
+          title={inRange ? t.correct : close ? t.veryClose : t.theAnswer(show(answer))}
           body={
             <>
               {t.youSaid(show(value))} {explain}

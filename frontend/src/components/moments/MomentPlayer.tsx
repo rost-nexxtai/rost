@@ -30,9 +30,10 @@ const T = copy(
     alreadyDoneBody: 'Ai terminat momentul ăsta.',
     savingsRule: (amount: string) => `De ziua salariului muți ${amount} în economii, din banca ta.`,
     bufferTarget: (amount: string) => `Ținta fondului de urgență e acum ${amount}.`,
-    checkBack: 'Revenim peste o săptămână să vedem dacă ai făcut-o. Abia atunci se pune.',
+    checkBack: 'Revenim peste o săptămână să vedem dacă ai făcut-o. Abia atunci contează ca pas făcut.',
     backIn: (days: number) => `Revenim peste ${days} zile.`,
     back: 'Înapoi la Momente',
+    savings: 'Vezi unde îți poți ține economiile',
     yourNumbers: 'Pe cifrele tale',
     continue: 'Continuă',
   },
@@ -52,6 +53,7 @@ const T = copy(
     checkBack: "We'll check in a week to see if you did it. Only then does it count.",
     backIn: (days) => `We'll check back in ${days} days.`,
     back: 'Back to Moments',
+    savings: 'See where to keep your savings',
     yourNumbers: 'On your numbers',
     continue: 'Continue',
   },
@@ -105,7 +107,7 @@ export function MomentPlayer({ runId }: { runId: string }) {
           right={results.filter(Boolean).length}
           graded={results.length}
           seconds={(Date.now() - started.current) / 1000}
-          cta={{ label: t.back, href: '/momente' }}
+          cta={{ label: t.savings, href: '/active/cont_economii' }}
           onFinish={async () => t.backIn(def.followUpDays)}
         />
       </LessonShell>

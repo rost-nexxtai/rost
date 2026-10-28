@@ -1,3 +1,4 @@
+import { ApiDown } from '@/components/ui/ApiDown';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
 import { fmt } from '@/lib/format';
@@ -35,6 +36,7 @@ const T = copy(
     funded: 'Alimentate',
     fees: 'Comisioane',
     feesNote: 'Comisioanele vin doar din conturi alimentate la parteneri. În demo, comisioanele sunt exemple.',
+    down: 'Cifrele vin de la server. Revin când se reface conexiunea.',
   },
   {
     title: 'Metrics',
@@ -62,13 +64,25 @@ const T = copy(
     funded: 'Funded',
     fees: 'Fees',
     feesNote: 'Fees come only from funded accounts at partners. In the demo, the fees are examples.',
+    down: 'The numbers come from the server. They come back when the connection does.',
   },
 );
 
 /** What we'd show a partner bank: aggregates only, counted live from this instance. */
 export default async function MetricsPage() {
-  const [m, lang] = await Promise.all([api<MetricsResponse>('/api/metrics'), getLang()]);
+  const [m, lang] = await Promise.all([api<MetricsResponse>('/api/metrics').catch(() => undefined), getLang()]);
   const t = T[lang];
+  if (!m) {
+    // Backend unreachable: say so calmly instead of an error page (the demo must survive bad wifi).
+    return (
+      <main className="shell">
+        <TopBar />
+        <h1>{t.title}</h1>
+        <ApiDown what={t.down} />
+        <TabBar />
+      </main>
+    );
+  }
   const lei = fmt(lang).lei;
   const title = (id: string) => m.momentTitles[id] ?? id;
 

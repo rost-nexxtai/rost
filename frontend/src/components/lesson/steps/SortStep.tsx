@@ -6,8 +6,8 @@ import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 
 /**
- * Sorting, one card at a time: tap the bucket it belongs in, see right or wrong at once, next card.
- * Short and rhythmic on purpose; the reason comes once, at the end.
+ * Sorting, one card at a time: tap the bucket it belongs in, see right or wrong at once.
+ * A right tap moves on by itself; a wrong one stays, says why, and waits for Continuă.
  */
 export function SortStep({
   question,
@@ -18,7 +18,7 @@ export function SortStep({
 }: {
   question: string;
   buckets: [string, string];
-  items: { label: string; bucket: 0 | 1 }[];
+  items: { label: string; bucket: 0 | 1; why?: string }[];
   explain: string;
   onDone: (correct: boolean) => void;
 }) {
@@ -30,12 +30,14 @@ export function SortStep({
   const right = answers.filter(Boolean).length;
   const t = LESSON[useLang().lang];
 
+  const next = () => {
+    setFlash(undefined);
+    setI((n) => n + 1);
+  };
+
   useEffect(() => {
-    if (!flash) return;
-    const timer = setTimeout(() => {
-      setFlash(undefined);
-      setI((n) => n + 1);
-    }, flash === 'correct' ? 450 : 900);
+    if (flash !== 'correct') return;
+    const timer = setTimeout(next, 450);
     return () => clearTimeout(timer);
   }, [flash]);
 
@@ -60,14 +62,20 @@ export function SortStep({
           <div className="sort-card" key={i} data-state={flash} aria-live="polite">
             {item.label}
           </div>
-          <p className="sort-count">{flash === 'wrong' ? t.goesTo(buckets[item.bucket]) : t.nOfM(Math.min(i + 1, items.length), items.length)}</p>
-          <div className="tiles-row">
-            {buckets.map((b, n) => (
-              <button key={b} type="button" className="tile" disabled={!!flash} onClick={() => pick(n as 0 | 1)}>
-                {b}
-              </button>
-            ))}
-          </div>
+          {flash === 'wrong' ? (
+            <LessonBar tone="wrong" title={t.goesTo(buckets[item.bucket])} body={item.why} label={t.continue} onClick={next} />
+          ) : (
+            <>
+              <p className="sort-count">{t.nOfM(Math.min(i + 1, items.length), items.length)}</p>
+              <div className="tiles-row">
+                {buckets.map((b, n) => (
+                  <button key={b} type="button" className="tile" disabled={!!flash} onClick={() => pick(n as 0 | 1)}>
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </>
       ) : (
         <div className="play" style={{ alignItems: 'center', textAlign: 'center' }}>

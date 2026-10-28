@@ -35,12 +35,15 @@ export function LibraryMomentPlayer({
   assets,
   levelBefore,
   coreLeftAfter,
+  bufferMonths,
 }: {
   moment: LibraryMoment;
   assets: Partial<Record<string, Asset>>;
   levelBefore: Level;
   /** Core lessons left at the current level once this one counts, computed on the server. */
   coreLeftAfter: number;
+  /** Months of spending already saved (onboarding), so calculators start from there. */
+  bufferMonths?: number;
 }) {
   const [i, setI] = useState(0);
   const [results, setResults] = useState<boolean[]>([]);
@@ -66,7 +69,7 @@ export function LibraryMomentPlayer({
       {step.type === 'choice' && <ChoiceStep {...step} onDone={graded} />}
       {step.type === 'predict' && <PredictStep {...step} answer={step.answerValue} onDone={graded} />}
       {step.type === 'sort' && <SortStep {...step} onDone={graded} />}
-      {step.type === 'explore' && <ExploreStep {...step} onDone={next} />}
+      {step.type === 'explore' && <ExploreStep {...step} haveMonths={bufferMonths} onDone={next} />}
       {step.type === 'stat' && <StatStep {...step} onDone={next} />}
       {step.type === 'asset_range' && assets[step.assetId] && <RangeStep asset={assets[step.assetId]!} onDone={next} />}
       {step.type === 'finish' && (

@@ -1,3 +1,4 @@
+import { QUIZ } from '@/data/fixtures/quiz';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ResetButton } from '@/components/ClientActions';
@@ -22,7 +23,7 @@ const T = copy(
     core: (done: number, of: number) => `${done} din ${of} lecții de bază`,
     finish: (next: number) => `Termină-le ca să treci la L${next}.`,
     advanced: 'Ai ajuns la nivelul avansat.',
-    quiz: (n: number) => `Testul: ${n} din 3 răspunsuri corecte.`,
+    quiz: (n: number, of: number) => `Testul: ${n} din ${of} răspunsuri corecte.`,
     risk: 'Profil de risc',
     riskNote: 'Pornește de la nivel și vârstă. Dacă ai nevoie de bani în mai puțin de un an, sau nu ai încă un fond de urgență de 3 luni, îl ținem mai prudent.',
     retake: 'Refă testul',
@@ -36,7 +37,7 @@ const T = copy(
     core: (done, of) => `${done} of ${of} core lessons`,
     finish: (next) => `Finish them to move up to L${next}.`,
     advanced: "You've reached the advanced level.",
-    quiz: (n) => `Quiz: ${n} of 3 answers right.`,
+    quiz: (n, of) => `Quiz: ${n} of ${of} answers right.`,
     risk: 'Risk profile',
     riskNote: "It starts from your level and age. If you need the money within a year, or don't have a 3-month emergency fund yet, we keep it more cautious.",
     retake: 'Retake the quiz',
@@ -78,7 +79,7 @@ export default async function Profil() {
         ) : (
           <p className="small muted">{t.advanced}</p>
         )}
-        <p className="small muted">{t.quiz(profile.quizScore)}</p>
+        <p className="small muted">{t.quiz(profile.quizScore, QUIZ.knowledge.length)}</p>
       </Card>
 
       <Card>
@@ -89,7 +90,7 @@ export default async function Profil() {
       </Card>
 
       <div className="stack">
-        <Link href="/quiz" className="btn btn-secondary btn-block">
+        <Link href="/quiz?retake=1" className="btn btn-secondary btn-block">
           {t.retake}
         </Link>
         <ResetButton />

@@ -47,7 +47,7 @@ export default async function MockBank({ params, searchParams }: Props) {
   const { click } = await searchParams;
   const lang = await getLang();
   const t = T[lang];
-  const data = click ? await apiOrNothing<ReferralResponse>(`/api/referrals/${encodeURIComponent(click)}`) : undefined;
+  const data = click ? await apiOrNothing<ReferralResponse>(`/api/referrals/${encodeURIComponent(click)}`).catch(() => undefined) : undefined;
   if (!data || data.offer.id !== offerId) {
     return (
       <main className="shell shell-bare">

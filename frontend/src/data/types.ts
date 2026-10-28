@@ -21,7 +21,11 @@ export interface MoneyLines {
   electricityLei: number;
   savedLei: number;
   inflationPct: number;
+  /** Lines the user has answered. An answered 0 ("I have no car") is real; an unanswered 0 means "ask". */
+  known?: MoneyLine[];
 }
+
+export type MoneyLine = 'fuelLei' | 'electricityLei' | 'savedLei';
 
 /** proposed: GET /api/me (extend the user with this profile) */
 export interface Profile {
@@ -170,8 +174,8 @@ export type LessonWidget = 'fund_builder' | 'compound' | 'savings_vs_deposit' | 
  */
 export type LibraryStep =
   | { type: 'choice'; question: string; options: string[]; correct: number; explain: string }
-  | { type: 'predict'; question: string; answerValue: number; min: number; max: number; step: number; unit: string; start?: number; explain?: string }
-  | { type: 'sort'; question: string; buckets: [string, string]; items: { label: string; bucket: 0 | 1 }[]; explain: string }
+  | { type: 'predict'; question: string; answerValue: number; acceptRange?: [number, number]; min: number; max: number; step: number; unit: string; start?: number; explain?: string }
+  | { type: 'sort'; question: string; buckets: [string, string]; items: { label: string; bucket: 0 | 1; /** One line shown when this card is sorted wrong. */ why?: string }[]; explain: string }
   | { type: 'explore'; title: string; body?: string; widget: LessonWidget }
   | { type: 'stat'; value: string; label: string; body?: string }
   | { type: 'asset_range'; assetId: AssetId }

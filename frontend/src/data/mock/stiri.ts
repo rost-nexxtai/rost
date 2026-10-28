@@ -1,7 +1,7 @@
 // MOCK until backend ships GET /api/stiri (the rules engine owns the real formulas).
 import type { Lang } from '@/i18n/lang';
 import { newsFor } from '../fixtures/en';
-import type { NewsItem, Profile, StiriResponse } from '../types';
+import type { MoneyLine, MoneyLines, NewsItem, Profile, StiriResponse } from '../types';
 
 /** Your monthly spend in the category × the shock on the slider. */
 export function spendImpactLei(spendLei: number, pct: number): number {
@@ -25,4 +25,9 @@ export function buildStiri(p: Profile, lang: Lang = 'ro'): StiriResponse {
     .sort((a, b) => b.n.monthlyLei - a.n.monthlyLei || a.i - b.i)
     .map(({ n }) => n);
   return { items, money: p.money };
+}
+
+/** Ask for an amount only when the user hasn't given one: a known 0 is an answer. */
+export function needsAmount(money: MoneyLines, line: MoneyLine): boolean {
+  return money[line] <= 0 && !money.known?.includes(line);
 }

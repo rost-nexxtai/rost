@@ -7,8 +7,8 @@ import { Money } from '@/components/ui/Money';
 import { Slider } from '@/components/ui/Slider';
 import { SourceLink } from '@/components/ui/SourceLink';
 import { saveMoneyLine } from '@/data/actions';
-import { savingsLossLei, spendImpactLei } from '@/data/mock/stiri';
-import type { MoneyLines, NewsItem } from '@/data/types';
+import { needsAmount, savingsLossLei, spendImpactLei } from '@/data/mock/stiri';
+import type { MoneyLine, MoneyLines, NewsItem } from '@/data/types';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 
@@ -30,6 +30,10 @@ const T = copy(
     current: 'În cont curent',
     inAlt: (label: string, pct: string) => `În ${label} (${pct}, fără impozit)`,
     forYou: 'Îți arătăm suma pentru tine.',
+    none: { fuelLei: 'Nu am mașină', electricityLei: 'E inclus în chirie', savedLei: 'Nimic încă' } as Record<MoneyLine, string>,
+    notYou: (what: string) => `Nu dai bani pe ${what}, așa că asta nu te afectează direct. Prețurile la raft pot crește totuși.`,
+    noSavings: 'Când pui ceva deoparte, aici vezi cât îți ia inflația și cât ai pierde mai puțin în titluri de stat.',
+    change: 'Schimbă suma',
   },
   {
     line: { fuelLei: { what: 'fuel', price: 'the price of fuel' }, electricityLei: { what: 'electricity', price: 'your electricity bill' } },
@@ -45,6 +49,10 @@ const T = copy(
     current: 'In a current account',
     inAlt: (label, pct) => `In ${label} (${pct}, tax-free)`,
     forYou: "We'll show you the amount for you.",
+    none: { fuelLei: "I don't drive", electricityLei: 'Included in my rent', savedLei: 'Nothing yet' },
+    notYou: (what) => `You don't spend on ${what}, so this doesn't hit you directly. Shop prices can still go up.`,
+    noSavings: "Once you put something aside, this shows what inflation takes and how much less you'd lose in state bonds.",
+    change: 'Change the amount',
   },
 );
 
@@ -87,12 +95,28 @@ export function NewsCard({ item, money }: { item: NewsItem; money: MoneyLines })
 
 function SpendImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { kind: 'spend' }>; money: MoneyLines }) {
   const [shock, setShock] = useState(impact.shock.defaultPct);
+  const [editing, setEditing] = useState(false);
   const spend = money[impact.line];
   const { lang, f } = useLang();
   const t = T[lang];
   const line = t.line[impact.line];
+  if (editing || needsAmount(money, impact.line)) {
+    return (
+      <AskAmount
+        line={impact.line}
+        question={t.askSpend(line.what)}
+        amounts={impact.line === 'fuelLei' ? [200, 400, 600] : [100, 150, 250]}
+        onDone={() => setEditing(false)}
+      />
+    );
+  }
   if (spend <= 0) {
-    return <AskAmount line={impact.line} question={t.askSpend(line.what)} amounts={impact.line === 'fuelLei' ? [200, 400, 600] : [100, 150, 250]} />;
+    return (
+      <>
+        <p className="small">{t.notYou(line.what)}</p>
+        <ChangeAmount onClick={() => setEditing(true)} />
+      </>
+    );
   }
   return (
     <>
@@ -104,15 +128,25 @@ function SpendImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { 
       <p className="note">
         {t.spendNote(f.lei(spend), line.what, impact.shock.defaultPct)}
       </p>
+      <ChangeAmount onClick={() => setEditing(true)} />
     </>
   );
 }
 
 function SavingsImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { kind: 'savings' }>; money: MoneyLines }) {
+  const [editing, setEditing] = useState(false);
   const { lang, f } = useLang();
   const t = T[lang];
+  if (editing || needsAmount(money, 'savedLei')) {
+    return <AskAmount line="savedLei" question={t.askSaved} amounts={[1000, 5000, 10000]} onDone={() => setEditing(false)} />;
+  }
   if (money.savedLei <= 0) {
-    return <AskAmount line="savedLei" question={t.askSaved} amounts={[1000, 5000, 10000]} />;
+    return (
+      <>
+        <p className="small">{t.noSavings}</p>
+        <ChangeAmount onClick={() => setEditing(true)} />
+      </>
+    );
   }
   const cash = savingsLossLei(money.savedLei, money.inflationPct);
   const alt = savingsLossLei(money.savedLei, money.inflationPct, impact.alternative.ratePct);
@@ -131,16 +165,33 @@ function SavingsImpact({ impact, money }: { impact: Extract<NewsItem['impact'], 
         </span>
         <Money lei={alt} signed tone={alt < 0 ? 'neg' : 'pos'} />
       </div>
+      <ChangeAmount onClick={() => setEditing(true)} />
     </>
   );
 }
 
-/** One tap to make the card about you. Saved to the profile, then the card recomputes. */
-function AskAmount({ line, question, amounts }: { line: 'fuelLei' | 'electricityLei' | 'savedLei'; question: string; amounts: number[] }) {
+function ChangeAmount({ onClick }: { onClick: () => void }) {
+  const t = T[useLang().lang];
+  return (
+    <button type="button" className="link-back" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', minHeight: 32, alignSelf: 'flex-start', color: 'var(--primary)', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={onClick}>
+      {t.change}
+    </button>
+  );
+}
+
+/** One tap to make the card about you, including "none". Saved to the profile, then the card recomputes. */
+function AskAmount({ line, question, amounts, onDone }: { line: MoneyLine; question: string; amounts: number[]; onDone: () => void }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const { lang, f } = useLang();
   const t = T[lang];
+  async function pick(lei: number) {
+    setBusy(true);
+    await saveMoneyLine(line, lei);
+    router.refresh();
+    onDone();
+    setBusy(false);
+  }
   return (
     <div className="stack">
       <p className="small">
@@ -148,22 +199,14 @@ function AskAmount({ line, question, amounts }: { line: 'fuelLei' | 'electricity
       </p>
       <div className="tiles-row" style={{ gridTemplateColumns: `repeat(${amounts.length}, 1fr)` }}>
         {amounts.map((a) => (
-          <button
-            key={a}
-            type="button"
-            className="tile"
-            style={{ minHeight: 48, padding: 8, fontSize: 15 }}
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              await saveMoneyLine(line, a);
-              router.refresh();
-            }}
-          >
+          <button key={a} type="button" className="tile" style={{ minHeight: 48, padding: 8, fontSize: 15 }} disabled={busy} onClick={() => pick(a)}>
             {f.lei(a)}
           </button>
         ))}
       </div>
+      <button type="button" className="tile" style={{ minHeight: 44, padding: 8, fontSize: 14, color: 'var(--muted)', fontWeight: 500 }} disabled={busy} onClick={() => pick(0)}>
+        {t.none[line]}
+      </button>
     </div>
   );
 }

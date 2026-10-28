@@ -5,6 +5,7 @@ export const PROFILE_COOKIE = 'rost_profile';
 export const PROFILE_COOKIE_OPTIONS = { httpOnly: true, sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 * 24 * 90 };
 
 const RISK = ['prudent', 'echilibrat', 'dinamic'];
+const LINES: unknown[] = ['fuelLei', 'electricityLei', 'savedLei'];
 const isLevel = (v: unknown) => v === 0 || v === 1 || v === 2;
 const isNum = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
 
@@ -30,6 +31,7 @@ export function parseProfile(raw: string | undefined): Profile | undefined {
     isNum(p.money.electricityLei) &&
     isNum(p.money.savedLei) &&
     isNum(p.money.inflationPct) &&
+    (p.money.known === undefined || (Array.isArray(p.money.known) && p.money.known.every((l) => LINES.includes(l)))) &&
     Array.isArray(p.completedMomentIds) &&
     p.completedMomentIds.every((id) => typeof id === 'string');
   return ok ? (p as Profile) : undefined;
