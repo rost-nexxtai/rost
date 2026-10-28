@@ -1,22 +1,21 @@
 import type { Metadata, Viewport } from 'next';
+import { Bricolage_Grotesque, DM_Sans } from 'next/font/google';
 import './globals.css';
 
+// Self-hosted at build time, so the demo works offline. latin-ext covers ă â î ș ț.
+const display = Bricolage_Grotesque({ subsets: ['latin', 'latin-ext'], weight: ['600', '700', '800'], variable: '--font-display' });
+const body = DM_Sans({ subsets: ['latin', 'latin-ext'], weight: ['400', '500', '600', '700'], variable: '--font-body' });
+
 export const metadata: Metadata = {
-  title: 'Rost — your money, on time',
-  description: 'What your money life and the news mean for you, with your own numbers and one action.',
+  title: 'Rost: banii tăi, pe înțelesul tău',
+  description: 'Află ce să faci cu banii tăi, pe cifrele tale: lecții scurte, opțiuni comparate neutru și știrile care îți mișcă banii.',
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#F7F5F0' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap"
-        />
-      </head>
+    <html lang="ro" className={`${display.variable} ${body.variable}`}>
       <body>{children}</body>
     </html>
   );

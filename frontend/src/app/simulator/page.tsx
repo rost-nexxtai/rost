@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Nav, TopBar } from '@/components/Nav';
+import { TabBar } from '@/components/ui/TabBar';
+import { TopBar } from '@/components/ui/TopBar';
 
 const EVENTS = [
   { type: 'salary_received', label: 'Salary received', hint: 'what a bank webhook would send' },
@@ -190,7 +191,7 @@ export default function Simulator() {
           ))
         )}
       </section>
-      <Nav current="/simulator" />
+      <TabBar />
     </main>
   );
 }

@@ -1,4 +1,5 @@
-import { Nav, TopBar } from '@/components/Nav';
+import { TabBar } from '@/components/ui/TabBar';
+import { TopBar } from '@/components/ui/TopBar';
 import { lei } from '@/lib/format';
 import type { MetricsResponse } from '@backend/contract';
 import { api } from '@/lib/api';
@@ -67,7 +68,7 @@ export default async function MetricsPage() {
         </div>
         <p className="note">Fees are earned only on funded accounts with partners. Example fees in the demo.</p>
       </section>
-      <Nav current="/metrics" />
+      <TabBar />
     </main>
   );
 }
