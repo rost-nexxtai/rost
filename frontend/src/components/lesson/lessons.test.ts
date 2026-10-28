@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { firstLesson } from '@/data/mock/momente';
-import { LIBRARY } from '@/data/fixtures/moments';
+import { SEED_LESSONS } from '@/data/fixtures/seed-lessons';
 import { PERSONAS } from '@/data/fixtures/personas';
 import { profileFromQuiz } from '@/data/mock/scoring';
 import { bondsVsDeposit, fundTarget, growth, lossIfOneFails, monthsToGoal, netDepositPct, savingsVsDeposit } from './math';
-import { libraryFor } from '@/data/fixtures/moments';
 import { isClose } from './steps/PredictStep';
 
 describe('lesson math', () => {
@@ -47,24 +46,21 @@ describe('lesson math', () => {
     expect(isClose(8, 3, 0, 12, 1, [3, 6])).toBe(false);
   });
 
-  it('gives every sorting card a reason, in both languages, so a wrong tap can explain itself', () => {
-    for (const lang of ['ro', 'en'] as const) {
-      const items = libraryFor(lang).flatMap((m) => m.steps.flatMap((s) => (s.type === 'sort' ? s.items : [])));
-      expect(items.length).toBeGreaterThan(0);
-      expect(items.filter((i) => !i.why?.trim()).map((i) => i.label)).toEqual([]);
-    }
+  it('gives every sorting card a reason, so a wrong tap can explain itself', () => {
+    // English reasons are checked by the backend, which refuses a translation without them.
+    const items = SEED_LESSONS.flatMap((m) => m.steps.flatMap((s) => (s.type === 'sort' ? s.items : [])));
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.filter((i) => !i.why?.trim()).map((i) => i.label)).toEqual([]);
   });
 
-  it('accepts 3 to 6 months in the emergency-fund lesson, in both languages', () => {
-    for (const lang of ['ro', 'en'] as const) {
-      const step = libraryFor(lang).find((m) => m.id === 'fondul_urgenta')!.steps.find((s) => s.type === 'predict');
-      expect(step && 'acceptRange' in step ? step.acceptRange : undefined).toEqual([3, 6]);
-    }
+  it('accepts 3 to 6 months in the emergency-fund lesson', () => {
+    const step = SEED_LESSONS.find((m) => m.id === 'fondul_urgenta')!.steps.find((s) => s.type === 'predict');
+    expect(step && 'acceptRange' in step ? step.acceptRange : undefined).toEqual([3, 6]);
   });
 });
 
 describe('library lessons', () => {
-  const playable = LIBRARY.filter((m) => m.steps.length > 0);
+  const playable = SEED_LESSONS.filter((m) => m.steps.length > 0);
 
   it('has the three foundation lessons playable', () => {
     expect(playable.filter((m) => m.level === 0).map((m) => m.id)).toEqual(['fondul_urgenta', 'economii_vs_depozit', 'dobanda_compusa']);
@@ -92,14 +88,14 @@ describe('library lessons', () => {
 
 describe('first lesson after onboarding', () => {
   it('starts with the emergency fund when there is none', () => {
-    expect(firstLesson(PERSONAS.maria)?.id).toBe('fondul_urgenta');
+    expect(firstLesson(PERSONAS.maria, SEED_LESSONS)?.id).toBe('fondul_urgenta');
   });
 
   it('starts at your level when the foundation is there', () => {
     const p = profileFromQuiz({ knowledge: [2, 1, 0, 1], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
     expect(p.level).toBe(2);
-    expect(firstLesson(p)?.level).toBeLessThanOrEqual(2);
+    expect(firstLesson(p, SEED_LESSONS)?.level).toBeLessThanOrEqual(2);
     const l1 = profileFromQuiz({ knowledge: [2, 1, 'nu_stiu', 'nu_stiu'], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
-    expect(firstLesson(l1)?.id).toBe('titluri_stat');
+    expect(firstLesson(l1, SEED_LESSONS)?.id).toBe('titluri_stat');
   });
 });

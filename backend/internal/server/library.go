@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"rost/backend/internal/app"
+	"rost/backend/internal/content"
 	"rost/backend/internal/domain"
 	"rost/backend/internal/learning"
 	"rost/backend/internal/reference"
@@ -148,6 +149,9 @@ func (s *server) library(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, r, err)
 		return
 	}
+	for i := range moments {
+		moments[i] = content.Localize(moments[i], string(langOf(r)))
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"moments": moments})
 }
 
@@ -161,7 +165,7 @@ func (s *server) libraryMoment(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"moment": m})
+	writeJSON(w, http.StatusOK, map[string]any{"moment": content.Localize(m, string(langOf(r)))})
 }
 
 // safe to call twice

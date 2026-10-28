@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"slices"
 
@@ -283,6 +284,9 @@ func (s Service) Momente(ctx context.Context, u domain.User, lang reference.Lang
 	if err != nil {
 		return learning.MomenteResponse{}, err
 	}
+	for i := range library {
+		library[i] = content.Localize(library[i], string(lang))
+	}
 	today, err := s.Today(ctx, u.ID)
 	if err != nil {
 		return learning.MomenteResponse{}, err
@@ -309,4 +313,66 @@ func (s Service) Stiri(ctx context.Context, u domain.User) (learning.StiriRespon
 		return learning.StiriResponse{}, err
 	}
 	return learning.Stiri(news, p.Money), nil
+}
+
+// UpgradeSeededLessons brings lessons already in the database up to date with the seed, on start:
+// a lesson nobody has edited since the seed gets the seed's current version; a lesson an admin
+// edited only gets the seed's English text, and only when it has none and the text fits the
+// lesson's current shape. Admin edits are never overwritten. Returns how many lessons changed.
+func (s Service) UpgradeSeededLessons(ctx context.Context, seed []domain.ContentItem) (int, error) {
+	changed := 0
+	for _, want := range seed {
+		if want.Kind != domain.KindMoment {
+			continue
+		}
+		have, err := s.Store.GetContent(ctx, want.Kind, want.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return changed, err
+		}
+		doc, ok, err := upgradedDoc(have, want)
+		if err != nil || !ok {
+			if err != nil {
+				return changed, err
+			}
+			continue
+		}
+		have.Doc = doc
+		if _, err := s.Store.UpdateContent(ctx, have); err != nil {
+			return changed, err
+		}
+		changed++
+	}
+	return changed, nil
+}
+
+func upgradedDoc(have, want domain.ContentItem) ([]byte, bool, error) {
+	ms, err := content.Moments([]domain.ContentItem{have, want})
+	if err != nil {
+		return nil, false, err
+	}
+	current, seeded := ms[0], ms[1]
+	if have.UpdatedBy == "seed" {
+		if string(have.Doc) == string(want.Doc) {
+			return nil, false, nil
+		}
+		return want.Doc, true, nil
+	}
+	if current.EN != nil || seeded.EN == nil {
+		return nil, false, nil
+	}
+	current.EN = seeded.EN
+	_, doc, err := content.Validate(domain.KindMoment, mustJSON(current))
+	if err != nil {
+		// the admin changed the lesson's shape; it stays Romanian until someone translates it
+		return nil, false, nil
+	}
+	return doc, true, nil
+}
+
+func mustJSON(v any) []byte {
+	b, _ := json.Marshal(v)
+	return b
 }

@@ -154,8 +154,8 @@ func ScoreAnswers(m domain.LibraryMoment, answers []Answer) (correct, total int,
 			if a.Value == nil || a.Picked != nil || a.Buckets != nil {
 				return 0, 0, false
 			}
-			// close enough counts, like in the app
-			if content.IsClose(*a.Value, num(step, "answerValue"), num(step, "min"), num(step, "max"), num(step, "step")) {
+			// close enough, or inside the step's acceptRange, counts, like in the app
+			if content.PredictRight(step, *a.Value) {
 				correct++
 			}
 		case "sort":

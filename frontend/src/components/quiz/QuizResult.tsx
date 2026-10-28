@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LessonBar } from '@/components/lesson/LessonBar';
 import { LevelBadge } from '@/components/ui/LevelBadge';
-import { firstLesson } from '@/data/mock/momente';
-import type { Profile } from '@/data/types';
+import type { LibraryMoment, Profile } from '@/data/types';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 import { TERMS } from '@/i18n/terms';
@@ -33,12 +32,11 @@ const T = copy(
 );
 
 /** Where you start, said in one screen, and straight into the first lesson. */
-export function QuizResult({ profile }: { profile: Profile }) {
+export function QuizResult({ profile, lesson }: { profile: Profile; lesson?: Pick<LibraryMoment, 'id' | 'title' | 'hook' | 'minutes'> }) {
   const router = useRouter();
   const { lang } = useLang();
   const t = T[lang];
   const terms = TERMS[lang];
-  const lesson = firstLesson(profile, lang);
   const levelName = terms.level[profile.level];
   return (
     <main className="onboard">

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { saveQuiz } from '@/data/actions';
+import { nextLesson, saveQuiz } from '@/data/actions';
 import { quizFor } from '@/data/fixtures/quiz';
 import { useLang } from '@/i18n/client';
 import { copy, type Lang } from '@/i18n/lang';
@@ -77,12 +77,12 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [tapped, setTapped] = useState<Answer>();
-  const [result, setResult] = useState<Profile>();
+  const [result, setResult] = useState<{ profile: Profile; lesson: Awaited<ReturnType<typeof nextLesson>> }>();
   const { lang } = useLang();
   const t = T[lang];
   const SCREENS = screensFor(lang);
 
-  if (result) return <QuizResult profile={result} />;
+  if (result) return <QuizResult profile={result.profile} lesson={result.lesson} />;
   const screen = SCREENS[i];
 
   async function finish(all: Answer[]) {
@@ -103,7 +103,8 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
         body: JSON.stringify({ situations: [quiz.situation] }),
       }).catch(() => undefined);
     }
-    setResult(await saveQuiz(quiz, { retake }));
+    const profile = await saveQuiz(quiz, { retake });
+    setResult({ profile, lesson: await nextLesson(profile) });
   }
 
   function pick(value: Answer) {

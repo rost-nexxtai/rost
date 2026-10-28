@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
-import { getMomente, getProfile } from '@/data';
+import { getLibrary, getMomente, getProfile } from '@/data';
 import { firstLesson } from '@/data/mock/momente';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
@@ -60,12 +60,12 @@ const T = copy(
 );
 
 export default async function Momente() {
-  const [data, profile, lang] = await Promise.all([getMomente(), getProfile(), getLang()]);
+  const [data, profile, lang, library] = await Promise.all([getMomente(), getProfile(), getLang(), getLibrary()]);
   const t = T[lang];
   if (!data || !profile) redirect('/quiz');
   const { triggered, forYourLevel, rest, progress, realApiDown, dueFollowUps } = data;
   // One obvious next step: a moment the backend opened wins; otherwise the next lesson at your level.
-  const first = firstLesson(profile, lang);
+  const first = firstLesson(profile, library);
   const nextUp = triggered.length === 0 ? [...forYourLevel, ...rest].find((m) => m.id === first?.id && m.status === 'todo') : undefined;
   const listed = forYourLevel.filter((m) => m !== nextUp);
 

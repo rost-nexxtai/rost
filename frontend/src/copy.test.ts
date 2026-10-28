@@ -2,7 +2,6 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { assetsFor, dateEn, newsFor, savingsFor } from './data/fixtures/en';
-import { LIBRARY, libraryFor } from './data/fixtures/moments';
 import { QUIZ, QUIZ_EN } from './data/fixtures/quiz';
 
 const ROOT = new URL('.', import.meta.url).pathname;
@@ -59,35 +58,7 @@ describe('UI copy', () => {
 });
 
 describe('English content mirrors Romanian', () => {
-  it('lessons: same lessons, screens, answers and numbers', () => {
-    const shape = (lang: 'ro' | 'en') =>
-      libraryFor(lang).map((m) => ({
-        id: m.id,
-        level: m.level,
-        minutes: m.minutes,
-        takeaways: m.takeaways.length,
-        steps: m.steps.map((s) => {
-          switch (s.type) {
-            case 'choice':
-              return [s.type, s.options.length, s.correct];
-            case 'predict':
-              return [s.type, s.answerValue, s.min, s.max, s.step, s.start];
-            case 'sort':
-              return [s.type, s.items.map((i) => i.bucket)];
-            case 'explore':
-              return [s.type, s.widget];
-            case 'asset_range':
-              return [s.type, s.assetId];
-            case 'finish':
-              return [s.type, s.cta.href];
-            default:
-              return [s.type];
-          }
-        }),
-      }));
-    expect(shape('en')).toEqual(shape('ro'));
-    expect(libraryFor('ro')).toBe(LIBRARY);
-  });
+  // Lessons live in the backend now; its tests check that every English lesson mirrors the Romanian one.
 
   it('quiz: same questions, options and right answers', () => {
     expect(QUIZ_EN.knowledge.map((q) => [q.id, q.options.length, q.correct])).toEqual(QUIZ.knowledge.map((q) => [q.id, q.options.length, q.correct]));

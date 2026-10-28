@@ -232,3 +232,31 @@ func TestNewCoreLessonDoesNotDemote(t *testing.T) {
 		t.Errorf("new lesson missing from forYourLevel: %v", m["forYourLevel"])
 	}
 }
+
+func TestLessonsInBothLanguages(t *testing.T) {
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	for lang, want := range map[string][2]string{
+		"":   {"Fondul de urgență", "Ți se strică mașina cu care mergi la job"},
+		"ro": {"Fondul de urgență", "Ți se strică mașina cu care mergi la job"},
+		"en": {"Your emergency fund", "The car you drive to work breaks down"},
+	} {
+		c.lang = lang
+		code, out := c.do("GET", "/api/library/fondul_urgenta", "")
+		m, _ := out["moment"].(map[string]any)
+		if code != 200 || m["title"] != want[0] {
+			t.Errorf("lang %q: %d %v", lang, code, m["title"])
+			continue
+		}
+		if _, leaked := m["en"]; leaked {
+			t.Errorf("lang %q: translation block in the response", lang)
+		}
+		item := m["steps"].([]any)[0].(map[string]any)["items"].([]any)[0].(map[string]any)
+		if item["label"] != want[1] || item["bucket"] != 0.0 {
+			t.Errorf("lang %q: first card = %v", lang, item)
+		}
+		_, list := c.do("GET", "/api/library", "")
+		if first := list["moments"].([]any)[0].(map[string]any); first["title"] != want[0] {
+			t.Errorf("lang %q: library title = %v", lang, first["title"])
+		}
+	}
+}

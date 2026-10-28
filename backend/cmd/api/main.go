@@ -58,6 +58,11 @@ func run(logger *slog.Logger) error {
 	if err := st.SeedContent(ctx, content.SeedName, seed); err != nil {
 		return err
 	}
+	upgraded, err := app.Service{Store: st}.UpgradeSeededLessons(ctx, seed)
+	if err != nil {
+		return fmt.Errorf("upgrade lessons: %w", err)
+	}
+	logger.Info("lessons", "upgraded", upgraded)
 	if cfg.AdminEmail != "" {
 		created, err := app.Service{Store: st}.EnsureAdmin(ctx, cfg.AdminEmail, cfg.AdminPassword)
 		if err != nil {

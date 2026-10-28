@@ -3,8 +3,10 @@
 import { cookies } from 'next/headers';
 import { PERSONAS } from './fixtures/personas';
 import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/profile';
+import { getLibrary } from '.';
+import { firstLesson } from './mock/momente';
 import { levelWithMoments, quizProfile } from './mock/scoring';
-import type { MoneyLine, Profile, QuizAnswers } from './types';
+import type { LibraryMoment, MoneyLine, Profile, QuizAnswers } from './types';
 
 // MOCK until backend ships POST /api/quiz and profile progress on the server.
 
@@ -19,6 +21,12 @@ async function current() {
 
 export async function saveQuiz(a: QuizAnswers, opts: { retake: boolean } = { retake: false }): Promise<Profile> {
   return write(quizProfile(a, await current(), opts));
+}
+
+/** The lesson to start with after the quiz, from the backend's lessons, in the visitor's language. */
+export async function nextLesson(p: Profile): Promise<Pick<LibraryMoment, 'id' | 'title' | 'hook' | 'minutes'> | undefined> {
+  const lesson = firstLesson(p, await getLibrary());
+  return lesson && { id: lesson.id, title: lesson.title, hook: lesson.hook, minutes: lesson.minutes };
 }
 
 export async function setDemoProfile(persona: 'maria'): Promise<void> {

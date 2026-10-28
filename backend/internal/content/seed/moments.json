@@ -21,23 +21,28 @@
         "items": [
           {
             "label": "Ți se strică mașina cu care mergi la job",
-            "bucket": 0
+            "bucket": 0,
+            "why": "Fără mașină poți pierde venitul, și nu poți amâna reparația."
           },
           {
             "label": "Reduceri de Black Friday",
-            "bucket": 1
+            "bucket": 1,
+            "why": "O ofertă poate fi bună, dar nu e o urgență. Strângi separat pentru ea."
           },
           {
             "label": "Rămâi fără job",
-            "bucket": 0
+            "bucket": 0,
+            "why": "Exact pentru asta există fondul: să trăiești din el până găsești altceva."
           },
           {
             "label": "Un city break cu prietenii",
-            "bucket": 1
+            "bucket": 1,
+            "why": "E plănuit și se poate amâna, deci îl plătești din altă pușculiță."
           },
           {
             "label": "Te doare o măsea",
-            "bucket": 0
+            "bucket": 0,
+            "why": "Sănătatea nu așteaptă, iar fără fond ai ajunge la credit."
           }
         ],
         "explain": "Fondul de urgență e pentru ce nu ai plănuit și nu poți amâna. Pentru restul, strângi separat."
@@ -46,12 +51,16 @@
         "type": "predict",
         "question": "Câte luni de cheltuieli ar trebui să acopere?",
         "answerValue": 3,
+        "acceptRange": [
+          3,
+          6
+        ],
         "min": 0,
         "max": 12,
         "step": 1,
         "start": 8,
         "unit": "luni",
-        "explain": "Regula de bază e 3 luni. Dacă venitul e nesigur (PFA, contract pe perioadă determinată), țintește spre 6."
+        "explain": "Între 3 și 6 luni. Cu un venit sigur ajung 3; dacă venitul e nesigur (PFA, contract pe perioadă determinată), țintește spre 6."
       },
       {
         "type": "explore",
@@ -82,7 +91,77 @@
       "Fondul de urgență acoperă 3 luni de cheltuieli; 6 dacă venitul e nesigur.",
       "Îl ții într-un cont de economii separat, din care scoți banii oricând.",
       "Abia după el are sens să te uiți la depozite sau investiții."
-    ]
+    ],
+    "en": {
+      "title": "Your emergency fund",
+      "hook": "The money that gets you out of trouble without a loan.",
+      "series": "The basics",
+      "takeaways": [
+        "An emergency fund covers 3 months of spending; 6 if your income is unsteady.",
+        "Keep it in a separate savings account you can take money out of any time.",
+        "Only after that does it make sense to look at deposits or investing."
+      ],
+      "steps": [
+        {
+          "type": "sort",
+          "question": "Which of these do you pay from your emergency fund?",
+          "buckets": [
+            "Emergency",
+            "Can wait"
+          ],
+          "items": [
+            {
+              "label": "The car you drive to work breaks down",
+              "why": "Without the car you can lose income, and the repair can't wait."
+            },
+            {
+              "label": "Black Friday sales",
+              "why": "A deal can be good, but it isn't an emergency. Save for it separately."
+            },
+            {
+              "label": "You lose your job",
+              "why": "This is exactly what the fund is for: living on it until you find something else."
+            },
+            {
+              "label": "A city break with friends",
+              "why": "It's planned and it can wait, so it comes out of a different pot."
+            },
+            {
+              "label": "You have a toothache",
+              "why": "Health can't wait, and without a fund you'd end up borrowing."
+            }
+          ],
+          "explain": "The emergency fund is for what you didn't plan and can't put off. Save for everything else separately."
+        },
+        {
+          "type": "predict",
+          "question": "How many months of spending should it cover?",
+          "unit": "months",
+          "explain": "Between 3 and 6 months. With a steady income 3 is enough; if it is unsteady (self-employed, fixed-term contract), aim for 6."
+        },
+        {
+          "type": "explore",
+          "title": "What does that mean for you?",
+          "body": "Put in your spending and what you can set aside. You don't have to save it all at once."
+        },
+        {
+          "type": "choice",
+          "question": "Where do you keep it?",
+          "options": [
+            "In a savings account, separate from your card",
+            "In a 3-year deposit",
+            "In shares, so it grows"
+          ],
+          "explain": "You need to get it out the same day. A deposit penalises you for breaking it, and shares can be down exactly when you need the money."
+        },
+        {
+          "type": "finish",
+          "cta": {
+            "label": "See savings accounts"
+          }
+        }
+      ]
+    }
   },
   {
     "id": "economii_vs_depozit",
@@ -124,19 +203,23 @@
         "items": [
           {
             "label": "Fondul de urgență",
-            "bucket": 0
+            "bucket": 0,
+            "why": "Trebuie să-l poți scoate în aceeași zi, fără să pierzi dobânda."
           },
           {
             "label": "Avansul pentru o mașină, peste un an și jumătate",
-            "bucket": 1
+            "bucket": 1,
+            "why": "Știi că nu-l atingi o vreme, așa că un depozit îți dă mai multă dobândă."
           },
           {
             "label": "Chiria de luna viitoare",
-            "bucket": 0
+            "bucket": 0,
+            "why": "Îți trebuie peste câteva săptămâni, deci trebuie să fie la îndemână."
           },
           {
             "label": "Banii pentru vacanța de vara viitoare, de care nu te atingi",
-            "bucket": 1
+            "bucket": 1,
+            "why": "Data e fixă și departe, deci îi poți bloca într-un depozit."
           }
         ],
         "explain": "Bani de care ai nevoie oricând: cont de economii. Bani de care sigur nu te atingi o perioadă: depozit."
@@ -159,7 +242,69 @@
       "Pe dobânda de la bancă plătești 10% impozit.",
       "Depozitul dă mai mult, dar dacă îl spargi devreme pierzi de obicei dobânda.",
       "Ambele sunt garantate de FGDB până la 100.000 € de persoană, pe bancă."
-    ]
+    ],
+    "en": {
+      "title": "Savings account or deposit?",
+      "hook": "Same money, different interest. It depends on when you need it.",
+      "series": "The basics",
+      "takeaways": [
+        "You pay 10% tax on bank interest.",
+        "A deposit pays more, but break it early and you usually lose the interest.",
+        "Both are guaranteed by the FGDB up to €100,000 per person, per bank."
+      ],
+      "steps": [
+        {
+          "type": "predict",
+          "question": "A one-year deposit, 10,000 lei, 5% interest. How much do you get after tax?",
+          "unit": "lei",
+          "explain": "The interest is 500 lei, but the bank withholds 10% tax: 450 lei is left."
+        },
+        {
+          "type": "explore",
+          "title": "When do you need the money?",
+          "body": "The same 10,000 lei, two places. Move the slider."
+        },
+        {
+          "type": "sort",
+          "question": "Where does each amount go?",
+          "buckets": [
+            "Savings account",
+            "Deposit"
+          ],
+          "items": [
+            {
+              "label": "Your emergency fund",
+              "why": "You need to take it out the same day without losing the interest."
+            },
+            {
+              "label": "A car deposit, in a year and a half",
+              "why": "You know you won't touch it for a while, so a deposit pays more."
+            },
+            {
+              "label": "Next month's rent",
+              "why": "You need it in a few weeks, so it has to be at hand."
+            },
+            {
+              "label": "Next summer's holiday money, which you won't touch",
+              "why": "The date is fixed and far off, so you can lock it in a deposit."
+            }
+          ],
+          "explain": "Money you might need any time: savings account. Money you definitely won't touch for a while: deposit."
+        },
+        {
+          "type": "stat",
+          "value": "€100,000",
+          "label": "is guaranteed by the state, through the FGDB, per person, per bank.",
+          "body": "Both savings accounts and deposits are covered up to that amount. If the bank fails, you get your money back."
+        },
+        {
+          "type": "finish",
+          "cta": {
+            "label": "Compare deposits"
+          }
+        }
+      ]
+    }
   },
   {
     "id": "dobanda_compusa",
@@ -219,7 +364,52 @@
       "Dobânda la dobândă face ca anii să conteze mai mult decât suma.",
       "Să începi devreme cu puțin bate să începi târziu cu mult.",
       "La datorii merge invers: plătește-le pe cele scumpe întâi."
-    ]
+    ],
+    "en": {
+      "title": "Interest on interest",
+      "hook": "Why time beats the amount.",
+      "series": "The basics",
+      "takeaways": [
+        "Interest on interest makes the years count more than the amount.",
+        "Starting early with a little beats starting late with a lot.",
+        "With debt it works against you: pay off the expensive ones first."
+      ],
+      "steps": [
+        {
+          "type": "predict",
+          "question": "You put 1,000 lei away at 7% a year and don't touch it. How much do you have after 10 years?",
+          "unit": "lei",
+          "explain": "Not 1,700 lei (7% × 10 years). Every year you earn interest on the earlier interest too."
+        },
+        {
+          "type": "explore",
+          "title": "What matters more: the amount or the time?",
+          "body": "Play with the three sliders and watch the green part."
+        },
+        {
+          "type": "choice",
+          "question": "Ana puts in 200 lei a month from age 22. Mihai puts in 400 lei a month from 32. At 60, at 6% a year, who has more?",
+          "options": [
+            "Mihai, he put in twice as much",
+            "About the same",
+            "Ana, by a long way"
+          ],
+          "explain": "Both have about 348,000 lei. But Ana put in 91,200 lei and Mihai 134,400. Her 10 extra years did as much as doubling the amount."
+        },
+        {
+          "type": "stat",
+          "value": "×2 in 3 years",
+          "label": "is how fast credit card debt at 25% a year grows if you don't pay it.",
+          "body": "Interest on interest works the other way too. That is why expensive debt gets paid before you save."
+        },
+        {
+          "type": "finish",
+          "cta": {
+            "label": "See deposits"
+          }
+        }
+      ]
+    }
   },
   {
     "id": "titluri_stat",
@@ -270,19 +460,23 @@
         "items": [
           {
             "label": "Îl cumpăr de la Poștă sau de la Trezorerie",
-            "bucket": 0
+            "bucket": 0,
+            "why": "Tezaur se vinde la Poștă, la Trezorerie și online. Fidelis, nu."
           },
           {
             "label": "Vreau să-l pot vinde la bursă înainte de scadență",
-            "bucket": 1
+            "bucket": 1,
+            "why": "Fidelis se tranzacționează la bursă. Tezaur îl ții până la scadență."
           },
           {
             "label": "Îl cumpăr prin banca sau brokerul meu",
-            "bucket": 1
+            "bucket": 1,
+            "why": "Fidelis se cumpără prin bănci și brokeri, în perioada de subscriere."
           },
           {
             "label": "Îl țin sigur până la capăt",
-            "bucket": 0
+            "bucket": 0,
+            "why": "Dacă nu-ți trebuie să vinzi înainte, Tezaur e cel mai simplu."
           }
         ],
         "explain": "Tezaur: de la Trezorerie, Poștă sau online, ții până la scadență. Fidelis: prin bănci și brokeri, se poate vinde la bursă, la prețul zilei."
@@ -299,7 +493,72 @@
       "Cu titlurile de stat împrumuți statul, care îți plătește dobândă.",
       "Dobânda lor nu se impozitează, deci o rată afișată mai mică poate câștiga.",
       "Tezaur se ține până la scadență; Fidelis se poate vinde la bursă."
-    ]
+    ],
+    "en": {
+      "title": "Government bonds",
+      "hook": "You lend to the state, with no tax on the interest.",
+      "series": "Investing",
+      "takeaways": [
+        "With government bonds you lend to the state, which pays you interest.",
+        "Their interest is not taxed, so a lower headline rate can win.",
+        "Tezaur is held to maturity; Fidelis can be sold on the stock exchange."
+      ],
+      "steps": [
+        {
+          "type": "choice",
+          "question": "What are you actually doing when you buy Tezaur or Fidelis?",
+          "options": [
+            "Buying a piece of a state-owned company",
+            "Lending to the state and earning interest",
+            "Opening a deposit at the Treasury"
+          ],
+          "explain": "The state borrows from people like you. At maturity it pays your money back, and until then it pays interest."
+        },
+        {
+          "type": "predict",
+          "question": "A deposit pays 8% interest. What is left after the 10% tax?",
+          "unit": "%",
+          "explain": "8% minus a tenth of it = 7.2%. Government bonds carry no tax, so 7.4% stays 7.4%."
+        },
+        {
+          "type": "explore",
+          "title": "A lower rate can win"
+        },
+        {
+          "type": "sort",
+          "question": "Tezaur or Fidelis?",
+          "buckets": [
+            "Tezaur",
+            "Fidelis"
+          ],
+          "items": [
+            {
+              "label": "I buy it at the Post Office or the Treasury",
+              "why": "Tezaur is sold at the Post Office, the Treasury and online. Fidelis isn't."
+            },
+            {
+              "label": "I want to be able to sell it on the stock exchange before maturity",
+              "why": "Fidelis trades on the stock exchange. Tezaur you hold to maturity."
+            },
+            {
+              "label": "I buy it through my bank or broker",
+              "why": "Fidelis is bought through banks and brokers, during the subscription window."
+            },
+            {
+              "label": "I'll definitely hold it to the end",
+              "why": "If you won't need to sell early, Tezaur is the simplest."
+            }
+          ],
+          "explain": "Tezaur: from the Treasury, the Post Office or online, held to maturity. Fidelis: through banks and brokers, can be sold on the stock exchange at the day's price."
+        },
+        {
+          "type": "finish",
+          "cta": {
+            "label": "See government bonds"
+          }
+        }
+      ]
+    }
   },
   {
     "id": "etf",
@@ -363,7 +622,55 @@
       "Un ETF împarte riscul între sute de companii.",
       "Piața întreagă poate scădea mult într-un an, ca în 2008.",
       "Doar pentru bani de care nu ai nevoie cel puțin 5–10 ani, după fondul de urgență."
-    ]
+    ],
+    "en": {
+      "title": "ETFs",
+      "hook": "Hundreds of companies in a single purchase.",
+      "series": "Investing",
+      "takeaways": [
+        "An ETF spreads the risk across hundreds of companies.",
+        "The whole market can fall a lot in one year, as in 2008.",
+        "Only for money you won't need for at least 5–10 years, after your emergency fund."
+      ],
+      "steps": [
+        {
+          "type": "explore",
+          "title": "One company goes bust. How much do you lose?",
+          "body": "Pick how many companies you hold."
+        },
+        {
+          "type": "choice",
+          "question": "What do you buy when you buy an ETF on a global index?",
+          "options": [
+            "A single share in a big company",
+            "A piece of hundreds of companies at once",
+            "A dollar deposit"
+          ],
+          "explain": "An ETF on MSCI World holds shares in about 1,400 companies in developed countries. If one falls, the others make up for it."
+        },
+        {
+          "type": "predict",
+          "question": "How much did MSCI World fall in 2008, its worst year in the last 50?",
+          "unit": "%",
+          "explain": "Spreading out doesn't protect you from a bad year for the whole market. That's why ETFs are only for money you won't need for 5–10 years."
+        },
+        {
+          "type": "asset_range"
+        },
+        {
+          "type": "stat",
+          "value": "3%",
+          "label": "tax on the gain if you hold the ETF for over a year, through a Romanian broker.",
+          "body": "Under a year: 6%. Through a foreign broker: 16%, which you declare yourself in the annual tax return."
+        },
+        {
+          "type": "finish",
+          "cta": {
+            "label": "See ETFs"
+          }
+        }
+      ]
+    }
   },
   {
     "id": "actiuni",
@@ -377,7 +684,14 @@
       "actiuni"
     ],
     "steps": [],
-    "takeaways": []
+    "takeaways": [],
+    "en": {
+      "title": "Shares",
+      "hook": "A piece of one company.",
+      "series": "Investing",
+      "takeaways": [],
+      "steps": []
+    }
   },
   {
     "id": "aur",
@@ -391,6 +705,13 @@
       "aur"
     ],
     "steps": [],
-    "takeaways": []
+    "takeaways": [],
+    "en": {
+      "title": "Gold and commodities",
+      "hook": "Protection in a crisis, with no interest.",
+      "series": "Investing",
+      "takeaways": [],
+      "steps": []
+    }
   }
 ]
