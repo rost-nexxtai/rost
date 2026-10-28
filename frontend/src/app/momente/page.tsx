@@ -105,10 +105,11 @@ export default async function Momente() {
         <ApiDown what={t.apiDown} />
       ) : (
         triggered.map((m) => (
-          <section key={m.href} className="card card-dark rise">
-            <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>{t.now(m.minutes)}</span>
-            <h2 style={{ fontSize: 24 }}>{m.title}</h2>
-            <Link href={m.href!} className="btn btn-light" style={{ alignSelf: 'flex-start' }}>
+          // Tinted, not dark: the dark card on this page is the next lesson, and two would compete.
+          <section key={m.href} className="card card-tint rise">
+            <h2 style={{ fontSize: 22 }}>{m.title}</h2>
+            <span className="card-meta">{t.now(m.minutes)}</span>
+            <Link href={m.href!} className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}>
               {t.start}
             </Link>
           </section>
@@ -179,11 +180,9 @@ function RoadStep({ n, t }: { n: RoadmapStep; t: (typeof T)['ro'] }) {
       <li className="road-step" data-state="current">
         {marker}
         <div className="road-current">
-          <span className="small" style={{ fontWeight: 700, color: '#d8dbe0' }}>
-            {n.progress ? t.resume(n.progress.step, n.progress.of) : t.next(n.minutes)}
-          </span>
           <strong className="road-current-title">{n.title}</strong>
-          {n.hook && <span className="small" style={{ color: '#d8dbe0' }}>{n.hook}</span>}
+          {n.hook && <span className="small" style={{ color: 'var(--on-dark-muted)' }}>{n.hook}</span>}
+          <span className="card-meta">{n.progress ? t.resume(n.progress.step, n.progress.of) : t.next(n.minutes)}</span>
           <Link href={n.href} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 4 }}>
             {n.progress ? t.continue : t.start}
           </Link>

@@ -28,9 +28,10 @@ export function ProviderList({ providers }: { providers: RankedProvider[] }) {
       ))}
       {hidden > 0 && (
         <>
-          <div id={id} hidden={!open}>
-            {providers.slice(PROVIDERS_SHOWN).map((p) => (
-              <ProviderRow key={p.id} p={p} />
+          {/* The rest rise in one after another; only the first few get a delay, so a long list doesn't lag. */}
+          <div id={id} hidden={!open} className="provider-more stagger">
+            {providers.slice(PROVIDERS_SHOWN).map((p, i) => (
+              <ProviderRow key={p.id} p={p} style={{ '--i': Math.min(i, 5) } as React.CSSProperties} />
             ))}
           </div>
           <button
@@ -42,8 +43,8 @@ export function ProviderList({ providers }: { providers: RankedProvider[] }) {
             onClick={() => setOpen((o) => !o)}
           >
             {open ? t.less : t.more(hidden)}
-            <span aria-hidden="true" style={{ display: 'inline-flex', transform: `rotate(${open ? -90 : 90}deg)` }}>
-              <Icon name="chevron" size={16} />
+            <span aria-hidden="true" className="provider-toggle-icon">
+              <Icon name="down" size={16} />
             </span>
           </button>
         </>

@@ -155,8 +155,8 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
 
       <fieldset className="onboard-body" key={i}>
         <legend className="sr-only">{screen.question}</legend>
-        <span className="lesson-kicker rise">{screen.kicker}</span>
         <h1 className="lesson-q rise">{screen.question}</h1>
+        <span className="lesson-hint rise">{screen.kicker}</span>
         {screen.hint && <p className="onboard-hint">{screen.hint}</p>}
         <div className={screen.row ? 'tiles-row' : 'tiles'} style={screen.row ? { gridTemplateColumns: `repeat(${screen.options.length}, 1fr)` } : undefined}>
           {screen.options.map((o) => (

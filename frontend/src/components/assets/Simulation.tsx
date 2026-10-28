@@ -121,7 +121,7 @@ function RangeResult({ input, basis, inflationPct }: { input: Input; basis: Extr
       </div>
       <InflationTakes impact={impact} />
       <SimChart kind="range" worst={r.worst} typical={r.typical} best={r.best} typicalToday={todayMoney(r.typical, inflationPct)} />
-      <div className="card card-accent" style={{ padding: 14, gap: 4 }}>
+      <div className="panel-accent">
         <strong className="small">{t.yearLike(basis.worstYear.year, pct(basis.worstYear.pct, 1))}</strong>
         <p className="small">{t.shortTerm}</p>
       </div>

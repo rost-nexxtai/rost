@@ -47,10 +47,10 @@ export function FoundationCard({
   if (kind === 'datorii_scumpe') {
     return (
       <section className="card card-accent" aria-labelledby="fundatia">
-        <span className="eyebrow" style={{ color: 'var(--accent-ink)' }}>
-          {t.first}
-        </span>
-        <h2 id="fundatia">{t.debtTitle}</h2>
+        <div className="card-head">
+          <h2 id="fundatia">{t.debtTitle}</h2>
+          <span className="tag tag-progress">{t.first}</span>
+        </div>
         <p className="small">{t.debtBody}</p>
         <button className="btn btn-secondary btn-sm" disabled style={{ alignSelf: 'flex-start' }}>
           {t.soon}
@@ -60,10 +60,10 @@ export function FoundationCard({
   }
   return (
     <section className="card card-accent" aria-labelledby="fundatia">
-      <span className="eyebrow" style={{ color: 'var(--accent-ink)' }}>
-        {t.first}
-      </span>
-      <h2 id="fundatia">{t.fundTitle}</h2>
+      <div className="card-head">
+        <h2 id="fundatia">{t.fundTitle}</h2>
+        <span className="tag tag-progress">{t.first}</span>
+      </div>
       <p className="small">{lessonDone ? t.nextBody(t.months(bufferMonths)) : t.fundBody(t.months(bufferMonths))}</p>
       <Link
         href={lessonDone ? '/active/cont_economii' : '/moment/lib/fondul_urgenta'}
