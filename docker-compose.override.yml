@@ -1,0 +1,17 @@
+# Local development only. `docker compose up` merges this into docker-compose.yml automatically;
+# Dokploy runs docker-compose.yml on its own, so none of this reaches production.
+
+services:
+  db:
+    ports:
+      - "5432:5432"
+
+  backend:
+    environment:
+      ALLOW_DEMO_TOKEN: ${ALLOW_DEMO_TOKEN:-true}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"

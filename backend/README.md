@@ -5,13 +5,14 @@ The Go API behind the web app in `frontend/`, for the product described in [Arch
 ## Run with Docker (from the repo root)
 
 ```bash
+cp .env.example .env
 docker compose up -d --build
 curl localhost:8080/readyz
 ```
 
-This starts Postgres 16 (`db`, port 5432) and the API (`backend`, port 8080). The API waits for the database to be healthy, then applies `internal/store/migrations/*.sql` (once each), seeds the demo persona and, the first time only, the content (`internal/content/seed`). Compose turns the demo tools on.
+This starts Postgres 16 (`db`, port 5432), the API (`backend`, port 8080) and the web app (`frontend`, port 3000). The API waits for the database to be healthy, then applies `internal/store/migrations/*.sql` (once each), seeds the demo persona and, the first time only, the content (`internal/content/seed`). Locally, `docker-compose.override.yml` publishes the ports and turns the demo tools on; in production (Dokploy, see the root README) they stay off unless `ALLOW_DEMO_TOKEN=true`.
 
-To get an admin account, put these in a `.env` file at the repo root before `docker compose up` (it's gitignored):
+To get an admin account, add these to the root `.env` before `docker compose up` (it's gitignored):
 
 ```bash
 ADMIN_EMAIL=you@rost.ro

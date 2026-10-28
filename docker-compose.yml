@@ -1,35 +1,63 @@
+# Production stack, deployed with Dokploy (Docker Compose, compose path ./docker-compose.yml).
+# Only the frontend is public: give it a domain in Dokploy's Domains tab (service "frontend", port 3000).
+# It proxies /api/* to the backend over the internal network, so the backend and the database publish no ports.
+# Secrets come from Dokploy's Environment tab, which Dokploy writes to .env next to this file. See .env.example.
+# Locally, docker-compose.override.yml is merged in automatically: it publishes ports and turns the demo tools on.
+
 services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_USER: rost
-      POSTGRES_PASSWORD: rost
-      POSTGRES_DB: rost
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-rost}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-rost}
     volumes:
+      # A named volume, so Dokploy's Volume Backups can back it up.
       - rost-db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rost -d rost"]
-      interval: 2s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
       timeout: 3s
-      retries: 15
+      retries: 20
+    restart: unless-stopped
 
   backend:
     build: ./backend
     environment:
       HTTP_ADDR: ":8080"
-      DATABASE_URL: postgres://rost:rost@db:5432/rost?sslmode=disable
-      # Stage helpers (demo partner token, app clock, demo reset). Turn off outside the demo.
-      ALLOW_DEMO_TOKEN: "true"
-      # first admin, put both in .env (gitignored)
+      # POSTGRES_PASSWORD goes into a URL: keep it URL-safe (e.g. openssl rand -hex 24).
+      DATABASE_URL: postgres://${POSTGRES_USER:-rost}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-rost}?sslmode=disable
+      # Stage helpers (demo partner token, app clock, demo reset). Set to true only for a demo.
+      ALLOW_DEMO_TOKEN: ${ALLOW_DEMO_TOKEN:-false}
+      POSTBACK_SECRET: ${POSTBACK_SECRET:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      PAYSLIP_MODEL: ${PAYSLIP_MODEL:-}
+      # First admin, created on start (both or neither).
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8080
+    environment:
+      # Server components call the backend directly; the /api rewrite was fixed at build time.
+      BACKEND_URL: http://backend:8080
+      POSTBACK_SECRET: ${POSTBACK_SECRET:-}
+    expose:
+      - "3000"
+    # Listed explicitly so the frontend keeps reaching the backend when Dokploy adds its own network for the domain.
+    networks:
+      - default
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:
