@@ -27,11 +27,12 @@ describe('profile cookie parsing', () => {
     expect(parseProfile(JSON.stringify(bad))).toEqual(PERSONAS.maria);
   });
 
-  it('keeps the game block, and drops a broken one without losing the profile', () => {
-    const game = { xp: 120, streak: 2, best: 3, lastDay: '2026-10-28', days: ['2026-10-27', '2026-10-28'], badges: ['first'] };
-    expect(parseProfile(JSON.stringify({ ...PERSONAS.maria, game }))?.game).toEqual(game);
-    const broken = parseProfile(JSON.stringify({ ...PERSONAS.maria, game: { ...game, xp: 'lots' } }));
-    expect(broken?.game).toBeUndefined();
+  it('keeps the learned days, and drops a broken list or an old game block without losing the profile', () => {
+    const days = ['2026-10-27', '2026-10-28'];
+    expect(parseProfile(JSON.stringify({ ...PERSONAS.maria, learnedDays: days }))?.learnedDays).toEqual(days);
+    const broken = parseProfile(JSON.stringify({ ...PERSONAS.maria, learnedDays: ['soon'], game: { xp: 10 } }));
+    expect(broken?.learnedDays).toBeUndefined();
+    expect(broken).not.toHaveProperty('game');
     expect(broken?.level).toBe(PERSONAS.maria.level);
   });
 });

@@ -1,6 +1,6 @@
 // MOCK until backend ships the profile on GET /api/me. The profile lives in a cookie until then.
 import type { Profile } from '../types';
-import { validGame } from './game';
+import { validDays } from './rhythm';
 
 export const PROFILE_COOKIE = 'rost_profile';
 export const PROFILE_COOKIE_OPTIONS = { httpOnly: true, sameSite: 'lax' as const, path: '/', maxAge: 60 * 60 * 24 * 90 };
@@ -38,8 +38,9 @@ export function parseProfile(raw: string | undefined): Profile | undefined {
   if (!ok) return undefined;
   const profile = p as Profile;
   if (profile.lessonProgress !== undefined && !validProgress(profile.lessonProgress)) delete profile.lessonProgress;
-  // a broken game block costs the streak, never the profile
-  if (profile.game !== undefined && !validGame(profile.game)) delete profile.game;
+  if (profile.learnedDays !== undefined && !validDays(profile.learnedDays)) delete profile.learnedDays;
+  // XP and badges were tried briefly and dropped; don't carry them along
+  delete (profile as { game?: unknown }).game;
   return profile;
 }
 

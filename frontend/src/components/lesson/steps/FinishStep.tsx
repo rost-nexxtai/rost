@@ -2,10 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { GAME } from '@/components/game/copy';
-import { WeekStrip } from '@/components/game/WeekStrip';
 import { Icon } from '@/components/ui/Icon';
-import type { LessonReward, XpPart } from '@/data/mock/game';
+import { WeekDots } from '@/components/ui/WeekDots';
+import type { WeekDay } from '@/data/mock/rhythm';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 import { LESSON } from '../copy';
@@ -21,50 +20,23 @@ const PIECES = Array.from({ length: 16 }, (_, i) => {
 
 const T = copy(
   {
-    notYet: 'Aproape!',
-    part: { answers: 'Răspunsuri', finish: 'Lecție terminată', perfect: 'Fără greșeală', combo: 'Combo' } as Record<XpPart['key'], string>,
-    total: (n: number) => `${n} XP în total`,
-    streakUp: (n: number): string => (n === 1 ? 'Ai început o serie. Revino mâine ca s-o ții.' : 'Seria crește. Revino mâine ca s-o ții.'),
-    streakSame: 'Lecția de azi era deja bifată. Seria e în siguranță.',
+    notYet: 'Aproape',
     upNext: (title: string) => `Următoarea: ${title}`,
-    retry: 'Mai încearcă lecția',
+    retry: 'Reia lecția',
   },
   {
-    notYet: 'Almost!',
-    part: { answers: 'Answers', finish: 'Lesson finished', perfect: 'Flawless', combo: 'Combo' },
-    total: (n) => `${n} XP in total`,
-    streakUp: (n) => (n === 1 ? 'You started a streak. Come back tomorrow to keep it.' : 'Your streak grows. Come back tomorrow to keep it.'),
-    streakSame: "Today's lesson was already ticked. Your streak is safe.",
+    notYet: 'Almost',
     upNext: (title) => `Up next: ${title}`,
-    retry: 'Try the lesson again',
+    retry: 'Take the lesson again',
   },
 );
 
-/** What saving the lesson came back with: a line about the level, passed or not, and the XP and streak won. */
-export type FinishOutcome = { line: string; passed: boolean; reward?: LessonReward };
-
-/** Counts up to `to` over a moment, so a reward is something you watch arrive. */
-function useCountUp(to: number, ms = 900) {
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    if (!to) return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return setN(to);
-    let raf = 0;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / ms);
-      setN(Math.round(to * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [to, ms]);
-  return n;
-}
+/** What saving the lesson came back with: a line about the level, passed or not, and this week. */
+export type FinishOutcome = { line: string; passed: boolean; week?: WeekDay[] };
 
 /**
- * The end of a lesson: a celebration, the XP counting up, the streak with this week's days, any new
- * badge, what to remember, and the next lesson one tap away. A failed lesson offers a retry instead.
+ * The end of a lesson: the score, what to remember, this week at a glance, and the next lesson one
+ * tap away. A failed lesson offers to take it again instead.
  */
 export function FinishStep({
   title,
@@ -93,7 +65,6 @@ export function FinishStep({
   const { lang } = useLang();
   const t = LESSON[lang];
   const f = T[lang];
-  const g = GAME[lang];
   const [out, setOut] = useState<FinishOutcome>();
   // The completion is saved while this screen shows. Leaving waits for it, so a quick tap on the
   // button never leaves the lesson unmarked.
@@ -108,8 +79,6 @@ export function FinishStep({
     void saved.current.then(() => router.push(href));
   };
   const minutes = Math.max(1, Math.round(seconds / 60));
-  const reward = out?.reward;
-  const xp = useCountUp(reward?.xp ?? 0);
   const failed = out?.passed === false;
 
   const bar = failed && onRetry ? (
@@ -140,48 +109,6 @@ export function FinishStep({
         <p className="muted" aria-live="polite">
           {out ? out.line : t.savingProgress}
         </p>
-
-        {reward && (
-          <div className="reward-row">
-            <section className="reward reward-xp" aria-label={`+${reward.xp} XP`}>
-              <span className="reward-icon">
-                <Icon name="bolt" size={22} />
-              </span>
-              <strong className="reward-big">+{xp} XP</strong>
-              <ul className="xp-parts">
-                {reward.parts.map((p) => (
-                  <li key={p.key}>
-                    <span>{f.part[p.key]}</span>
-                    <span>+{p.xp}</span>
-                  </li>
-                ))}
-              </ul>
-              <span className="play-caption">{f.total(reward.totalXp)}</span>
-            </section>
-            <section className="reward reward-streak" data-up={reward.streakUp || undefined}>
-              <span className="reward-icon">
-                <Icon name="flame" size={22} />
-              </span>
-              <strong className="reward-big">{g.days(reward.streak)}</strong>
-              <WeekStrip week={reward.week} letters={g.weekdays} />
-              <span className="play-caption">{reward.streakUp ? f.streakUp(reward.streak) : f.streakSame}</span>
-            </section>
-          </div>
-        )}
-
-        {reward?.newBadges.map((b) => (
-          <div key={b} className="badge-new">
-            <span className="badge-medal">
-              <Icon name="medal" size={26} />
-            </span>
-            <div style={{ textAlign: 'left' }}>
-              <span className="eyebrow">{g.newBadge}</span>
-              <strong style={{ display: 'block' }}>{g.badge[b].name}</strong>
-              <span className="small muted">{g.badge[b].what}</span>
-            </div>
-          </div>
-        ))}
-
         <div className="score-row" style={graded < 2 ? { gridTemplateColumns: '1fr' } : undefined}>
           {graded >= 2 && (
             <div className="score">
@@ -204,6 +131,11 @@ export function FinishStep({
                 <li key={t}>{t}</li>
               ))}
             </ul>
+          </div>
+        )}
+        {out?.week && (
+          <div className="play" style={{ width: '100%' }}>
+            <WeekDots week={out.week} lang={lang} />
           </div>
         )}
       </div>

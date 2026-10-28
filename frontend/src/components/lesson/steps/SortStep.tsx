@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
-import type { Hit } from '../LessonShell';
+import { feel } from '../feel';
 
 /** How far (px) a card has to be swiped to count as an answer. */
 const SWIPE = 80;
@@ -18,14 +18,12 @@ export function SortStep({
   buckets,
   items,
   explain,
-  onHit,
   onDone,
 }: {
   question: string;
   buckets: [string, string];
   items: { label: string; bucket: 0 | 1; why?: string }[];
   explain: string;
-  onHit?: (hit: Hit) => void;
   onDone: (correct: boolean) => void;
 }) {
   const [i, setI] = useState(0);
@@ -58,7 +56,7 @@ export function SortStep({
     setAnswers((a) => [...a, ok]);
     setFlash(ok ? 'correct' : 'wrong');
     if (ok) setFly(bucket);
-    onHit?.(ok ? 'card' : 'wrong');
+    feel(ok ? 'right' : 'wrong');
   }
 
   const lean = dx < -24 ? 0 : dx > 24 ? 1 : undefined;

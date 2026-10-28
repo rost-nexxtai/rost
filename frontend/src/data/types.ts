@@ -44,23 +44,8 @@ export interface Profile {
   completedMomentIds: string[];
   /** Lessons started and left before the end, by id: where to pick up. */
   lessonProgress?: Record<string, LessonProgress>;
-  /** XP, the daily streak and badges. Missing until the first finished lesson. */
-  game?: GameState;
-}
-
-export type BadgeId = 'first' | 'perfect' | 'combo' | 'streak3' | 'streak7' | 'levelUp' | 'xp500';
-
-/** proposed: part of GET /api/me. The habit side of learning: XP, a streak of days, badges. */
-export interface GameState {
-  xp: number;
-  /** Days in a row with a finished lesson, up to lastDay. */
-  streak: number;
-  best: number;
-  /** YYYY-MM-DD, Romanian time, of the last finished lesson. */
-  lastDay?: string;
-  /** Recent days with a finished lesson, oldest first. */
-  days: string[];
-  badges: BadgeId[];
+  /** Recent days (YYYY-MM-DD, Romanian time) with a finished lesson, oldest first. */
+  learnedDays?: string[];
 }
 
 /** A lesson left halfway: the screen to resume on and the graded answers so far. */

@@ -5,7 +5,7 @@ import { PERSONAS } from './fixtures/personas';
 import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/profile';
 import { getLibrary } from '.';
 import { firstLesson } from './mock/momente';
-import { dayKey, recordLesson, type LessonReward } from './mock/game';
+import { dayKey, weekOf, withDay, type WeekDay } from './mock/rhythm';
 import { levelWithMoments, passed, quizProfile } from './mock/scoring';
 import type { LessonProgress, LibraryMoment, MoneyLine, Profile, QuizAnswers } from './types';
 
@@ -34,40 +34,26 @@ export async function setDemoProfile(persona: 'maria'): Promise<void> {
   await write(PERSONAS[persona]);
 }
 
-/** How a lesson went beyond the score, for XP: answer XP earned on the way and the longest run of right answers. */
-export interface LessonPlay {
-  answerXp: number;
-  maxCombo: number;
-}
-
 /**
  * Records a finished lesson. Only a passed one (2 of 3 graded screens right) counts toward the next
  * level, like the backend's POST /api/library/{id}/complete; a failed attempt changes nothing there.
- * Either way it earns XP and keeps the daily streak going.
+ * Either way the day counts as a day you learned, and the week comes back for the end screen.
  */
 export async function completeLibraryMoment(
   momentId: string,
   correct: number,
   total: number,
-  play: LessonPlay = { answerXp: 0, maxCombo: 0 },
-): Promise<{ profile: Profile; passed: boolean; reward: LessonReward } | undefined> {
+): Promise<{ profile: Profile; passed: boolean; week: WeekDay[] } | undefined> {
   const found = await current();
   if (!found) return undefined;
   // finished, passed or not: it's no longer in progress
   const p = { ...found, lessonProgress: withoutLesson(found.lessonProgress, momentId) };
   const ok = passed(correct, total);
-  const replay = p.completedMomentIds.includes(momentId);
-  const completedMomentIds = ok && !replay ? [...p.completedMomentIds, momentId] : p.completedMomentIds;
-  const level = levelWithMoments(p.quizLevel, completedMomentIds);
-  const { game, reward } = recordLesson(p.game, {
-    today: dayKey(new Date()),
-    answerXp: play.answerXp,
-    maxCombo: play.maxCombo,
-    perfect: total >= 2 && correct === total,
-    replay,
-    levelUp: level > p.level,
-  });
-  return { profile: await write({ ...p, completedMomentIds, level, game }), passed: ok, reward };
+  const completedMomentIds = ok && !p.completedMomentIds.includes(momentId) ? [...p.completedMomentIds, momentId] : p.completedMomentIds;
+  const today = dayKey(new Date());
+  const learnedDays = withDay(p.learnedDays, today);
+  const profile = await write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds), learnedDays });
+  return { profile, passed: ok, week: weekOf(learnedDays, today) };
 }
 
 /** At most this many lessons are remembered halfway; the oldest is dropped first. */

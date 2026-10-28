@@ -5,7 +5,7 @@ import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 import type { Lang } from '@/i18n/lang';
-import type { Hit } from '../LessonShell';
+import { feel } from '../feel';
 import { num } from '@/lib/format';
 
 // Intl writes a hyphen for negatives; a real minus sign reads better at display size.
@@ -37,7 +37,6 @@ export function PredictStep({
   acceptRange,
   explain,
   onCheck,
-  onHit,
   onDone,
 }: {
   kicker?: string;
@@ -54,7 +53,6 @@ export function PredictStep({
   explain?: string;
   /** Real moments record the guess on the server before showing the answer. */
   onCheck?: (value: number) => Promise<void>;
-  onHit?: (hit: Hit) => void;
   onDone: (correct: boolean) => void;
 }) {
   const [value, setValue] = useState(start ?? min + Math.round((max - min) / 2 / step) * step);
@@ -135,7 +133,7 @@ export function PredictStep({
             try {
               await onCheck?.(value);
               setChecked(true);
-              onHit?.(close ? 'right' : 'wrong');
+              feel(close ? 'right' : 'wrong');
             } finally {
               setBusy(false);
             }

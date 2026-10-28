@@ -1,4 +1,4 @@
-type Name = 'acasa' | 'momente' | 'stiri' | 'chevron' | 'external' | 'back' | 'check' | 'close' | 'cross' | 'bulb' | 'bolt' | 'flame' | 'lock' | 'star' | 'medal' | 'grip' | 'redo';
+type Name = 'acasa' | 'momente' | 'stiri' | 'chevron' | 'external' | 'back' | 'check' | 'close' | 'cross' | 'bulb' | 'bolt' | 'lock' | 'grip' | 'redo';
 
 const PATHS: Record<Name, React.ReactNode> = {
   acasa: <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1v-8.5Z" />,
@@ -28,18 +28,10 @@ const PATHS: Record<Name, React.ReactNode> = {
     </>
   ),
   bolt: <path d="M13 3.5 5.5 13.5H12l-1 7 7.5-10H12l1-7Z" />,
-  flame: <path d="M12 20.5c3.6 0 6-2.4 6-5.8 0-3.9-3.2-6.2-4.2-10.2-2.3 1.4-3.6 3.8-3.4 6.4-1.1-.5-1.9-1.6-2.1-2.9C6.9 9.6 6 11.7 6 14.7c0 3.4 2.4 5.8 6 5.8Z" />,
   lock: (
     <>
       <rect x="5.5" y="10.5" width="13" height="9.5" rx="2" />
       <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
-    </>
-  ),
-  star: <path d="m12 4 2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6L12 4Z" />,
-  medal: (
-    <>
-      <circle cx="12" cy="14.5" r="5" />
-      <path d="M9 10.2 6.5 3.5h4l1.5 4M15 10.2l2.5-6.7h-4L12 7.5" />
     </>
   ),
   grip: <path d="M9 7h.01M15 7h.01M9 12h.01M15 12h.01M9 17h.01M15 17h.01" strokeWidth={3} />,

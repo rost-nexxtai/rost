@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
-import type { Hit } from '../LessonShell';
+import { feel } from '../feel';
 
 const KEYS = 'ABCDE';
 
@@ -19,7 +19,6 @@ export function ChoiceStep({
   options,
   correct,
   explain,
-  onHit,
   onDone,
 }: {
   kicker?: string;
@@ -27,7 +26,6 @@ export function ChoiceStep({
   options: string[];
   correct: number;
   explain: string;
-  onHit?: (hit: Hit) => void;
   onDone: (correct: boolean) => void;
 }) {
   const [picked, setPicked] = useState<number>();
@@ -42,10 +40,10 @@ export function ChoiceStep({
   function check() {
     if (picked === undefined) return;
     if (right) {
-      onHit?.(firstTry ? 'right' : 'secondTry');
+      feel('right');
       setPhase('done');
     } else {
-      onHit?.('wrong');
+      feel('wrong');
       if (firstTry && canRetry) {
         setCrossed([picked]);
         setPhase('retry');

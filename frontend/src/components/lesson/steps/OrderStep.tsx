@@ -5,7 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
-import type { Hit } from '../LessonShell';
+import { feel } from '../feel';
 
 /**
  * A fixed shuffle, so the server and the browser start from the same order, and never the answer:
@@ -35,7 +35,6 @@ export function OrderStep({
   top,
   bottom,
   explain,
-  onHit,
   onDone,
 }: {
   question: string;
@@ -43,7 +42,6 @@ export function OrderStep({
   top: string;
   bottom: string;
   explain: string;
-  onHit?: (hit: Hit) => void;
   onDone: (correct: boolean) => void;
 }) {
   const [order, setOrder] = useState(() => shuffled(ordered.length));
@@ -137,7 +135,7 @@ export function OrderStep({
           hint={t.dragHint}
           onClick={() => {
             setChecked(true);
-            onHit?.(right ? 'right' : 'wrong');
+            feel(right ? 'right' : 'wrong');
           }}
         />
       )}
