@@ -52,6 +52,7 @@ type Store interface {
 	ProgressStore
 	TrackingStore
 	AdminStore
+	PartnerStore
 }
 
 // moments + news, edited by admins
@@ -89,6 +90,14 @@ type AdminStore interface {
 	CreateAdminSession(ctx context.Context, s domain.AdminSession) error
 	GetAdminSession(ctx context.Context, tokenHash string) (domain.AdminSession, error)
 	DeleteAdminSession(ctx context.Context, tokenHash string) error
+}
+
+// banks and brokers marked as partners, by key ("bank:<name>", "broker:<id>")
+type PartnerStore interface {
+	// sorted keys
+	ListPartners(ctx context.Context) ([]string, error)
+	// on=false removes the mark; the caller checks the key is a real provider
+	SetPartner(ctx context.Context, key string, on bool, by string) error
 }
 
 // NewID returns a random UUID (version 4).

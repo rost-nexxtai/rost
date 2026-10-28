@@ -82,6 +82,7 @@ Admin routes are under `/api/admin` and need the `rost_admin` cookie from the lo
 | `GET/POST /api/admin/content/{kind}` | `kind` is `moments` or `news`. List all, drafts included; create `{status, position?, doc}` |
 | `GET/PUT/DELETE /api/admin/content/{kind}/{id}` | Read, replace (publish = `status: "published"`), delete |
 | `GET /api/admin/stats?days=30` | Usage statistics for the last 1–365 days. Aggregates only |
+| `GET /api/admin/providers`, `PUT /api/admin/providers/{key}` | Every bank and broker, and marking one as a partner (`{"partner": true}`). Keys are `bank:<Romanian name>` and `broker:<id>`. `/api/providers` then sets `isPartner` on those rows; the order is computed first and never changes |
 
 Content is validated before it's stored: the shapes are `LibraryMoment` and `NewsItem` in `frontend/src/data/types.ts`. Unknown fields are rejected, a moment is at most 5 minutes, and links must be app paths (`/...`) or `https://`. A written lesson follows the same rules as `components/lesson/lessons.test.ts`: at most 7 steps, the last one `finish`, at least 2 graded steps (`choice`, `predict`, `sort`) and 2 takeaways, and a predict slider that doesn't start next to the answer. A moment with no steps is listed as "în curând". Ids can't change, because finished moments and links point to them.
 

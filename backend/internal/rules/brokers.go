@@ -36,6 +36,8 @@ type RankedBroker struct {
 	Broker
 	Rank    int     `json:"rank"`
 	CostLei float64 `json:"costLei"`
+	// Set after ranking, from the admin's partner marks. Only a label.
+	IsPartner bool `json:"isPartner"`
 }
 
 // BrokerCostLei is what one order of amountLei costs: commission (with its minimum), fixed fee and conversion.
@@ -45,7 +47,7 @@ func BrokerCostLei(b Broker, amountLei float64) float64 {
 }
 
 // RankBrokers orders brokers by the cost of a 1,000 lei order, then name. Like the savings
-// ranking, partner status is not an input (brokers carry none).
+// ranking, partner status is not an input: the label is set after ranking.
 func RankBrokers(brokers []Broker) []RankedBroker {
 	out := make([]RankedBroker, 0, len(brokers))
 	for _, b := range brokers {

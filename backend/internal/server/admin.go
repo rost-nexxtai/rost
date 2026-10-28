@@ -32,6 +32,9 @@ func (s *server) adminRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/admin/content/{kind}/{id}", s.asAdmin(s.deleteContent))
 
 	mux.HandleFunc("GET /api/admin/stats", s.asAdmin(s.adminStats))
+
+	mux.HandleFunc("GET /api/admin/providers", s.asAdmin(s.listPartnerProviders))
+	mux.HandleFunc("PUT /api/admin/providers/{key}", s.asAdmin(s.setPartnerProvider))
 }
 
 func setAdminCookie(w http.ResponseWriter, r *http.Request, token string, maxAge int) {

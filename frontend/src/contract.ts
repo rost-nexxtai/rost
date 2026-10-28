@@ -417,6 +417,8 @@ export interface RankedBroker extends Broker {
   rank: number;
   /** What a 1,000 lei order costs. */
   costLei: number;
+  /** Marked as a partner by an admin. Only a label: set after ranking, it never moves a row. */
+  isPartner: boolean;
 }
 
 /**
@@ -582,6 +584,17 @@ export interface ContentRequest<D = LibraryMoment | NewsItem> {
   status: ContentStatus;
   position?: number;
   doc: D;
+}
+
+/**
+ * GET /api/admin/providers lists every bank and broker; PUT /api/admin/providers/{key} with
+ * { partner: boolean } marks or unmarks one. Keys: "bank:<Romanian name>", "broker:<id>".
+ */
+export interface AdminProvider {
+  key: string;
+  kind: 'bank' | 'broker';
+  name: string;
+  partner: boolean;
 }
 
 /** GET /api/admin/stats?days=30 */

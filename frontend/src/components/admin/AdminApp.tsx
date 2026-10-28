@@ -8,10 +8,11 @@ import { copy } from '@/i18n/lang';
 import { AdminsPanel } from './AdminsPanel';
 import { adminFetch, type AdminCall } from './api';
 import { ContentPanel } from './ContentPanel';
+import { PartnersPanel } from './PartnersPanel';
 import { StatsPanel } from './StatsPanel';
 
-type Tab = 'stats' | 'moments' | 'news' | 'admins';
-const TABS: Tab[] = ['stats', 'moments', 'news', 'admins'];
+type Tab = 'stats' | 'moments' | 'news' | 'partners' | 'admins';
+const TABS: Tab[] = ['stats', 'moments', 'news', 'partners', 'admins'];
 
 const T = copy(
   {
@@ -23,7 +24,7 @@ const T = copy(
     password: 'Parolă',
     login: 'Intră',
     logout: 'Ieși',
-    tabs: { stats: 'Statistici', moments: 'Lecții', news: 'Știri', admins: 'Admini' } as Record<Tab, string>,
+    tabs: { stats: 'Statistici', moments: 'Lecții', news: 'Știri', partners: 'Parteneri', admins: 'Admini' } as Record<Tab, string>,
   },
   {
     title: 'Admin',
@@ -34,11 +35,11 @@ const T = copy(
     password: 'Password',
     login: 'Sign in',
     logout: 'Sign out',
-    tabs: { stats: 'Statistics', moments: 'Lessons', news: 'News', admins: 'Admins' },
+    tabs: { stats: 'Statistics', moments: 'Lessons', news: 'News', partners: 'Partners', admins: 'Admins' },
   },
 );
 
-/** Admin tasks: sign in, then statistics, lessons, news and admin accounts, all from /api/admin. */
+/** Admin tasks: sign in, then statistics, lessons, news, partner banks and brokers, and admin accounts, all from /api/admin. */
 export function AdminApp() {
   const t = T[useLang().lang];
   // undefined while we ask the API, null when signed out.
@@ -92,6 +93,7 @@ export function AdminApp() {
       </div>
       {tab === 'stats' && <StatsPanel call={call} />}
       {(tab === 'moments' || tab === 'news') && <ContentPanel key={tab} kind={tab} call={call} />}
+      {tab === 'partners' && <PartnersPanel call={call} />}
       {tab === 'admins' && <AdminsPanel call={call} />}
     </main>
   );

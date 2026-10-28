@@ -11,12 +11,14 @@ const T = copy(
     site: 'Site oficial',
     siteOf: (name: string) => `Site-ul oficial ${name}, se deschide într-o filă nouă`,
     checked: (month: string) => `verificat ${month}`,
+    partner: 'Partener',
   },
   {
     place: (n) => `Rank ${n}`,
     site: 'Official site',
     siteOf: (name) => `${name}'s official site, opens in a new tab`,
     checked: (month) => `checked ${month}`,
+    partner: 'Partner',
   },
 );
 
@@ -29,7 +31,9 @@ export function ProviderRow({ p, style }: { p: RankedProvider; style?: React.CSS
         {p.rank}
       </span>
       <div className="provider-head">
-        <span className="provider-name">{p.name}</span>
+        <span className="provider-name">
+          {p.name} {p.isPartner && <span className="tag tag-partner">{t.partner}</span>}
+        </span>
         <span className="muted small">{p.product}</span>
       </div>
       <div className="provider-body">

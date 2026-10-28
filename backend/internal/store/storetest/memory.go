@@ -26,6 +26,7 @@ type Memory struct {
 	tracking    []domain.TrackEvent
 	admins      map[string]domain.Admin
 	sessions    map[string]domain.AdminSession
+	partners    map[string]bool
 }
 
 var _ store.Store = (*Memory)(nil)
@@ -41,6 +42,7 @@ func New(users ...domain.User) *Memory {
 		seeds:     map[string]bool{},
 		admins:    map[string]domain.Admin{},
 		sessions:  map[string]domain.AdminSession{},
+		partners:  map[string]bool{},
 	}
 	for _, u := range users {
 		if u.CreatedAt == "" {

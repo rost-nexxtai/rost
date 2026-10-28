@@ -64,6 +64,7 @@ function savingsRow(o: RankedOffer, lang: Lang): RankedProvider {
     checked: checkedMonth(o.checkedAt, lang),
     source: o.source,
     clientsLine: clientsLine(o.clients, lang),
+    isPartner: o.isPartner,
   };
 }
 
@@ -82,6 +83,7 @@ function brokerRow(b: RankedBroker, lang: Lang): RankedProvider {
     checked: checkedMonth(b.checkedAt, lang),
     source: b.source,
     clientsLine: clientsLine(b.clients, lang),
+    isPartner: b.isPartner,
   };
 }
 

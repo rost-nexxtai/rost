@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -276,5 +277,53 @@ func TestPostgresContentAdminsTracking(t *testing.T) {
 	}
 	if evs := thisRun("2026-10-28T00:00:00.000Z", "2026-10-30T00:00:00.000Z"); len(evs) != 1 {
 		t.Errorf("events after reset = %d, want only the anonymous one", len(evs))
+	}
+}
+
+func TestPostgresPartners(t *testing.T) {
+	url := os.Getenv("ROST_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("ROST_TEST_DATABASE_URL not set")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	s := store.NewPostgres(pool)
+	if err := s.Migrate(ctx, reference.DemoUsers()); err != nil {
+		t.Fatal(err)
+	}
+	keys := []string{"bank:Test Bank", "broker:test"}
+	t.Cleanup(func() {
+		for _, k := range keys {
+			_ = s.SetPartner(ctx, k, false, "")
+		}
+	})
+
+	// Marking twice is fine; unmarking something unmarked is too.
+	for _, k := range append(keys, keys[0]) {
+		if err := s.SetPartner(ctx, k, true, "admin@rost.ro"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.SetPartner(ctx, "bank:Nobody", false, "admin@rost.ro"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.ListPartners(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range keys {
+		if !slices.Contains(got, k) {
+			t.Errorf("partners = %v, missing %s", got, k)
+		}
+	}
+	if err := s.SetPartner(ctx, keys[0], false, "admin@rost.ro"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.ListPartners(ctx); slices.Contains(got, keys[0]) {
+		t.Errorf("still marked after unmarking: %v", got)
 	}
 }

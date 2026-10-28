@@ -26,6 +26,7 @@ const T = copy(
     orderSavings: 'Întâi cea mai bună ofertă a fiecărei bănci, de la banca cu cei mai mulți clienți în România în jos, apoi celelalte termene. Cea mai bună rată poate fi mai jos în listă, așa că uită-te la toate. ',
     orderBrokers: 'Primii sunt brokerii cu cei mai mulți clienți în România; cei fără o cifră publică pentru România vin după, cel mai ieftin întâi. ',
     partners: 'Nu avem parteneri printre ei și nu primim nimic de la nimeni pentru poziție. Ratele și comisioanele se schimbă des: verifică-le pe site-ul oficial înainte să deschizi ceva.',
+    partnersSome: 'Partenerii noștri sunt marcați cu „Partener”. Ordinea e aceeași pentru toți: nimeni nu plătește pentru poziție. Ratele și comisioanele se schimbă des: verifică-le pe site-ul oficial înainte să deschizi ceva.',
     down: 'Nu putem încărca lista acum. Încearcă din nou peste un minut.',
     simulation: 'Simulare',
     learnMore: (name: string) => `Vreau să aflu mai multe despre ${name}`,
@@ -45,6 +46,7 @@ const T = copy(
     orderSavings: "Each bank's best offer first, from the bank with the most clients in Romania down, then their other terms. The best rate may be further down the list, so look at them all. ",
     orderBrokers: 'The brokers with the most clients in Romania come first; those without a Romanian figure follow, cheapest first. ',
     partners: "None of them is a partner, and nobody pays us for a position. Rates and fees change often: check them on the official site before you open anything.",
+    partnersSome: "Our partners are marked \"Partner\". The order is the same for everyone: nobody pays for a position. Rates and fees change often: check them on the official site before you open anything.",
     down: "We can't load the list right now. Try again in a minute.",
     simulation: 'Simulation',
     learnMore: (name) => `Tell me more about ${name}`,
@@ -103,7 +105,7 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
         </Card>
         <p className="note">
           {providerKind === 'savings' ? t.orderSavings : t.orderBrokers}
-          {t.partners}
+          {providers.some((p) => p.isPartner) ? t.partnersSome : t.partners}
         </p>
       </section>
 

@@ -73,8 +73,8 @@ export interface QuizAnswers {
 }
 
 /**
- * One real provider on an asset page, from GET /api/providers/:assetId. None of them is a partner:
- * the list links to each provider's official site, and nobody pays for a position.
+ * One real provider on an asset page, from GET /api/providers/:assetId. The list links to each
+ * provider's official site. Partners are labelled, and nobody pays for a position.
  */
 export interface RankedProvider {
   id: string;
@@ -96,6 +96,8 @@ export interface RankedProvider {
   source?: { label: string; url: string };
   /** "5,1 mil. clienți în România", when known. */
   clientsLine?: string;
+  /** Marked as a partner in the admin page: shown as a label, never used for the order. */
+  isPartner?: boolean;
 }
 
 export interface Point {
