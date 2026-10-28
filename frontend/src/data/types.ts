@@ -203,3 +203,24 @@ export interface MomenteResponse {
   /** True when the real API couldn't be reached: triggered moments are unknown, the library still shows. */
   realApiDown: boolean;
 }
+
+export type NewsImpact =
+  | { kind: 'spend'; line: 'fuelLei' | 'electricityLei'; shock: { defaultPct: number; minPct: number; maxPct: number } }
+  | { kind: 'savings'; alternative: { label: string; ratePct: number } };
+
+export interface NewsItem {
+  id: string;
+  date: string;
+  title: string;
+  facts: string[];
+  sources: { label: string; url: string; date: string }[];
+  impact: NewsImpact;
+  momentId: string;
+  momentHref: string;
+}
+
+/** proposed: GET /api/stiri. Items are ordered by the user's own exposure (lei a month). */
+export interface StiriResponse {
+  items: (NewsItem & { monthlyLei: number })[];
+  money: MoneyLines;
+}

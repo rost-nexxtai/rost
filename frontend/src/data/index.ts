@@ -8,9 +8,10 @@ import { BROKERS } from './fixtures/brokers';
 import { SAVINGS } from './fixtures/providers';
 import { buildAcasa } from './mock/acasa';
 import { buildMomente } from './mock/momente';
+import { buildStiri } from './mock/stiri';
 import { rankBrokers, rankSavings } from './mock/ranking';
 import { NATIONAL_INFLATION_PCT } from './mock/scoring';
-import type { AcasaResponse, AssetResponse, MomenteResponse, Profile } from './types';
+import type { AcasaResponse, AssetResponse, MomenteResponse, Profile, StiriResponse } from './types';
 
 /**
  * The only door screens use to get data. Each function returns a proposed response type
@@ -52,4 +53,10 @@ export async function getMomente(): Promise<MomenteResponse | undefined> {
     today = undefined; // no session or backend down: still show the library
   }
   return buildMomente(p, today);
+}
+
+/** MOCK until GET /api/stiri. */
+export async function getStiri(): Promise<StiriResponse | undefined> {
+  const p = await getProfile();
+  return p && buildStiri(p);
 }
