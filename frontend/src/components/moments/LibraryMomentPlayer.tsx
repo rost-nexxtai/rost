@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { LessonShell } from '@/components/lesson/LessonShell';
+import { feel } from '@/components/lesson/feel';
+import { LessonShell, type Gain, type Hit } from '@/components/lesson/LessonShell';
 import { ChoiceStep } from '@/components/lesson/steps/ChoiceStep';
 import { ExploreStep } from '@/components/lesson/steps/ExploreStep';
-import { FinishStep } from '@/components/lesson/steps/FinishStep';
+import { FinishStep, type FinishOutcome } from '@/components/lesson/steps/FinishStep';
+import { OrderStep } from '@/components/lesson/steps/OrderStep';
 import { PredictStep } from '@/components/lesson/steps/PredictStep';
 import { RangeStep } from '@/components/lesson/steps/RangeStep';
 import { SortStep } from '@/components/lesson/steps/SortStep';
 import { StatStep } from '@/components/lesson/steps/StatStep';
 import { completeLibraryMoment, saveLessonProgress } from '@/data/actions';
+import { XP } from '@/data/mock/game';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 import type { Asset, LessonProgress, Level, LibraryMoment } from '@/data/types';
@@ -31,7 +34,12 @@ const T = copy(
   },
 );
 
-/** Plays a library lesson, one screen at a time, and keeps score of the graded screens. */
+const HIT_XP: Record<Hit, number> = { right: XP.right, card: XP.card, secondTry: XP.secondTry, wrong: 0 };
+
+/**
+ * Plays a library lesson, one screen at a time. It keeps the score of the graded screens (first
+ * tries only), and the game around it: XP for every right answer and a combo for answers in a row.
+ */
 export function LibraryMomentPlayer({
   moment,
   assets,
@@ -39,6 +47,7 @@ export function LibraryMomentPlayer({
   coreLeftAfter,
   bufferMonths,
   resume,
+  upNext,
 }: {
   moment: LibraryMoment;
   assets: Partial<Record<string, Asset>>;
@@ -49,9 +58,16 @@ export function LibraryMomentPlayer({
   bufferMonths?: number;
   /** Where the user left this lesson last time; it picks up there. */
   resume?: LessonProgress;
+  /** The lesson to offer once this one is done. */
+  upNext?: { id: string; title: string; minutes: number };
 }) {
   const [i, setI] = useState(resume?.step ?? 0);
   const [results, setResults] = useState<boolean[]>(resume?.results ?? []);
+  // XP for answers given before a resume isn't known, so it counts the right ones at the base rate
+  const [xp, setXp] = useState(() => (resume?.results ?? []).filter(Boolean).length * XP.right);
+  const [gain, setGain] = useState<Gain>();
+  const [combo, setCombo] = useState(0);
+  const maxCombo = useRef(0);
   const started = useRef(Date.now());
   const t = T[useLang().lang];
   const step = moment.steps[i];
@@ -68,23 +84,48 @@ export function LibraryMomentPlayer({
     setResults((r) => [...r, ok]);
     next();
   };
+  const hit = (h: Hit) => {
+    feel(h === 'wrong' ? 'wrong' : 'right');
+    if (h === 'wrong') return setCombo(0);
+    setXp((x) => x + HIT_XP[h]);
+    setGain({ xp: HIT_XP[h], key: Date.now() });
+    const c = combo + 1;
+    maxCombo.current = Math.max(maxCombo.current, c);
+    setCombo(c);
+  };
+  // a failed lesson starts again from the top, with a clean score
+  const retry = () => {
+    setResults([]);
+    setXp(0);
+    setGain(undefined);
+    setCombo(0);
+    maxCombo.current = 0;
+    started.current = Date.now();
+    setI(0);
+  };
 
-  async function finish(): Promise<string> {
+  async function finish(): Promise<FinishOutcome> {
     const right = results.filter(Boolean).length;
-    const res = await completeLibraryMoment(moment.id, right, results.length);
-    if (!res) return t.noProfile;
-    if (!res.passed) return t.retake(right, results.length);
-    const after = res.profile;
-    if (after.level > levelBefore) return t.levelUp(after.level);
-    if (after.level === 2) return t.ticked;
-    return coreLeftAfter > 0 ? t.coreLeft(coreLeftAfter, (after.level + 1) as Level) : t.ticked;
+    const res = await completeLibraryMoment(moment.id, right, results.length, { answerXp: xp, maxCombo: maxCombo.current });
+    if (!res) return { line: t.noProfile, passed: true };
+    const { profile: after, passed, reward } = res;
+    if (passed) feel('win');
+    const line = !passed
+      ? t.retake(right, results.length)
+      : after.level > levelBefore
+        ? t.levelUp(after.level)
+        : after.level === 2 || coreLeftAfter === 0
+          ? t.ticked
+          : t.coreLeft(coreLeftAfter, (after.level + 1) as Level);
+    return { line, passed, reward };
   }
 
   return (
-    <LessonShell index={i} total={moment.steps.length}>
-      {step.type === 'choice' && <ChoiceStep {...step} onDone={graded} />}
-      {step.type === 'predict' && <PredictStep {...step} answer={step.answerValue} onDone={graded} />}
-      {step.type === 'sort' && <SortStep {...step} onDone={graded} />}
+    <LessonShell index={i} total={moment.steps.length} xp={xp} gain={gain} combo={step.type === 'finish' ? 0 : combo}>
+      {step.type === 'choice' && <ChoiceStep {...step} onHit={hit} onDone={graded} />}
+      {step.type === 'predict' && <PredictStep {...step} answer={step.answerValue} onHit={hit} onDone={graded} />}
+      {step.type === 'sort' && <SortStep {...step} onHit={hit} onDone={graded} />}
+      {step.type === 'order' && <OrderStep {...step} onHit={hit} onDone={graded} />}
       {step.type === 'explore' && <ExploreStep {...step} haveMonths={bufferMonths} onDone={next} />}
       {step.type === 'stat' && <StatStep {...step} onDone={next} />}
       {step.type === 'asset_range' && assets[step.assetId] && <RangeStep asset={assets[step.assetId]!} onDone={next} />}
@@ -96,7 +137,9 @@ export function LibraryMomentPlayer({
           graded={results.length}
           seconds={(Date.now() - started.current) / 1000}
           cta={step.cta}
+          upNext={upNext}
           onFinish={finish}
+          onRetry={retry}
         />
       )}
     </LessonShell>

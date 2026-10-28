@@ -4,11 +4,14 @@ import { FollowUp } from '@/components/ClientActions';
 import { MomentRow } from '@/components/momente/MomentRow';
 import { ApiDown } from '@/components/ui/ApiDown';
 import { Card } from '@/components/ui/Card';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
+import { GAME } from '@/components/game/copy';
+import { WeekStrip } from '@/components/game/WeekStrip';
+import { Icon } from '@/components/ui/Icon';
 import { getLibrary, getMomente, getProfile } from '@/data';
-import { firstLesson } from '@/data/mock/momente';
+import { BADGES, dayKey, streakOn, weekOf } from '@/data/mock/game';
+import { buildPath, type PathNode } from '@/data/mock/momente';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
 
@@ -24,19 +27,20 @@ const T = copy(
     title: 'Momente',
     level: (l: number) => `Nivelul L${l}`,
     core: (done: number, of: number) => `${done} din ${of} lecții de bază`,
-    finish: (next: number) => `Termină-le ca să treci la L${next}.`,
-    advanced: 'Ai ajuns la nivelul avansat.',
+    locked: (l: number) => `Se deblochează când termini L${l}`,
+    keepStreak: (n: number) => (n === 1 ? 'Fă o lecție azi ca să-ți păstrezi seria.' : `Fă o lecție azi ca să-ți păstrezi seria de ${n} zile.`),
+    doneToday: 'Lecția de azi e bifată. Ne vedem mâine!',
+    startStreak: 'O lecție pe zi, 3 minute. Începe o serie azi.',
+    path: 'Drumul tău',
+    soon: 'în curând',
+    life: 'Din viața ta',
+    peek: 'Poți arunca o privire',
     apiDown: 'Momentele declanșate de salariu, inflație sau știri apar aici când revine conexiunea. Lecțiile de mai jos merg oricum.',
     now: (min: number) => `Acum, pe cifrele tale · ${min} min`,
     start: 'Începe',
     next: (min: number) => `Următoarea ta lecție · ${min} min`,
     resume: (step: number, of: number) => `Ai rămas la pasul ${step} din ${of}`,
     continue: 'Continuă',
-    forLevel: 'Pentru nivelul tău',
-    startAbove: 'Începe cu lecția de mai sus.',
-    allDone: 'Le-ai terminat pe toate. Bravo!',
-    rest: 'Restul',
-    nextAria: 'Următoarea ta lecție',
   },
   {
     action: {
@@ -47,56 +51,59 @@ const T = copy(
     title: 'Moments',
     level: (l) => `Level L${l}`,
     core: (done, of) => `${done} of ${of} core lessons`,
-    finish: (next) => `Finish them to move up to L${next}.`,
-    advanced: "You've reached the advanced level.",
+    locked: (l) => `Unlocks when you finish L${l}`,
+    keepStreak: (n) => (n === 1 ? 'Do a lesson today to keep your streak.' : `Do a lesson today to keep your ${n}-day streak.`),
+    doneToday: "Today's lesson is done. See you tomorrow!",
+    startStreak: 'One lesson a day, 3 minutes. Start a streak today.',
+    path: 'Your path',
+    soon: 'coming soon',
+    life: 'From your life',
+    peek: 'You can take a peek',
     apiDown: 'Moments triggered by your salary, inflation or the news show up here once the connection is back. The lessons below work anyway.',
     now: (min) => `Now, on your numbers · ${min} min`,
     start: 'Start',
     next: (min) => `Your next lesson · ${min} min`,
     resume: (step, of) => `You stopped at step ${step} of ${of}`,
     continue: 'Continue',
-    forLevel: 'For your level',
-    startAbove: 'Start with the lesson above.',
-    allDone: "You've done them all. Well done!",
-    rest: 'Everything else',
-    nextAria: 'Your next lesson',
   },
 );
 
 export default async function Momente() {
   const [data, profile, lang, library] = await Promise.all([getMomente(), getProfile(), getLang(), getLibrary()]);
   const t = T[lang];
+  const g = GAME[lang];
   if (!data || !profile) redirect('/quiz');
-  const { triggered, forYourLevel, rest, progress, realApiDown, dueFollowUps } = data;
-  // One obvious next step: a moment the backend opened wins; then a lesson left halfway; otherwise the next lesson at your level.
-  const first = firstLesson(profile, library);
-  const all = [...forYourLevel, ...rest];
-  const nextUp = triggered.length === 0 ? (all.find((m) => m.status === 'started') ?? all.find((m) => m.id === first?.id && m.status === 'todo')) : undefined;
-  const listed = forYourLevel.filter((m) => m !== nextUp);
+  const { triggered, rest, realApiDown, dueFollowUps } = data;
+  const today = dayKey(new Date());
+  const streak = streakOn(profile.game, today);
+  const path = buildPath(profile, library);
+  // moments that came from the user's life (payslip, inflation), not from the lesson path
+  const life = rest.filter((m) => m.level === null);
+  const earned = new Set(profile.game?.badges ?? []);
 
   return (
     <main className="shell">
       <TopBar profile={profile} />
       <h1>{t.title}</h1>
 
-      <Card>
-        <div className="row">
-          <span className="eyebrow">{t.level(progress.level)}</span>
-          {progress.nextLevel !== null && (
-            <span className="small muted">
-              {t.core(progress.coreDone, progress.coreTotal)}
-            </span>
-          )}
+      <section className="card game-card" aria-label={`${g.streak}: ${g.days(streak.days)}, ${profile.game?.xp ?? 0} XP`}>
+        <div className="game-stats">
+          <span className="game-stat" data-on={streak.days > 0 || undefined} data-risk={streak.atRisk || undefined}>
+            <Icon name="flame" size={22} />
+            <strong>{streak.days}</strong>
+            <span className="small muted">{g.streak}</span>
+          </span>
+          <span className="game-stat game-stat-xp">
+            <Icon name="bolt" size={22} />
+            <strong>{profile.game?.xp ?? 0}</strong>
+            <span className="small muted">{g.xp}</span>
+          </span>
         </div>
-        {progress.nextLevel !== null ? (
-          <>
-            <ProgressBar value={progress.coreDone} max={progress.coreTotal} label={t.core(progress.coreDone, progress.coreTotal)} />
-            <p className="small">{t.finish(progress.nextLevel)}</p>
-          </>
-        ) : (
-          <p className="small">{t.advanced}</p>
-        )}
-      </Card>
+        <WeekStrip week={weekOf(profile.game, today)} letters={g.weekdays} />
+        <p className="small" style={{ margin: 0 }}>
+          {streak.atRisk ? t.keepStreak(streak.days) : streak.doneToday ? t.doneToday : t.startStreak}
+        </p>
+      </section>
 
       {dueFollowUps.map((a) => <FollowUp key={a.id} actionId={a.id} text={t.action[a.type] ?? t.didIt} />)}
 
@@ -114,43 +121,100 @@ export default async function Momente() {
         ))
       )}
 
-      {nextUp && (
-        <section className="stat rise" aria-label={t.nextAria}>
-          <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>
-            {nextUp.progress ? t.resume(nextUp.progress.step, nextUp.progress.of) : t.next(nextUp.minutes)}
-          </span>
-          <div className="display-md" style={{ color: '#fff' }}>
-            {nextUp.title}
-          </div>
-          {nextUp.hook && <span className="stat-label">{nextUp.hook}</span>}
-          <Link href={nextUp.href!} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-            {nextUp.progress ? t.continue : t.start}
-          </Link>
+      <h2 className="section-title">{t.path}</h2>
+      {path.map((lvl) => (
+        <section key={lvl.level} className="path-level" data-reached={lvl.reached || undefined} aria-labelledby={`lvl${lvl.level}`}>
+          <header className="path-head">
+            <span className="path-head-badge">L{lvl.level}</span>
+            <div className="stack" style={{ gap: 2 }}>
+              <strong id={`lvl${lvl.level}`}>
+                {t.level(lvl.level)} · {lvl.series}
+              </strong>
+              <span className="small muted">{lvl.reached ? t.core(lvl.coreDone, lvl.coreTotal) : `${t.locked(lvl.level - 1)} · ${t.peek}`}</span>
+            </div>
+          </header>
+          <ol className="path">
+            {lvl.nodes.map((n, i) => (
+              <PathStep key={n.id} n={n} side={SIDES[i % SIDES.length]} t={t} />
+            ))}
+          </ol>
         </section>
-      )}
+      ))}
 
-      <section className="section" aria-labelledby="nivel">
-        <h2 id="nivel" className="section-title">
-          {t.forLevel}
-        </h2>
-        <Card style={{ gap: 0 }}>
-          {listed.length ? listed.map((m) => <MomentRow key={m.id} m={m} />) : <p className="small muted">{nextUp ? t.startAbove : t.allDone}</p>}
-        </Card>
-      </section>
-
-      {rest.length > 0 && (
-        <section className="section" aria-labelledby="restul">
-          <h2 id="restul" className="section-title">
-            {t.rest}
+      {life.length > 0 && (
+        <section className="section" aria-labelledby="life">
+          <h2 id="life" className="section-title">
+            {t.life}
           </h2>
           <Card style={{ gap: 0 }}>
-            {rest.filter((m) => m !== nextUp).map((m) => (
+            {life.map((m) => (
               <MomentRow key={m.id} m={m} />
             ))}
           </Card>
         </section>
       )}
+
+      <section className="section" aria-labelledby="badges">
+        <h2 id="badges" className="section-title">
+          {g.badges} · {earned.size}/{BADGES.length}
+        </h2>
+        <ul className="shelf">
+          {BADGES.map(({ id }) => (
+            <li key={id} data-earned={earned.has(id) || undefined} title={g.badge[id].what}>
+              <span className="badge-medal">
+                <Icon name={earned.has(id) ? 'medal' : 'lock'} size={22} />
+              </span>
+              <span className="small">{g.badge[id].name}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
       <TabBar current="momente" />
     </main>
+  );
+}
+
+/** The path winds left and right, like a trail. */
+const SIDES = ['mid', 'right', 'mid', 'left'] as const;
+
+function PathStep({ n, side, t }: { n: PathNode; side: (typeof SIDES)[number]; t: (typeof T)['ro'] }) {
+  const icon = n.state === 'done' ? 'check' : n.state === 'locked' ? 'lock' : n.state === 'soon' ? 'momente' : 'star';
+  const node = (
+    <span className="path-node" aria-hidden="true">
+      <Icon name={icon} size={n.state === 'current' ? 30 : 24} />
+    </span>
+  );
+  return (
+    <li className="path-step" data-side={side} data-state={n.state}>
+      {n.state === 'current' && n.href ? (
+        <div className="path-current rise">
+          <Link href={n.href} className="path-node-link" aria-label={n.title}>
+            {node}
+          </Link>
+          <div className="path-bubble">
+            <span className="small" style={{ fontWeight: 700, color: '#d8dbe0' }}>
+              {n.progress ? t.resume(n.progress.step, n.progress.of) : t.next(n.minutes)}
+            </span>
+            <strong className="path-bubble-title">{n.title}</strong>
+            {n.hook && <span className="small" style={{ color: '#d8dbe0' }}>{n.hook}</span>}
+            <Link href={n.href} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 4 }}>
+              {n.progress ? t.continue : t.start}
+            </Link>
+          </div>
+        </div>
+      ) : n.href ? (
+        <Link href={n.href} className="path-node-link">
+          {node}
+          <span className="path-title">{n.title}</span>
+        </Link>
+      ) : (
+        <div className="path-node-link">
+          {node}
+          <span className="path-title">
+            {n.title} · {t.soon}
+          </span>
+        </div>
+      )}
+    </li>
   );
 }

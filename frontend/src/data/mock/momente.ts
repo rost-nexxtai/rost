@@ -106,3 +106,44 @@ export function firstLesson(p: Profile, library: LibraryMoment[]): LibraryMoment
   if (foundationFor(p) === 'fond_urgenta') return playable.find((m) => m.id === 'fondul_urgenta') ?? playable[0];
   return playable.find((m) => m.level === p.level) ?? playable.find((m) => m.level <= p.level) ?? playable[0];
 }
+
+export type PathNode = MomentSummary & { state: 'done' | 'current' | 'open' | 'locked' | 'soon' };
+
+/** One level of the learning path: its lessons in order, and how many of its core ones are done. */
+export interface PathLevel {
+  level: Level;
+  series: string;
+  coreDone: number;
+  coreTotal: number;
+  /** The user is at this level or past it. */
+  reached: boolean;
+  nodes: PathNode[];
+}
+
+/**
+ * The lessons as a path, level by level, with one "current" lesson: the one left halfway, else the
+ * one firstLesson picks. Lessons above your level stay open to peek at, but show as locked.
+ */
+export function buildPath(p: Profile, library: LibraryMoment[]): PathLevel[] {
+  const done = new Set(p.completedMomentIds);
+  const current = library.find((m) => resumable(m, p)) ?? firstLesson(p, library);
+  return ([0, 1, 2] as Level[])
+    .map((level) => {
+      const lessons = library.filter((m) => m.level === level);
+      const core = CORE_MOMENTS[level];
+      return {
+        level,
+        series: lessons[0]?.series ?? '',
+        coreDone: core.filter((id) => done.has(id)).length,
+        coreTotal: core.length,
+        reached: level <= p.level,
+        nodes: lessons.map((m): PathNode => {
+          const s = summary(m, done.has(m.id), p);
+          const state =
+            m.id === current?.id ? 'current' : s.status === 'soon' ? 'soon' : s.status === 'done' ? 'done' : level > p.level ? 'locked' : 'open';
+          return { ...s, state };
+        }),
+      };
+    })
+    .filter((l) => l.nodes.length > 0);
+}

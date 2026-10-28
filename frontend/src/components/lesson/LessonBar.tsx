@@ -16,6 +16,7 @@ export function LessonBar({
   onClick,
   disabled,
   hint,
+  secondary,
 }: {
   tone?: Tone;
   title?: string;
@@ -25,6 +26,8 @@ export function LessonBar({
   disabled?: boolean;
   /** A nudge shown above a disabled button, e.g. "Alege un răspuns". */
   hint?: string;
+  /** A quieter second choice under the button, e.g. "Arată răspunsul". */
+  secondary?: { label: string; onClick: () => void };
 }) {
   return (
     <div className="lesson-bar" data-tone={tone}>
@@ -44,6 +47,11 @@ export function LessonBar({
         <button type="button" className={`btn btn-block ${tone === 'wrong' ? 'btn-wrong' : 'btn-primary'}`} disabled={disabled} onClick={onClick} autoFocus={!!tone}>
           {label}
         </button>
+        {secondary && (
+          <button type="button" className="btn-text" onClick={secondary.onClick}>
+            {secondary.label}
+          </button>
+        )}
       </div>
     </div>
   );

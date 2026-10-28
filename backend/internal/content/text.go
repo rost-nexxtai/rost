@@ -15,6 +15,7 @@ var textKeys = map[string][]string{
 	"choice":      {"question", "options", "explain"},
 	"predict":     {"question", "unit", "explain"},
 	"sort":        {"question", "buckets", "items", "explain"},
+	"order":       {"question", "ordered", "top", "bottom", "explain"},
 	"explore":     {"title", "body"},
 	"stat":        {"value", "label", "body"},
 	"asset_range": {},
@@ -110,7 +111,7 @@ func validateStepText(ro, en map[string]any) error {
 // of the same length, and for sort items and the finish button only the words inside.
 func sameShape(key string, ro, en any) error {
 	switch key {
-	case "options", "buckets":
+	case "options", "buckets", "ordered":
 		a, _ := list(ro)
 		b, ok := list(en)
 		if !ok || len(a) != len(b) {

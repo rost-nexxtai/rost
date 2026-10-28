@@ -107,6 +107,33 @@ func TestValidateMoment(t *testing.T) {
 	}
 }
 
+const orderJSON = `{"type":"order","question":"Sigur la riscant","ordered":["Cont","Titluri","ETF"],"top":"Sigur","bottom":"Riscant","explain":"E."}`
+
+func TestValidateOrderStep(t *testing.T) {
+	asset := `{"type":"asset_range","assetId":"etf"}`
+	good := strings.Replace(goodMoment, asset, orderJSON, 1)
+	if _, _, err := Validate(domain.KindMoment, json.RawMessage(good)); err != nil {
+		t.Fatalf("good order step: %v", err)
+	}
+	bad := map[string][2]string{
+		"two items":       {`["Cont","Titluri","ETF"]`, `["Cont","ETF"]`},
+		"seven items":     {`["Cont","Titluri","ETF"]`, `["a","b","c","d","e","f","g"]`},
+		"same item twice": {`["Cont","Titluri","ETF"]`, `["Cont","Cont","ETF"]`},
+		"empty item":      {`["Cont","Titluri","ETF"]`, `["Cont"," ","ETF"]`},
+		"no top label":    {`"top":"Sigur",`, ``},
+		"no explanation":  {`,"explain":"E."}`, `}`},
+	}
+	for name, r := range bad {
+		doc := strings.Replace(good, r[0], r[1], 1)
+		if doc == good {
+			t.Fatalf("%s: replacement didn't apply", name)
+		}
+		if _, _, err := Validate(domain.KindMoment, json.RawMessage(doc)); !IsValidation(err) {
+			t.Errorf("%s: accepted (%v)", name, err)
+		}
+	}
+}
+
 const goodNews = `{"id":"stire","date":"28 oct. 2026","title":"Titlu","facts":["Un fapt."],
 "sources":[{"label":"Sursa","url":"https://example.ro/a","date":"28 oct. 2026"}],
 "impact":{"kind":"spend","line":"fuelLei","shock":{"defaultPct":8,"minPct":0,"maxPct":25}},

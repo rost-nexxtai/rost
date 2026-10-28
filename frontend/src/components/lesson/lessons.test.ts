@@ -4,6 +4,7 @@ import { SEED_LESSONS } from '@/data/fixtures/seed-lessons';
 import { PERSONAS } from '@/data/fixtures/personas';
 import { profileFromQuiz } from '@/data/mock/scoring';
 import { bondsVsDeposit, fundTarget, growth, lossIfOneFails, monthsToGoal, netDepositPct, savingsVsDeposit } from './math';
+import { move, shuffled } from './steps/OrderStep';
 import { isClose } from './steps/PredictStep';
 
 describe('lesson math', () => {
@@ -97,5 +98,26 @@ describe('first lesson after onboarding', () => {
     expect(firstLesson(p, SEED_LESSONS)?.level).toBeLessThanOrEqual(2);
     const l1 = profileFromQuiz({ knowledge: [2, 1, 'nu_stiu', 'nu_stiu'], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
     expect(firstLesson(l1, SEED_LESSONS)?.id).toBe('titluri_stat');
+  });
+});
+
+describe('ordering puzzle', () => {
+  it('never starts in the right order, and uses every item once', () => {
+    for (let n = 3; n <= 6; n++) {
+      const order = shuffled(n);
+      expect([...order].sort()).toEqual(Array.from({ length: n }, (_, i) => i));
+      expect(order.filter((v, i) => v === i).length).toBeLessThan(n);
+    }
+  });
+
+  it('moves one card and shifts the ones in between', () => {
+    expect(move(['a', 'b', 'c', 'd'], 0, 2)).toEqual(['b', 'c', 'a', 'd']);
+    expect(move(['a', 'b', 'c', 'd'], 3, 1)).toEqual(['a', 'd', 'b', 'c']);
+  });
+
+  it('is in the emergency-fund lesson, with the right first step', () => {
+    const fond = SEED_LESSONS.find((m) => m.id === 'fondul_urgenta')!;
+    const step = fond.steps.find((s) => s.type === 'order');
+    expect(step && step.type === 'order' && step.ordered[0]).toBe('Strângi fondul de urgență');
   });
 });

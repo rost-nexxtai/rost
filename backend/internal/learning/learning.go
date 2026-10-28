@@ -147,12 +147,14 @@ func BuildProfile(u domain.User, completed []string, core map[domain.Level][]str
 
 // ---- library answers ----
 
-// picked for choice, value for predict, buckets for sort (one per item)
+// picked for choice, value for predict, buckets for sort (one per item), order for order: the
+// items as the user left them, top to bottom, as indexes into the step's ordered list
 type Answer struct {
 	Step    int      `json:"step"`
 	Picked  *int     `json:"picked,omitempty"`
 	Value   *float64 `json:"value,omitempty"`
 	Buckets []int    `json:"buckets,omitempty"`
+	Order   []int    `json:"order,omitempty"`
 }
 
 func num(step domain.LibraryStep, key string) float64 {
@@ -176,14 +178,14 @@ func ScoreAnswers(m domain.LibraryMoment, answers []Answer) (correct, total int,
 		step := m.Steps[a.Step]
 		switch step["type"] {
 		case "choice":
-			if a.Picked == nil || a.Value != nil || a.Buckets != nil {
+			if a.Picked == nil || a.Value != nil || a.Buckets != nil || a.Order != nil {
 				return 0, 0, false
 			}
 			if float64(*a.Picked) == num(step, "correct") {
 				correct++
 			}
 		case "predict":
-			if a.Value == nil || a.Picked != nil || a.Buckets != nil {
+			if a.Value == nil || a.Picked != nil || a.Buckets != nil || a.Order != nil {
 				return 0, 0, false
 			}
 			// close enough, or inside the step's acceptRange, counts, like in the app
@@ -192,13 +194,31 @@ func ScoreAnswers(m domain.LibraryMoment, answers []Answer) (correct, total int,
 			}
 		case "sort":
 			items, _ := step["items"].([]any)
-			if a.Buckets == nil || len(a.Buckets) != len(items) || a.Picked != nil || a.Value != nil {
+			if a.Buckets == nil || len(a.Buckets) != len(items) || a.Picked != nil || a.Value != nil || a.Order != nil {
 				return 0, 0, false
 			}
 			right := true
 			for i, it := range items {
 				item, _ := it.(map[string]any)
 				right = right && float64(a.Buckets[i]) == num(item, "bucket")
+			}
+			if right {
+				correct++
+			}
+		case "order":
+			items, _ := step["ordered"].([]any)
+			if len(a.Order) != len(items) || a.Picked != nil || a.Value != nil || a.Buckets != nil {
+				return 0, 0, false
+			}
+			// a permutation of the items; right when it is the step's own order
+			used := make([]bool, len(items))
+			right := true
+			for i, n := range a.Order {
+				if n < 0 || n >= len(items) || used[n] {
+					return 0, 0, false
+				}
+				used[n] = true
+				right = right && n == i
 			}
 			if right {
 				correct++
