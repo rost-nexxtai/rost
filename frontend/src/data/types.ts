@@ -44,6 +44,8 @@ export interface Profile {
   completedMomentIds: string[];
   /** Lessons started and left before the end, by id: where to pick up. */
   lessonProgress?: Record<string, LessonProgress>;
+  /** Recent days (YYYY-MM-DD, Romanian time) with a finished lesson, oldest first. */
+  learnedDays?: string[];
 }
 
 /** A lesson left halfway: the screen to resume on and the graded answers so far. */
@@ -166,13 +168,15 @@ export interface AssetResponse {
 export type LessonWidget = 'fund_builder' | 'compound' | 'savings_vs_deposit' | 'diversify' | 'bonds_vs_deposit';
 
 /**
- * One screen of a lesson, one idea each. choice, predict and sort are graded; explore, stat and
- * asset_range are not. Keep text to a sentence or two: the interaction carries the lesson.
+ * One screen of a lesson, one idea each. choice, predict, sort and order are graded; explore, stat
+ * and asset_range are not. Keep text to a sentence or two: the interaction carries the lesson.
  */
 export type LibraryStep =
   | { type: 'choice'; question: string; options: string[]; correct: number; explain: string }
   | { type: 'predict'; question: string; answerValue: number; acceptRange?: [number, number]; min: number; max: number; step: number; unit: string; start?: number; explain?: string }
   | { type: 'sort'; question: string; buckets: [string, string]; items: { label: string; bucket: 0 | 1; /** One line shown when this card is sorted wrong. */ why?: string }[]; explain: string }
+  /** `ordered` is the right order, top to bottom; the app shuffles it and the user drags it back. */
+  | { type: 'order'; question: string; ordered: string[]; top: string; bottom: string; explain: string }
   | { type: 'explore'; title: string; body?: string; widget: LessonWidget }
   | { type: 'stat'; value: string; label: string; body?: string }
   | { type: 'asset_range'; assetId: AssetId }

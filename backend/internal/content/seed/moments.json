@@ -80,6 +80,19 @@
         "explain": "Trebuie să-l poți scoate în aceeași zi. Un depozit te penalizează dacă îl spargi, iar acțiunile pot fi pe minus exact când ai nevoie."
       },
       {
+        "type": "order",
+        "question": "Ai bani puși deoparte. În ce ordine îi folosești?",
+        "ordered": [
+          "Strângi fondul de urgență",
+          "Scapi de datoriile scumpe (card, IFN)",
+          "Economisești pentru planuri pe 1–3 ani",
+          "Investești pe termen lung"
+        ],
+        "top": "Întâi",
+        "bottom": "La urmă",
+        "explain": "Întâi fondul, ca o urgență să nu devină o datorie nouă. Apoi scapi de dobânzile mari, care mănâncă orice câștig. Abia apoi banii pot lucra pentru tine."
+      },
+      {
         "type": "finish",
         "cta": {
           "label": "Vezi conturile de economii",
@@ -153,6 +166,19 @@
             "In shares, so it grows"
           ],
           "explain": "You need to get it out the same day. A deposit penalises you for breaking it, and shares can be down exactly when you need the money."
+        },
+        {
+          "type": "order",
+          "question": "You have money set aside. In what order do you use it?",
+          "ordered": [
+            "Build your emergency fund",
+            "Pay off expensive debt (cards, payday loans)",
+            "Save for plans 1–3 years away",
+            "Invest for the long term"
+          ],
+          "top": "First",
+          "bottom": "Last",
+          "explain": "The fund first, so an emergency doesn't turn into new debt. Then clear the high interest, which eats any gain. Only then can the money work for you."
         },
         {
           "type": "finish",
@@ -601,6 +627,19 @@
         "explain": "Diversificarea nu te scapă de ani proști ai pieței întregi. De asta în ETF-uri pui doar bani de care nu ai nevoie 5–10 ani."
       },
       {
+        "type": "order",
+        "question": "De la cel mai liniștit la cel mai agitat: cât pot scădea într-un an prost?",
+        "ordered": [
+          "Cont de economii",
+          "Titluri de stat",
+          "ETF pe MSCI World",
+          "Acțiunile unei singure companii"
+        ],
+        "top": "Cel mai liniștit",
+        "bottom": "Cel mai agitat",
+        "explain": "Banii la bancă și la stat nu scad. Un ETF poate pierde 40% într-un an rău, ca în 2008. O singură companie poate pierde tot, dacă dă faliment."
+      },
+      {
         "type": "asset_range",
         "assetId": "etf"
       },
@@ -653,6 +692,19 @@
           "question": "How much did MSCI World fall in 2008, its worst year in the last 50?",
           "unit": "%",
           "explain": "Spreading out doesn't protect you from a bad year for the whole market. That's why ETFs are only for money you won't need for 5–10 years."
+        },
+        {
+          "type": "order",
+          "question": "From calmest to wildest: how far can each fall in a bad year?",
+          "ordered": [
+            "Savings account",
+            "Government bonds",
+            "MSCI World ETF",
+            "Shares in a single company"
+          ],
+          "top": "Calmest",
+          "bottom": "Wildest",
+          "explain": "Money in the bank or lent to the state doesn't fall. An ETF can lose 40% in a bad year, as in 2008. A single company can lose everything if it goes bust."
         },
         {
           "type": "asset_range"

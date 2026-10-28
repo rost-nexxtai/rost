@@ -5,6 +5,7 @@ import { PERSONAS } from './fixtures/personas';
 import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/profile';
 import { getLibrary } from '.';
 import { firstLesson } from './mock/momente';
+import { dayKey, weekOf, withDay, type WeekDay } from './mock/rhythm';
 import { levelWithMoments, passed, quizProfile } from './mock/scoring';
 import type { LessonProgress, LibraryMoment, MoneyLine, Profile, QuizAnswers } from './types';
 
@@ -35,16 +36,24 @@ export async function setDemoProfile(persona: 'maria'): Promise<void> {
 
 /**
  * Records a finished lesson. Only a passed one (2 of 3 graded screens right) counts toward the next
- * level, like the backend's POST /api/library/{id}/complete; a failed attempt changes nothing.
+ * level, like the backend's POST /api/library/{id}/complete; a failed attempt changes nothing there.
+ * Either way the day counts as a day you learned, and the week comes back for the end screen.
  */
-export async function completeLibraryMoment(momentId: string, correct: number, total: number): Promise<{ profile: Profile; passed: boolean } | undefined> {
+export async function completeLibraryMoment(
+  momentId: string,
+  correct: number,
+  total: number,
+): Promise<{ profile: Profile; passed: boolean; week: WeekDay[] } | undefined> {
   const found = await current();
   if (!found) return undefined;
   // finished, passed or not: it's no longer in progress
   const p = { ...found, lessonProgress: withoutLesson(found.lessonProgress, momentId) };
-  if (!passed(correct, total)) return { profile: await write(p), passed: false };
-  const completedMomentIds = p.completedMomentIds.includes(momentId) ? p.completedMomentIds : [...p.completedMomentIds, momentId];
-  return { profile: await write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds) }), passed: true };
+  const ok = passed(correct, total);
+  const completedMomentIds = ok && !p.completedMomentIds.includes(momentId) ? [...p.completedMomentIds, momentId] : p.completedMomentIds;
+  const today = dayKey(new Date());
+  const learnedDays = withDay(p.learnedDays, today);
+  const profile = await write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds), learnedDays });
+  return { profile, passed: ok, week: weekOf(learnedDays, today) };
 }
 
 /** At most this many lessons are remembered halfway; the oldest is dropped first. */

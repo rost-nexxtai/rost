@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { LibraryMomentPlayer } from '@/components/moments/LibraryMomentPlayer';
-import { getAsset, getLesson, getProfile } from '@/data';
+import { getAsset, getLesson, getLibrary, getProfile } from '@/data';
 import { ApiDown } from '@/components/ui/ApiDown';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
-import { resumable } from '@/data/mock/momente';
+import { firstLesson, resumable } from '@/data/mock/momente';
 import { CORE_MOMENTS } from '@/data/mock/scoring';
 import type { Asset } from '@/data/types';
 
@@ -51,10 +51,13 @@ export default async function LibraryMomentPage({ params }: { params: Promise<{ 
     const a = await getAsset(id);
     if (a) assets[id] = a.asset;
   }
-  const profile = await getProfile();
+  const [profile, library] = await Promise.all([getProfile(), getLibrary()]);
   const level = profile?.level ?? 0;
   const done = new Set([...(profile?.completedMomentIds ?? []), moment.id]);
   const coreLeftAfter = CORE_MOMENTS[level].filter((id) => !done.has(id)).length;
+  // what to offer at the end: the next lesson as if this one were already done
+  const next = profile && firstLesson({ ...profile, completedMomentIds: [...done] }, library);
+  const upNext = next && next.id !== moment.id ? { id: next.id, title: next.title, minutes: next.minutes } : undefined;
 
   return (
     <LibraryMomentPlayer
@@ -64,6 +67,7 @@ export default async function LibraryMomentPage({ params }: { params: Promise<{ 
       coreLeftAfter={coreLeftAfter}
       bufferMonths={profile?.bufferMonths}
       resume={profile && resumable(moment, profile)}
+      upNext={upNext}
     />
   );
 }

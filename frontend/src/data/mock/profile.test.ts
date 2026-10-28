@@ -26,4 +26,13 @@ describe('profile cookie parsing', () => {
     const bad = { ...PERSONAS.maria, lessonProgress: { etf: { step: 'two', results: [], of: 7 } } };
     expect(parseProfile(JSON.stringify(bad))).toEqual(PERSONAS.maria);
   });
+
+  it('keeps the learned days, and drops a broken list or an old game block without losing the profile', () => {
+    const days = ['2026-10-27', '2026-10-28'];
+    expect(parseProfile(JSON.stringify({ ...PERSONAS.maria, learnedDays: days }))?.learnedDays).toEqual(days);
+    const broken = parseProfile(JSON.stringify({ ...PERSONAS.maria, learnedDays: ['soon'], game: { xp: 10 } }));
+    expect(broken?.learnedDays).toBeUndefined();
+    expect(broken).not.toHaveProperty('game');
+    expect(broken?.level).toBe(PERSONAS.maria.level);
+  });
 });

@@ -148,17 +148,17 @@ func ValidateMoment(m *domain.LibraryMoment) error {
 	case m.Steps[n-1]["type"] != "finish":
 		return invalid("the last step must be a finish step")
 	case graded < minGraded:
-		return invalid("needs at least %d choice, predict or sort steps", minGraded)
+		return invalid("needs at least %d choice, predict, sort or order steps", minGraded)
 	case len(m.Takeaways) < minTakeaways:
 		return invalid("needs at least %d takeaways", minTakeaways)
 	}
 	return nil
 }
 
-// choice, predict and sort count towards the score
+// choice, predict, sort and order count towards the score
 func IsGraded(step domain.LibraryStep) bool {
 	t := step["type"]
-	return t == "choice" || t == "predict" || t == "sort"
+	return t == "choice" || t == "predict" || t == "sort" || t == "order"
 }
 
 type choiceStep struct {
@@ -193,6 +193,17 @@ type sortStep struct {
 		// one line shown when this card is sorted wrong
 		Why string `json:"why"`
 	} `json:"items"`
+	Explain string `json:"explain"`
+}
+
+// The app shuffles the items and the user drags them back into this order, top to bottom.
+type orderStep struct {
+	Type     string   `json:"type"`
+	Question string   `json:"question"`
+	Ordered  []string `json:"ordered"`
+	// labels for the two ends of the list, e.g. "safest" and "riskiest"
+	Top     string `json:"top"`
+	Bottom  string `json:"bottom"`
 	Explain string `json:"explain"`
 }
 
@@ -287,6 +298,24 @@ func validateStep(step domain.LibraryStep) error {
 		}
 		if len(s.Items) > 12 || !used[0] || !used[1] {
 			return errors.New("sort needs at most 12 items, with both buckets used")
+		}
+	case "order":
+		var s orderStep
+		if err := decodeStrict(raw, &s); err != nil {
+			return err
+		}
+		if blank(s.Question) || blank(s.Explain) || blank(s.Top) || blank(s.Bottom) {
+			return errors.New("order needs a question, top and bottom labels and an explanation")
+		}
+		if len(s.Ordered) < 3 || len(s.Ordered) > 6 || slices.ContainsFunc(s.Ordered, blank) {
+			return errors.New("order needs 3 to 6 non-empty items")
+		}
+		seen := map[string]bool{}
+		for _, it := range s.Ordered {
+			if seen[it] {
+				return errors.New("order items must be different")
+			}
+			seen[it] = true
 		}
 	case "explore":
 		var s exploreStep

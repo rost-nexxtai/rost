@@ -35,7 +35,7 @@ type ContentItem struct {
 type Level int
 
 // kept as raw json, the frontend renders it as is
-// choice, predict, sort, explore, stat, asset_range, finish
+// choice, predict, sort, order, explore, stat, asset_range, finish
 type LibraryStep = map[string]any
 
 // no steps = "în curând"

@@ -73,9 +73,13 @@ func TestEnglishMustMatchTheLesson(t *testing.T) {
 			delete(m.EN.Steps[0]["items"].([]any)[0].(map[string]any), "why")
 		},
 		"cta link in translation": func(m *domain.LibraryMoment) {
-			m.EN.Steps[4]["cta"] = map[string]any{"label": "Go", "href": "https://evil.example"}
+			m.EN.Steps[5]["cta"] = map[string]any{"label": "Go", "href": "https://evil.example"}
 		},
 		"text the lesson doesn't have": func(m *domain.LibraryMoment) { m.EN.Steps[2]["unit"] = "x" },
+		"an order item short": func(m *domain.LibraryMoment) {
+			m.EN.Steps[4]["ordered"] = m.EN.Steps[4]["ordered"].([]any)[1:]
+		},
+		"order end label missing": func(m *domain.LibraryMoment) { delete(m.EN.Steps[4], "bottom") },
 	}
 	for name, change := range cases {
 		m := clone(t, lesson(t, "fondul_urgenta"))
@@ -112,7 +116,10 @@ func TestLocalize(t *testing.T) {
 	if en.Steps[3]["correct"] != ro.Steps[3]["correct"] {
 		t.Error("the right answer changed with the language")
 	}
-	cta := en.Steps[4]["cta"].(map[string]any)
+	if en.Steps[4]["ordered"].([]any)[0] != "Build your emergency fund" || en.Steps[4]["top"] != "First" {
+		t.Errorf("order: %v", en.Steps[4])
+	}
+	cta := en.Steps[5]["cta"].(map[string]any)
 	if cta["href"] != "/active/cont_economii" || cta["label"] != "See savings accounts" {
 		t.Errorf("cta = %v", cta)
 	}

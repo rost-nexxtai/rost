@@ -125,31 +125,37 @@ func TestBuildProfile(t *testing.T) {
 
 func TestScoreAnswers(t *testing.T) {
 	library, _ := seedLibrary(t)
-	fond := library[0] // sort, predict, explore, choice, finish
+	fond := library[0] // sort, predict, explore, choice, order, finish
 	zero, one := 0, 1
 	close, far := 4.0, 9.0
 	right := []int{0, 1, 0, 1, 0}
-	correct, total, ok := ScoreAnswers(fond, []Answer{{Step: 0, Buckets: right}, {Step: 1, Value: &close}, {Step: 3, Picked: &zero}})
-	if !ok || correct != 3 || total != 3 {
+	inOrder, swapped := []int{0, 1, 2, 3}, []int{1, 0, 2, 3}
+	correct, total, ok := ScoreAnswers(fond, []Answer{{Step: 0, Buckets: right}, {Step: 1, Value: &close}, {Step: 3, Picked: &zero}, {Step: 4, Order: inOrder}})
+	if !ok || correct != 4 || total != 4 {
 		t.Errorf("all right = %d/%d %v", correct, total, ok)
 	}
-	correct, _, _ = ScoreAnswers(fond, []Answer{{Step: 0, Buckets: []int{1, 1, 0, 1, 0}}, {Step: 1, Value: &far}, {Step: 3, Picked: &one}})
+	correct, _, _ = ScoreAnswers(fond, []Answer{{Step: 0, Buckets: []int{1, 1, 0, 1, 0}}, {Step: 1, Value: &far}, {Step: 3, Picked: &one}, {Step: 4, Order: swapped}})
 	if correct != 0 {
 		t.Errorf("all wrong = %d", correct)
 	}
-	if _, total, ok := ScoreAnswers(fond, nil); !ok || total != 3 {
+	if _, total, ok := ScoreAnswers(fond, nil); !ok || total != 4 {
 		t.Error("no answers is fine: total still counts the graded steps")
 	}
 	for name, bad := range map[string][]Answer{
-		"step out of range":    {{Step: 9, Picked: &one}},
-		"value on a choice":    {{Step: 3, Value: &close}},
-		"pick on a predict":    {{Step: 1, Picked: &one}},
-		"pick on a sort":       {{Step: 0, Picked: &one}},
-		"too few sort buckets": {{Step: 0, Buckets: []int{0, 1}}},
-		"answer on an explore": {{Step: 2, Picked: &one}},
-		"same step twice":      {{Step: 3, Picked: &one}, {Step: 3, Picked: &zero}},
-		"negative step number": {{Step: -1, Picked: &one}},
-		"buckets on a predict": {{Step: 1, Buckets: right}},
+		"step out of range":     {{Step: 9, Picked: &one}},
+		"value on a choice":     {{Step: 3, Value: &close}},
+		"pick on a predict":     {{Step: 1, Picked: &one}},
+		"pick on a sort":        {{Step: 0, Picked: &one}},
+		"too few sort buckets":  {{Step: 0, Buckets: []int{0, 1}}},
+		"answer on an explore":  {{Step: 2, Picked: &one}},
+		"same step twice":       {{Step: 3, Picked: &one}, {Step: 3, Picked: &zero}},
+		"negative step number":  {{Step: -1, Picked: &one}},
+		"buckets on a predict":  {{Step: 1, Buckets: right}},
+		"order on a choice":     {{Step: 3, Picked: &zero, Order: inOrder}},
+		"order too short":       {{Step: 4, Order: []int{0, 1, 2}}},
+		"order repeats an item": {{Step: 4, Order: []int{0, 0, 2, 3}}},
+		"order out of range":    {{Step: 4, Order: []int{0, 1, 2, 4}}},
+		"no order on an order":  {{Step: 4, Picked: &zero}},
 	} {
 		if _, _, ok := ScoreAnswers(fond, bad); ok {
 			t.Errorf("%s accepted", name)

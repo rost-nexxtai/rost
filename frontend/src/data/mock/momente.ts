@@ -106,3 +106,44 @@ export function firstLesson(p: Profile, library: LibraryMoment[]): LibraryMoment
   if (foundationFor(p) === 'fond_urgenta') return playable.find((m) => m.id === 'fondul_urgenta') ?? playable[0];
   return playable.find((m) => m.level === p.level) ?? playable.find((m) => m.level <= p.level) ?? playable[0];
 }
+
+export type RoadmapStep = MomentSummary & { state: 'done' | 'current' | 'open' | 'locked' | 'soon' };
+
+/** One level of the roadmap: its lessons in order, and how many of its core ones are done. */
+export interface RoadmapLevel {
+  level: Level;
+  series: string;
+  coreDone: number;
+  coreTotal: number;
+  /** The user is at this level or past it. */
+  reached: boolean;
+  nodes: RoadmapStep[];
+}
+
+/**
+ * The lessons as a roadmap, level by level, with one "current" lesson: the one left halfway, else the
+ * one firstLesson picks. Lessons above your level stay open to peek at, but show as locked.
+ */
+export function buildRoadmap(p: Profile, library: LibraryMoment[]): RoadmapLevel[] {
+  const done = new Set(p.completedMomentIds);
+  const current = library.find((m) => resumable(m, p)) ?? firstLesson(p, library);
+  return ([0, 1, 2] as Level[])
+    .map((level) => {
+      const lessons = library.filter((m) => m.level === level);
+      const core = CORE_MOMENTS[level];
+      return {
+        level,
+        series: lessons[0]?.series ?? '',
+        coreDone: core.filter((id) => done.has(id)).length,
+        coreTotal: core.length,
+        reached: level <= p.level,
+        nodes: lessons.map((m): RoadmapStep => {
+          const s = summary(m, done.has(m.id), p);
+          const state =
+            m.id === current?.id ? 'current' : s.status === 'soon' ? 'soon' : s.status === 'done' ? 'done' : level > p.level ? 'locked' : 'open';
+          return { ...s, state };
+        }),
+      };
+    })
+    .filter((l) => l.nodes.length > 0);
+}

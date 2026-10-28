@@ -3,7 +3,7 @@ import type { TodayResponse } from '@/contract';
 import { PERSONAS } from '../fixtures/personas';
 import { SEED_LESSONS } from '../fixtures/seed-lessons';
 import type { Profile } from '../types';
-import { buildMomente, resumable } from './momente';
+import { buildMomente, buildRoadmap, resumable } from './momente';
 
 const today = {
   open: [{ id: 'run1', momentId: 'payslip_explained', state: 'pending' }],
@@ -71,5 +71,30 @@ describe('Momente order', () => {
   it('keeps finished lessons open to replay', () => {
     const p: Profile = { ...PERSONAS.maria, completedMomentIds: ['fondul_urgenta'] };
     expect(buildMomente(p, today, SEED_LESSONS).rest.find((m) => m.id === 'fondul_urgenta')).toMatchObject({ status: 'done', href: '/moment/lib/fondul_urgenta' });
+  });
+});
+
+describe('roadmap', () => {
+  const l0: Profile = { ...PERSONAS.maria, quizLevel: 0, level: 0, bufferMonths: 0, completedMomentIds: [] };
+
+  it('walks the levels in order, with one current lesson', () => {
+    const roadmap = buildRoadmap(l0, SEED_LESSONS);
+    expect(roadmap.map((l) => l.level)).toEqual([0, 1, 2]);
+    const nodes = roadmap.flatMap((l) => l.nodes);
+    expect(nodes.filter((n) => n.state === 'current').map((n) => n.id)).toEqual(['fondul_urgenta']);
+  });
+
+  it('marks done lessons, and lessons above your level as locked', () => {
+    const roadmap = buildRoadmap({ ...l0, completedMomentIds: ['fondul_urgenta'] }, SEED_LESSONS);
+    const state = Object.fromEntries(roadmap.flatMap((l) => l.nodes).map((n) => [n.id, n.state]));
+    expect(state).toMatchObject({ fondul_urgenta: 'done', economii_vs_depozit: 'current', dobanda_compusa: 'open', etf: 'locked', actiuni: 'soon' });
+    expect(roadmap[0]).toMatchObject({ coreDone: 1, coreTotal: 3, reached: true });
+    expect(roadmap[1].reached).toBe(false);
+  });
+
+  it('makes a lesson left halfway the current one', () => {
+    const halfway = { ...l0, lessonProgress: { dobanda_compusa: { step: 2, results: [true], of: SEED_LESSONS.find((m) => m.id === 'dobanda_compusa')!.steps.length } } };
+    const current = buildRoadmap(halfway, SEED_LESSONS).flatMap((l) => l.nodes).find((n) => n.state === 'current');
+    expect(current).toMatchObject({ id: 'dobanda_compusa', progress: { step: 3 } });
   });
 });

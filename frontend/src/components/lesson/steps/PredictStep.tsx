@@ -5,6 +5,7 @@ import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 import type { Lang } from '@/i18n/lang';
+import { feel } from '../feel';
 import { num } from '@/lib/format';
 
 // Intl writes a hyphen for negatives; a real minus sign reads better at display size.
@@ -132,6 +133,7 @@ export function PredictStep({
             try {
               await onCheck?.(value);
               setChecked(true);
+              feel(close ? 'right' : 'wrong');
             } finally {
               setBusy(false);
             }

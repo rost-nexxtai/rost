@@ -108,7 +108,7 @@ export function MomentPlayer({ runId }: { runId: string }) {
           graded={results.length}
           seconds={(Date.now() - started.current) / 1000}
           cta={{ label: t.savings, href: '/active/cont_economii' }}
-          onFinish={async () => t.backIn(def.followUpDays)}
+          onFinish={async () => ({ line: t.backIn(def.followUpDays), passed: true })}
         />
       </LessonShell>
     );

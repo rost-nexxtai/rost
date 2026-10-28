@@ -1,4 +1,4 @@
-type Name = 'acasa' | 'momente' | 'stiri' | 'chevron' | 'external' | 'back' | 'check' | 'close' | 'cross' | 'bulb' | 'bolt';
+type Name = 'acasa' | 'momente' | 'stiri' | 'chevron' | 'external' | 'back' | 'check' | 'close' | 'cross' | 'bulb' | 'bolt' | 'lock' | 'grip' | 'redo';
 
 const PATHS: Record<Name, React.ReactNode> = {
   acasa: <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1v-8.5Z" />,
@@ -28,6 +28,14 @@ const PATHS: Record<Name, React.ReactNode> = {
     </>
   ),
   bolt: <path d="M13 3.5 5.5 13.5H12l-1 7 7.5-10H12l1-7Z" />,
+  lock: (
+    <>
+      <rect x="5.5" y="10.5" width="13" height="9.5" rx="2" />
+      <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+    </>
+  ),
+  grip: <path d="M9 7h.01M15 7h.01M9 12h.01M15 12h.01M9 17h.01M15 17h.01" strokeWidth={3} />,
+  redo: <path d="M18.5 9A7 7 0 1 0 19 14M18.5 4.5V9H14" />,
 };
 
 /** Hand-drawn 24px line icons. Decorative unless a label is given. */

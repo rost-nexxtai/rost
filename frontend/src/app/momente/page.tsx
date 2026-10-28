@@ -4,11 +4,14 @@ import { FollowUp } from '@/components/ClientActions';
 import { MomentRow } from '@/components/momente/MomentRow';
 import { ApiDown } from '@/components/ui/ApiDown';
 import { Card } from '@/components/ui/Card';
+import { Icon } from '@/components/ui/Icon';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
+import { WeekDots } from '@/components/ui/WeekDots';
 import { getLibrary, getMomente, getProfile } from '@/data';
-import { firstLesson } from '@/data/mock/momente';
+import { buildRoadmap, type RoadmapStep } from '@/data/mock/momente';
+import { dayKey, weekOf } from '@/data/mock/rhythm';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
 
@@ -26,17 +29,18 @@ const T = copy(
     core: (done: number, of: number) => `${done} din ${of} lecții de bază`,
     finish: (next: number) => `Termină-le ca să treci la L${next}.`,
     advanced: 'Ai ajuns la nivelul avansat.',
+    locked: (l: number) => `După nivelul L${l}. Poți citi lecțiile oricând.`,
+    roadmap: 'Parcursul tău',
+    done: 'Gata',
+    soon: 'În curând',
+    started: (step: number, of: number) => `În curs · ${step}/${of}`,
+    life: 'Din viața ta',
     apiDown: 'Momentele declanșate de salariu, inflație sau știri apar aici când revine conexiunea. Lecțiile de mai jos merg oricum.',
     now: (min: number) => `Acum, pe cifrele tale · ${min} min`,
     start: 'Începe',
     next: (min: number) => `Următoarea ta lecție · ${min} min`,
     resume: (step: number, of: number) => `Ai rămas la pasul ${step} din ${of}`,
     continue: 'Continuă',
-    forLevel: 'Pentru nivelul tău',
-    startAbove: 'Începe cu lecția de mai sus.',
-    allDone: 'Le-ai terminat pe toate. Bravo!',
-    rest: 'Restul',
-    nextAria: 'Următoarea ta lecție',
   },
   {
     action: {
@@ -49,17 +53,18 @@ const T = copy(
     core: (done, of) => `${done} of ${of} core lessons`,
     finish: (next) => `Finish them to move up to L${next}.`,
     advanced: "You've reached the advanced level.",
+    locked: (l) => `After level L${l}. You can read these lessons any time.`,
+    roadmap: 'Your roadmap',
+    done: 'Done',
+    soon: 'Coming soon',
+    started: (step, of) => `In progress · ${step}/${of}`,
+    life: 'From your life',
     apiDown: 'Moments triggered by your salary, inflation or the news show up here once the connection is back. The lessons below work anyway.',
     now: (min) => `Now, on your numbers · ${min} min`,
     start: 'Start',
     next: (min) => `Your next lesson · ${min} min`,
     resume: (step, of) => `You stopped at step ${step} of ${of}`,
     continue: 'Continue',
-    forLevel: 'For your level',
-    startAbove: 'Start with the lesson above.',
-    allDone: "You've done them all. Well done!",
-    rest: 'Everything else',
-    nextAria: 'Your next lesson',
   },
 );
 
@@ -67,12 +72,10 @@ export default async function Momente() {
   const [data, profile, lang, library] = await Promise.all([getMomente(), getProfile(), getLang(), getLibrary()]);
   const t = T[lang];
   if (!data || !profile) redirect('/quiz');
-  const { triggered, forYourLevel, rest, progress, realApiDown, dueFollowUps } = data;
-  // One obvious next step: a moment the backend opened wins; then a lesson left halfway; otherwise the next lesson at your level.
-  const first = firstLesson(profile, library);
-  const all = [...forYourLevel, ...rest];
-  const nextUp = triggered.length === 0 ? (all.find((m) => m.status === 'started') ?? all.find((m) => m.id === first?.id && m.status === 'todo')) : undefined;
-  const listed = forYourLevel.filter((m) => m !== nextUp);
+  const { triggered, rest, progress, realApiDown, dueFollowUps } = data;
+  const roadmap = buildRoadmap(profile, library);
+  // moments that came from the user's life (payslip, inflation), not from the roadmap
+  const life = rest.filter((m) => m.level === null);
 
   return (
     <main className="shell">
@@ -82,11 +85,7 @@ export default async function Momente() {
       <Card>
         <div className="row">
           <span className="eyebrow">{t.level(progress.level)}</span>
-          {progress.nextLevel !== null && (
-            <span className="small muted">
-              {t.core(progress.coreDone, progress.coreTotal)}
-            </span>
-          )}
+          {progress.nextLevel !== null && <span className="small muted">{t.core(progress.coreDone, progress.coreTotal)}</span>}
         </div>
         {progress.nextLevel !== null ? (
           <>
@@ -96,6 +95,8 @@ export default async function Momente() {
         ) : (
           <p className="small">{t.advanced}</p>
         )}
+        <hr className="divider" />
+        <WeekDots week={weekOf(profile.learnedDays, dayKey(new Date()))} lang={lang} />
       </Card>
 
       {dueFollowUps.map((a) => <FollowUp key={a.id} actionId={a.id} text={t.action[a.type] ?? t.didIt} />)}
@@ -114,37 +115,30 @@ export default async function Momente() {
         ))
       )}
 
-      {nextUp && (
-        <section className="stat rise" aria-label={t.nextAria}>
-          <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>
-            {nextUp.progress ? t.resume(nextUp.progress.step, nextUp.progress.of) : t.next(nextUp.minutes)}
-          </span>
-          <div className="display-md" style={{ color: '#fff' }}>
-            {nextUp.title}
-          </div>
-          {nextUp.hook && <span className="stat-label">{nextUp.hook}</span>}
-          <Link href={nextUp.href!} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-            {nextUp.progress ? t.continue : t.start}
-          </Link>
+      <h2 className="section-title">{t.roadmap}</h2>
+      {roadmap.map((lvl) => (
+        <section key={lvl.level} className="road-level" data-reached={lvl.reached || undefined} aria-labelledby={`lvl${lvl.level}`}>
+          <header className="road-head">
+            <strong id={`lvl${lvl.level}`}>
+              L{lvl.level} · {lvl.series}
+            </strong>
+            <span className="small muted">{lvl.reached ? t.core(lvl.coreDone, lvl.coreTotal) : t.locked(lvl.level - 1)}</span>
+          </header>
+          <ol className="road">
+            {lvl.nodes.map((n) => (
+              <RoadStep key={n.id} n={n} t={t} />
+            ))}
+          </ol>
         </section>
-      )}
+      ))}
 
-      <section className="section" aria-labelledby="nivel">
-        <h2 id="nivel" className="section-title">
-          {t.forLevel}
-        </h2>
-        <Card style={{ gap: 0 }}>
-          {listed.length ? listed.map((m) => <MomentRow key={m.id} m={m} />) : <p className="small muted">{nextUp ? t.startAbove : t.allDone}</p>}
-        </Card>
-      </section>
-
-      {rest.length > 0 && (
-        <section className="section" aria-labelledby="restul">
-          <h2 id="restul" className="section-title">
-            {t.rest}
+      {life.length > 0 && (
+        <section className="section" aria-labelledby="life">
+          <h2 id="life" className="section-title">
+            {t.life}
           </h2>
           <Card style={{ gap: 0 }}>
-            {rest.filter((m) => m !== nextUp).map((m) => (
+            {life.map((m) => (
               <MomentRow key={m.id} m={m} />
             ))}
           </Card>
@@ -152,5 +146,69 @@ export default async function Momente() {
       )}
       <TabBar current="momente" />
     </main>
+  );
+}
+
+/** One lesson on the roadmap: a marker on the line, then the lesson. The current one opens into a card. */
+function RoadStep({ n, t }: { n: RoadmapStep; t: (typeof T)['ro'] }) {
+  const marker = (
+    <span className="road-marker" aria-hidden="true">
+      {n.state === 'done' ? <Icon name="check" size={16} /> : n.state === 'locked' ? <Icon name="lock" size={14} /> : null}
+    </span>
+  );
+  const text = (
+    <span className="road-text">
+      <strong>{n.title}</strong>
+      <span className="small muted">
+        {n.hook ? `${n.hook} · ` : ''}
+        {n.minutes} min
+      </span>
+    </span>
+  );
+  const tag =
+    n.state === 'done' ? (
+      <span className="tag tag-done">{t.done}</span>
+    ) : n.state === 'soon' ? (
+      <span className="tag tag-example">{t.soon}</span>
+    ) : n.progress ? (
+      <span className="tag tag-progress">{t.started(n.progress.step, n.progress.of)}</span>
+    ) : null;
+
+  if (n.state === 'current' && n.href) {
+    return (
+      <li className="road-step" data-state="current">
+        {marker}
+        <div className="road-current">
+          <span className="small" style={{ fontWeight: 700, color: '#d8dbe0' }}>
+            {n.progress ? t.resume(n.progress.step, n.progress.of) : t.next(n.minutes)}
+          </span>
+          <strong className="road-current-title">{n.title}</strong>
+          {n.hook && <span className="small" style={{ color: '#d8dbe0' }}>{n.hook}</span>}
+          <Link href={n.href} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 4 }}>
+            {n.progress ? t.continue : t.start}
+          </Link>
+        </div>
+      </li>
+    );
+  }
+  return (
+    <li className="road-step" data-state={n.state}>
+      {marker}
+      {n.href ? (
+        <Link href={n.href} className="road-row">
+          {text}
+          {tag ?? (
+            <span className="road-chevron">
+              <Icon name="chevron" size={18} />
+            </span>
+          )}
+        </Link>
+      ) : (
+        <div className="road-row">
+          {text}
+          {tag}
+        </div>
+      )}
+    </li>
   );
 }
