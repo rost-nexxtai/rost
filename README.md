@@ -20,12 +20,12 @@ curl localhost:8080/readyz
 
 This starts Postgres 16 (`db`, port 5432) and the Go API (`backend`, port 8080). See [backend/README.md](backend/README.md) for configuration and local development.
 
-The UI is a client-only React + TypeScript app (Vite) with example data. It covers the adult experience only so far and doesn't call the backend yet:
+The UI is a Next.js app. It covers the adult experience only so far and gets its data from mock fixtures in `frontend/src/data/`, not from the backend yet. Its design and plan are in [docs/superpowers](docs/superpowers):
 
 ```bash
 cd frontend
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:3000
 ```
 
 ## Layout
@@ -33,6 +33,7 @@ npm run dev        # http://localhost:5173
 ```
 Architecture.md      target product: adult accounts (Home, Moments, News; levels L0–L2) and child accounts (games)
 backend/             Go API (net/http, pgx), Dockerfile
-frontend/            React UI, adults only so far: onboarding quiz, Home, Momente, Știri (example data)
+frontend/            Next.js UI, adults only so far: quiz, Acasă, Momente, Știri, profile (mock data)
+docs/                frontend design spec and implementation plan
 docker-compose.yml   Postgres + backend
 ```
