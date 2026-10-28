@@ -4,6 +4,8 @@
  * (backend/internal/server); the Go JSON tags use the same field names.
  */
 
+import type { Level, LibraryMoment, MomenteResponse, NewsItem, Profile, QuizAnswers, RiskProfile, StiriResponse } from './data/types';
+
 // ---- Domain records ----
 
 export type Situation = 'student' | 'graduate' | 'employed' | 'freelance' | 'between_jobs';
@@ -46,7 +48,25 @@ export interface User {
   monthlyExpenses?: number;
   firstsDone: FirstDone[];
   spending?: SpendingProfile;
+  /** after the quiz */
+  quiz?: QuizProfile;
+  /** never goes down */
+  levelEarned: Level;
   createdAt: string;
+}
+
+export interface QuizProfile {
+  score: number;
+  level: Level;
+  ageBand: string;
+  situation: string;
+  bufferMonths: number;
+  expensiveDebt: boolean;
+  horizon: string;
+  fuelLei: number;
+  electricityLei: number;
+  savedLei: number;
+  takenAt: string;
 }
 
 export interface AppEvent {
@@ -263,9 +283,10 @@ export interface CreateUserResponse {
   userId: string;
 }
 
-/** GET /api/me. 401 when there is no session. */
+/** GET /api/me. 401 without a session, profile only after the quiz. */
 export interface MeResponse {
   user: User;
+  profile?: Profile;
 }
 
 // ---- Triggers ----
@@ -398,4 +419,125 @@ export interface EmbedResponse {
 export interface PayslipReadResponse {
   grossLei: number | null;
   confidence: number;
+}
+
+// ---- Quiz, library, Momente, Știri ----
+
+/** GET /api/quiz, without the answers */
+export interface QuizResponse {
+  knowledge: { id: string; question: string; options: string[] }[];
+}
+
+/** POST /api/quiz, creates the user if there is no session */
+export type QuizRequest = QuizAnswers;
+export interface QuizSaveResponse {
+  userId: string;
+  profile: Profile;
+  results: { id: string; correct: boolean; correctIndex: number; explain?: string }[];
+}
+
+/** GET /api/library, GET /api/library/{id} */
+export interface LibraryResponse {
+  moments: LibraryMoment[];
+}
+export interface LibraryMomentResponse {
+  moment: LibraryMoment;
+}
+
+/** POST /api/library/{id}/complete, body optional. 409 = not written yet */
+export interface CompleteLibraryRequest {
+  /** picked for choice, value for predict, buckets (one per item) for sort */
+  answers?: { step: number; picked?: number; value?: number; buckets?: (0 | 1)[] }[];
+}
+export interface CompleteLibraryResponse {
+  /** null before the quiz */
+  profile: Profile | null;
+  levelUp: boolean;
+  alreadyDone: boolean;
+  correct: number;
+  total: number;
+}
+
+/** GET /api/momente, GET /api/stiri. 404 before the quiz */
+export type { MomenteResponse, StiriResponse };
+
+// ---- Tracking ----
+
+export type TrackEventName =
+  | 'page_view'
+  | 'quiz_start'
+  | 'quiz_step'
+  | 'asset_view'
+  | 'provider_click'
+  | 'moment_open'
+  | 'moment_step'
+  | 'moment_close'
+  | 'news_view'
+  | 'news_slider'
+  | 'cta_click';
+
+/** POST /api/track, max 50 events, flat props */
+export interface TrackRequest {
+  events: { name: TrackEventName; props?: Record<string, string | number | boolean>; path?: string }[];
+}
+
+// ---- Admin (cookie `rost_admin`, path /api/admin) ----
+
+export interface Admin {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
+/** POST /api/admin/login. 429 after 5 wrong tries */
+export interface AdminLoginRequest {
+  email: string;
+  password: string;
+}
+
+export type ContentKind = 'moments' | 'news';
+export type ContentStatus = 'draft' | 'published';
+
+export interface ContentItem<D = LibraryMoment | NewsItem> {
+  kind: ContentKind;
+  id: string;
+  status: ContentStatus;
+  position: number;
+  doc: D;
+  createdAt: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+/** POST / PUT /api/admin/content/{kind}. doc.id can't change */
+export interface ContentRequest<D = LibraryMoment | NewsItem> {
+  status: ContentStatus;
+  position?: number;
+  doc: D;
+}
+
+/** GET /api/admin/stats?days=30 */
+export interface StatsResponse {
+  from: string;
+  to: string;
+  users: { total: number; new: number; active: number; withQuiz: number };
+  daily: { date: string; newUsers: number; activeUsers: number; events: number }[];
+  levels: Record<'0' | '1' | '2', number>;
+  riskProfile: Partial<Record<RiskProfile, number>>;
+  quiz: { started: number; completed: number; avgScore: number | null };
+  levelUps: number;
+  library: {
+    momentId: string;
+    title: string;
+    level: Level;
+    opened: number;
+    completed: number;
+    completionRate: number | null;
+    correctRate: number | null;
+  }[];
+  assets: { assetId: string; views: number; providerClicks: number }[];
+  news: { key: string; count: number }[];
+  pages: { key: string; count: number }[];
+  events: Record<string, number>;
+  triggered: Metrics;
 }
