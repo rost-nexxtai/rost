@@ -2,24 +2,24 @@ import type { PayslipBreakdown } from '@backend/contract';
 import { lei } from '@/lib/format';
 
 const PARTS = [
-  { key: 'pension', label: 'Pension (CAS, 25%)', color: 'var(--accent)' },
-  { key: 'health', label: 'Health (CASS, 10%)', color: 'var(--grey-bar)' },
-  { key: 'incomeTax', label: 'Income tax (10%)', color: '#c9ced6' },
-  { key: 'net', label: 'Take-home', color: 'var(--primary)' },
+  { key: 'pension', label: 'Pensie (CAS, 25%)', color: 'var(--accent)' },
+  { key: 'health', label: 'Sănătate (CASS, 10%)', color: 'var(--muted)' },
+  { key: 'incomeTax', label: 'Impozit pe venit (10%)', color: 'var(--line-strong)' },
+  { key: 'net', label: 'Salariul net, în mână', color: 'var(--primary)' },
 ] as const;
 
-/** Where a gross salary goes. Same numbers as src/lib/rules/payslip.ts, nothing recomputed here. */
+/** Where a gross salary goes. Numbers come from the backend rules (payslip.ts); nothing is recomputed here. */
 export function PayslipReveal({ p, guess }: { p: PayslipBreakdown & { pillar2Deadline?: string }; guess?: number }) {
   return (
     <div className="stack" style={{ gap: 14 }}>
       {guess !== undefined && (
         <p className="muted">
-          You guessed {lei(guess)}. It&apos;s <strong style={{ color: 'var(--ink)' }}>{lei(p.pension)}</strong>.
+          Tu ai zis {lei(guess)}. De fapt, <strong style={{ color: 'var(--ink)' }}>{lei(p.pension)}</strong>.
         </p>
       )}
       <div className="card">
-        <span className="eyebrow">Your {lei(p.gross)} gross</span>
-        <div className="stackbar" role="img" aria-label="Gross salary split into pension, health, tax and take-home">
+        <span className="eyebrow">Salariul tău brut de {lei(p.gross)}</span>
+        <div className="stackbar" role="img" aria-label="Salariul brut împărțit în pensie, sănătate, impozit și net">
           {PARTS.map((part) => (
             <div key={part.key} style={{ flex: p[part.key], background: part.color }} />
           ))}
@@ -37,14 +37,14 @@ export function PayslipReveal({ p, guess }: { p: PayslipBreakdown & { pillar2Dea
 
       <div className="card card-tint">
         <p>
-          <strong>{lei(p.pension)}</strong> goes to the pension system every month. Of that,{' '}
-          <strong>{lei(p.pillar2)}</strong> lands in a Pillar II account that is <em>yours</em> and inheritable. The other{' '}
-          {lei(p.publicPension)} pays today&apos;s pensions and earns you pension points.
+          <strong>{lei(p.pension)}</strong> merg lunar la sistemul de pensii. Din ei, <strong>{lei(p.pillar2)}</strong> ajung
+          în contul tău de Pilon II: sunt <em>ai tăi</em> și se moștenesc. Restul de {lei(p.publicPension)} plătesc pensiile de azi și
+          îți aduc puncte de pensie.
         </p>
       </div>
       {p.personalDeduction === 0 && (
         <p className="note">
-          Personal deduction not applied yet, so your real payslip may show a little less tax. Rules {p.rulesYear}.
+          Deducerea personală nu e aplicată încă, așa că pe fluturașul real impozitul poate fi puțin mai mic. Reguli {p.rulesYear}.
         </p>
       )}
     </div>

@@ -5,17 +5,17 @@ import { useEffect, useState } from 'react';
 import type { MomentResponse, Step } from '@backend/contract';
 import { lei } from '@/lib/format';
 import { scenarioProps } from '@/lib/scenario';
-import { ActionStep } from './ActionStep';
+import { ActionStep } from './steps/ActionStep';
 import { InflationReveal } from './InflationReveal';
 import { PayslipReveal } from './PayslipReveal';
-import { PredictStep } from './PredictStep';
+import { PredictStep } from './steps/PredictStep';
 import { ScenarioSlider } from './ScenarioSlider';
 
 type Loaded = MomentResponse;
 
 const CONFIRM_LABEL: Record<string, string> = {
-  payday_savings_rule: "I'll set it up in my bank",
-  update_buffer_target: 'Update my target',
+  payday_savings_rule: 'Îl setez în banca mea',
+  update_buffer_target: 'Actualizează ținta',
 };
 
 async function post(runId: string, body: unknown) {
@@ -43,28 +43,28 @@ export function MomentPlayer({ runId }: { runId: string }) {
       .catch((e: Error) => setError(e.message));
   }, [runId]);
 
-  if (error) return <Message title="Can't open this moment" body={error} />;
-  if (!data) return <p className="muted">Loading…</p>;
+  if (error) return <Message title="Nu putem deschide momentul" body={error} />;
+  if (!data) return <p className="muted">Se încarcă…</p>;
 
   const { def, view, run } = data;
-  if (run.state === 'completed' && !done) return <Message title="Already done" body="You've completed this moment." />;
+  if (run.state === 'completed' && !done) return <Message title="Gata deja" body="Ai terminat momentul ăsta." />;
 
   if (done) {
     return (
-      <div className="stack" style={{ gap: 18 }}>
-        <span className="eyebrow">Done · {def.title}</span>
-        <h1>Set. We&apos;ll check in {def.followUpDays} days.</h1>
+      <div className="stack-lg rise">
+        <span className="eyebrow">Gata · {def.title}</span>
+        <h1>Gata. Revenim peste {def.followUpDays} zile.</h1>
         <p className="muted">
           {done.actionType === 'payday_savings_rule'
-            ? `Next payday, move ${lei(Number(done.params.amountLei))} into savings in your own bank.`
-            : `Your buffer target is now ${lei(Number(done.params.bufferTargetLei))}.`}{' '}
-          An action only counts once you tell us you did it.
+            ? `De ziua salariului, mută ${lei(Number(done.params.amountLei))} în economii, din banca ta.`
+            : `Ținta pentru fondul de urgență e acum ${lei(Number(done.params.bufferTargetLei))}.`}{' '}
+          O acțiune contează doar după ce ne spui că ai făcut-o.
         </p>
-        <Link href="/today" className="btn btn-primary btn-block">
-          Back to today
+        <Link href="/momente" className="btn btn-primary btn-block">
+          Înapoi la Momente
         </Link>
-        <Link href="/options" className="btn btn-ghost btn-block">
-          Compare where to keep your savings
+        <Link href="/active/cont_economii" className="btn btn-ghost btn-block">
+          Vezi unde îți poți ține economiile
         </Link>
       </div>
     );
@@ -85,16 +85,16 @@ export function MomentPlayer({ runId }: { runId: string }) {
   }
 
   return (
-    <div className="stack" style={{ gap: 18 }}>
+    <div className="stack-lg">
       <header className="row">
         <span className="small muted">
           {def.series} · {def.title}
         </span>
-        <Link href="/today" className="small" aria-label="Close and come back later">
-          Close
+        <Link href="/momente" className="small" aria-label="Închide și revino mai târziu">
+          Închide
         </Link>
       </header>
-      <div className="bar" aria-label={`Step ${i + 1} of ${def.steps.length}`}>
+      <div className="bar" aria-label={`Pasul ${i + 1} din ${def.steps.length}`}>
         <div style={{ width: `${((i + 1) / def.steps.length) * 100}%`, background: 'var(--accent)' }} />
       </div>
 
@@ -127,7 +127,7 @@ export function MomentPlayer({ runId }: { runId: string }) {
           )}
           {step.view === 'scenario' && view.scenario && <ScenarioSlider {...scenarioProps(view.scenario)} />}
           <button className="btn btn-primary btn-block" onClick={next}>
-            Next
+            Mai departe
           </button>
         </>
       )}
@@ -144,7 +144,7 @@ export function MomentPlayer({ runId }: { runId: string }) {
             )}
           </div>
           <button className="btn btn-primary btn-block" onClick={next}>
-            Next
+            Mai departe
           </button>
         </>
       )}
@@ -169,8 +169,8 @@ function Message({ title, body }: { title: string; body: string }) {
     <div className="stack">
       <h1>{title}</h1>
       <p className="muted">{body}</p>
-      <Link href="/today" className="btn btn-primary">
-        Back to today
+      <Link href="/momente" className="btn btn-primary">
+        Înapoi la Momente
       </Link>
     </div>
   );

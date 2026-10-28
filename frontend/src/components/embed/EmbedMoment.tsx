@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { InflationReveal } from '@/components/moments/InflationReveal';
-import { PredictStep } from '@/components/moments/PredictStep';
+import { PredictStep } from '@/components/moments/steps/PredictStep';
 import type { ScenarioSliderProps } from '@/components/moments/ScenarioSlider';
 import type { InflationView } from '@backend/contract';
 import { lei } from '@/lib/format';

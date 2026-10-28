@@ -26,12 +26,12 @@ export function ActionStep({
   const [busy, setBusy] = useState(false);
 
   return (
-    <div className="stack" style={{ gap: 18 }}>
-      <span className="eyebrow">One thing to do</span>
+    <div className="stack-lg rise">
+      <span className="eyebrow">Un singur pas</span>
       <h1>{title}</h1>
       <p className="muted">{body}</p>
       {options.length > 0 && (
-        <div className="grid3" role="group" aria-label="Amount">
+        <div className="grid3" role="group" aria-label="Suma">
           {options.map((o) => (
             <button key={o} className="chip" aria-pressed={choice === o} onClick={() => setChoice(o)}>
               {lei(o)}
