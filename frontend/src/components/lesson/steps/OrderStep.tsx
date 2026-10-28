@@ -71,10 +71,12 @@ export function OrderStep({
 
   return (
     <>
-      <span className="lesson-kicker">{t.order}</span>
       <h1 className="lesson-q">{question}</h1>
+      <span className="lesson-hint">{t.order}</span>
       <div className="order">
-        <span className="order-end">↑ {top}</span>
+        <span className="order-end">
+          <Icon name="arrowUp" size={14} /> {top}
+        </span>
         <ol className="order-list" ref={list}>
           {order.map((n, i) => {
             const state = checked ? (n === i ? 'correct' : 'wrong') : undefined;
@@ -107,10 +109,10 @@ export function OrderStep({
                 {!checked && (
                   <span className="order-moves">
                     <button type="button" aria-label={t.moveUp(ordered[n])} disabled={i === 0} onClick={() => shift(i, i - 1)}>
-                      ↑
+                      <Icon name="arrowUp" size={16} />
                     </button>
                     <button type="button" aria-label={t.moveDown(ordered[n])} disabled={i === order.length - 1} onClick={() => shift(i, i + 1)}>
-                      ↓
+                      <Icon name="arrowDown" size={16} />
                     </button>
                   </span>
                 )}
@@ -118,7 +120,9 @@ export function OrderStep({
             );
           })}
         </ol>
-        <span className="order-end">↓ {bottom}</span>
+        <span className="order-end">
+          <Icon name="arrowDown" size={14} /> {bottom}
+        </span>
       </div>
       {checked ? (
         <LessonBar

@@ -35,8 +35,8 @@ export default async function LibraryMomentPage({ params }: { params: Promise<{ 
   if (!moment || moment.steps.length === 0) {
     return (
       <main className="shell shell-bare">
-        <span className="eyebrow">{moment ? `${moment.series} · ${moment.minutes} min` : t.moments}</span>
         <h1>{moment ? moment.title : t.notFound}</h1>
+        <span className="card-meta">{moment ? `${moment.series} · ${moment.minutes} min` : t.moments}</span>
         <p className="muted">{moment ? t.soon : t.old}</p>
         <Link href="/momente" className="btn btn-primary">
           {t.back}

@@ -18,8 +18,8 @@ export function RangeStep({ asset, onDone }: { asset: Asset; onDone: () => void 
   const r = simulateRange({ startLei: 1000, monthlyLei: 0, years: 10 }, s);
   return (
     <>
-      <span className="lesson-kicker">{t.fromHistory}</span>
       <h1 className="lesson-q">{t.tenYears(f.lei(1000))}</h1>
+      <span className="lesson-hint">{t.fromHistory}</span>
       <div className="play">
         <div className="grid3" style={{ textAlign: 'center' }}>
           <div>

@@ -105,11 +105,14 @@ export function FinishStep({
         <div className="celebrate-badge" data-tone={failed ? 'wrong' : undefined}>
           <Icon name={failed ? 'redo' : 'check'} size={48} />
         </div>
-        <h1 className="lesson-q">{failed ? f.notYet : t.done(title)}</h1>
+        {/* After the badge lands, the rest follows in a short cascade. */}
+        <h1 className="lesson-q rise" style={{ animationDelay: '120ms' }}>
+          {failed ? f.notYet : t.done(title)}
+        </h1>
         <p className="muted" aria-live="polite">
           {out ? out.line : t.savingProgress}
         </p>
-        <div className="score-row" style={graded < 2 ? { gridTemplateColumns: '1fr' } : undefined}>
+        <div className="score-row rise" style={{ animationDelay: '180ms', ...(graded < 2 ? { gridTemplateColumns: '1fr' } : {}) }}>
           {graded >= 2 && (
             <div className="score">
               <span className="play-caption">{t.rightAnswers}</span>
@@ -124,7 +127,7 @@ export function FinishStep({
           </div>
         </div>
         {takeaways.length > 0 && !failed && (
-          <div className="play" style={{ width: '100%' }}>
+          <div className="play rise" style={{ width: '100%', animationDelay: '240ms' }}>
             <strong>{t.remember}</strong>
             <ul className="takeaways" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {takeaways.map((t) => (
@@ -134,7 +137,7 @@ export function FinishStep({
           </div>
         )}
         {out?.week && (
-          <div className="play" style={{ width: '100%' }}>
+          <div className="play rise" style={{ width: '100%', animationDelay: '300ms' }}>
             <WeekDots week={out.week} lang={lang} />
           </div>
         )}

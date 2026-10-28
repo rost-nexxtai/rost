@@ -68,8 +68,8 @@ export function PredictStep({
 
   return (
     <>
-      <span className="lesson-kicker">{kicker ?? t.guessFirst}</span>
       <h1 className="lesson-q">{question}</h1>
+      <span className="lesson-hint">{kicker ?? t.guessFirst}</span>
       <div className="dial">
         <div className="dial-value" aria-live="polite">
           {show(checked ? answer : value)}

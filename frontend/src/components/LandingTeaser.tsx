@@ -34,8 +34,8 @@ export function LandingTeaser() {
   const t = T[useLang().lang];
   return (
     <section className="play" aria-label={t.aria}>
-      <span className="lesson-kicker">{t.guess}</span>
       <strong style={{ fontSize: 19, lineHeight: 1.3 }}>{t.question}</strong>
+      <span className="lesson-hint" style={{ marginTop: -10 }}>{t.guess}</span>
       <div className="tiles-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
         {t.options.map((o, i) => (
           <button

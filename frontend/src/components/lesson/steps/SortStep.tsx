@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '@/components/ui/Icon';
 import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
@@ -45,7 +46,8 @@ export function SortStep({
 
   useEffect(() => {
     if (flash !== 'correct') return;
-    const timer = setTimeout(next, 420);
+    // matches the fly-off in globals.css, so the next card deals in as soon as this one has gone
+    const timer = setTimeout(next, 260);
     return () => clearTimeout(timer);
   }, [flash]);
 
@@ -87,8 +89,8 @@ export function SortStep({
 
   return (
     <>
-      <span className="lesson-kicker">{t.sort}</span>
       <h1 className="lesson-q">{question}</h1>
+      <span className="lesson-hint">{t.sort}</span>
       <div className="sort-dots" aria-hidden="true">
         {items.map((_, n) => (
           <i key={n} data-state={n < answers.length ? (answers[n] ? 'correct' : 'wrong') : n === i ? 'now' : undefined} />
@@ -122,9 +124,9 @@ export function SortStep({
               <div className="tiles-row">
                 {buckets.map((b, n) => (
                   <button key={b} type="button" className="tile" data-lean={lean === n || undefined} disabled={!!flash} onClick={() => pick(n as 0 | 1)}>
-                    {n === 0 ? '← ' : ''}
+                    {n === 0 && <Icon name="arrowLeft" size={18} />}
                     {b}
-                    {n === 1 ? ' →' : ''}
+                    {n === 1 && <Icon name="arrowRight" size={18} />}
                   </button>
                 ))}
               </div>

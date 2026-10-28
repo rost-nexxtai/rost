@@ -31,8 +31,8 @@ export function ActionStep({
 
   return (
     <>
-      <span className="lesson-kicker">{t.oneStep}</span>
       <h1 className="lesson-q">{title}</h1>
+      <span className="lesson-hint">{t.oneStep}</span>
       <p className="lesson-text">{body}</p>
       {options.length > 0 && (
         <div className="tiles-row" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }} role="group" aria-label={t.amount}>

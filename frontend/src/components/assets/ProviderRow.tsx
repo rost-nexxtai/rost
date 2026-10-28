@@ -21,29 +21,27 @@ const T = copy(
 );
 
 /** One real provider: rank, the number that ranks it, its conditions, and a link to its own site. */
-export function ProviderRow({ p }: { p: RankedProvider }) {
+export function ProviderRow({ p, style }: { p: RankedProvider; style?: React.CSSProperties }) {
   const t = T[useLang().lang];
   return (
-    <div className="list-row" style={{ alignItems: 'flex-start' }}>
-      <div className="row-start" style={{ alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
-        <span className="rank" aria-label={t.place(p.rank)}>
-          {p.rank}
-        </span>
-        <div className="stack" style={{ gap: 4, minWidth: 0 }}>
-          <span>
-            <strong>{p.name}</strong>
-            <span className="muted small"> · {p.product}</span>
+    <div className="provider" style={style}>
+      <span className="rank" aria-label={t.place(p.rank)}>
+        {p.rank}
+      </span>
+      <div className="provider-head">
+        <span className="provider-name">{p.name}</span>
+        <span className="muted small">{p.product}</span>
+      </div>
+      <div className="provider-body">
+        <span className="provider-figure">{p.headline}</span>
+        {p.clientsLine && <span className="small muted">{p.clientsLine}</span>}
+        {p.taxNote && <span className="small">{p.taxNote}</span>}
+        {p.conditions.map((c) => (
+          <span key={c} className="note">
+            {c}
           </span>
-          <span className="small" style={{ fontWeight: 600 }}>
-            {p.headline}
-          </span>
-          {p.clientsLine && <span className="small muted">{p.clientsLine}</span>}
-          {p.taxNote && <span className="small">{p.taxNote}</span>}
-          {p.conditions.map((c) => (
-            <span key={c} className="note">
-              {c}
-            </span>
-          ))}
+        ))}
+        <div className="provider-foot">
           {(p.checked || p.source) && (
             <span className="note">
               {p.checked && t.checked(p.checked)}
@@ -55,13 +53,13 @@ export function ProviderRow({ p }: { p: RankedProvider }) {
               )}
             </span>
           )}
+          {p.url && (
+            <a href={p.url} target="_blank" rel="noopener noreferrer" className="provider-site" aria-label={t.siteOf(p.name)}>
+              {t.site} <Icon name="external" size={14} />
+            </a>
+          )}
         </div>
       </div>
-      {p.url && (
-        <a href={p.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ flexShrink: 0, gap: 4 }} aria-label={t.siteOf(p.name)}>
-          {t.site} <Icon name="external" size={14} />
-        </a>
-      )}
     </div>
   );
 }

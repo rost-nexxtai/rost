@@ -61,10 +61,10 @@ export function NewsCard({ item, money }: { item: NewsItem; money: MoneyLines })
   const t = T[useLang().lang];
   return (
     <article className="card" aria-labelledby={`n-${item.id}`}>
-      <span className="eyebrow">{item.date}</span>
       <h2 id={`n-${item.id}`} style={{ fontSize: 19 }}>
         {item.title}
       </h2>
+      <time className="card-meta">{item.date}</time>
       <ul className="small" style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {item.facts.map((f) => (
           <li key={f}>{f}</li>
@@ -76,7 +76,7 @@ export function NewsCard({ item, money }: { item: NewsItem; money: MoneyLines })
         ))}
       </div>
 
-      <div className="card card-tint" style={{ padding: 16 }}>
+      <div className="panel-tint">
         <div className="row">
           <span className="eyebrow" style={{ color: 'var(--primary)' }}>
             {t.meaning}

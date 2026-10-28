@@ -23,8 +23,8 @@ export function ExploreStep({
   const t = LESSON[useLang().lang];
   return (
     <>
-      <span className="lesson-kicker">{t.tryIt}</span>
       <h1 className="lesson-q">{title}</h1>
+      <span className="lesson-hint">{t.tryIt}</span>
       {body && <p className="lesson-text">{body}</p>}
       <Widget id={widget} onTouch={() => undefined} haveMonths={haveMonths} />
       <p className="play-hint">{t.moveSomething}</p>

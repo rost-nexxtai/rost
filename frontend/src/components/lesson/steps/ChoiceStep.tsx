@@ -53,8 +53,8 @@ export function ChoiceStep({
 
   return (
     <>
-      {kicker && <span className="lesson-kicker">{kicker}</span>}
       <h1 className="lesson-q">{question}</h1>
+      {kicker && <span className="lesson-hint">{kicker}</span>}
       <div className="tiles">
         {options.map((o, i) => {
           const out = crossed.includes(i);

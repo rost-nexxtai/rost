@@ -40,10 +40,10 @@ export function QuizResult({ profile, lesson }: { profile: Profile; lesson?: Pic
   return (
     <main className="onboard">
       <div className="onboard-body" style={{ paddingTop: 48 }}>
-        <span className="lesson-kicker rise">{t.kicker}</span>
         <h1 className="lesson-q rise">
           {t.startAt} <span style={{ whiteSpace: 'nowrap' }}>{lang === 'ro' ? levelName.toLowerCase() : `${levelName.toLowerCase()} level`}</span>
         </h1>
+        <span className="lesson-hint rise">{t.kicker}</span>
         <div className="row-start rise">
           <LevelBadge level={profile.level} />
           <span className="muted">
