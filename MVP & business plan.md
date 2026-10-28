@@ -128,7 +128,7 @@ We computed the 10-year figures from the yearly returns on those pages (47 perio
 
 | Moment | Level | Opens when |
 | --- | --- | --- |
-| Fluturașul tău, explicat | L0 | Salary received, payslip uploaded, or the Pillar II deadline is within 30 days |
+| Salariul tău, pe înțeles | L0 | Salary received, payslip uploaded, or the Pillar II deadline is within 30 days |
 | Inflația ta luna asta | L0 | INS publishes inflation (monthly) |
 | Ce-ar fi dacă… | L0 | A what-if from Știri |
 | Fondul de urgență (core) | L0 | Library; pinned while the fund is under 3 months |

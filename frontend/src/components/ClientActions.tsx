@@ -17,7 +17,7 @@ const T = copy(
     yes: 'Da, gata',
     notYet: 'Încă nu',
     salary: 'Salariul brut pe lună',
-    salaryNote: 'Nu ai încă salariu? Pune unul la care te aștepți. Îl folosim doar ca să-ți calculăm fluturașul.',
+    salaryNote: 'Nu ai încă salariu? Pune unul la care te aștepți. Îl folosim doar ca să-ți arătăm unde merg banii din el.',
     cancel: 'Renunță',
   },
   {
@@ -29,7 +29,7 @@ const T = copy(
     yes: 'Yes, done',
     notYet: 'Not yet',
     salary: 'Gross monthly salary',
-    salaryNote: "No salary yet? Put in one you expect. We only use it to work out your payslip.",
+    salaryNote: "No salary yet? Put in one you expect. We only use it to show you where the money goes.",
     cancel: 'Cancel',
   },
 );

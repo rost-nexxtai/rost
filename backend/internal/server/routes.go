@@ -51,6 +51,8 @@ func (s *server) routes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/metrics", s.metrics)
 	mux.HandleFunc("POST /api/payslip/read", s.readPayslip)
+	mux.HandleFunc("GET /api/payslip", s.payslip)
+	mux.HandleFunc("PUT /api/me/salary", s.setSalary)
 
 	s.libraryRoutes(mux)
 	s.adminRoutes(mux)
@@ -169,7 +171,7 @@ func (s *server) fireEvent(w http.ResponseWriter, r *http.Request) {
 		// A catch-up may bring the gross salary the moment needs (Momente asks for it).
 		if v, given := body.Payload["grossMonthly"]; given {
 			gross, ok := v.(float64)
-			if !ok || gross < minGrossLei || gross > maxGrossLei {
+			if !ok || !validGross(gross) {
 				fail(w, http.StatusBadRequest, "grossMonthly must be a monthly gross salary in lei")
 				return
 			}
@@ -190,7 +192,7 @@ func (s *server) fireEvent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, res)
 }
 
-// The gross salaries a catch-up accepts: from the 2026 minimum wage up to a generous ceiling.
+// The gross salaries the app accepts: from the 2026 minimum wage up to a generous ceiling.
 const (
 	minGrossLei = 1_000
 	maxGrossLei = 200_000

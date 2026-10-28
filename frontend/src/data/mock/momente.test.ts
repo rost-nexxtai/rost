@@ -74,6 +74,14 @@ describe('Momente order', () => {
   });
 });
 
+describe('your salary', () => {
+  it('links a payslip moment already done to the salary page, where it can be changed', () => {
+    const done = { ...today, open: [], doneMomentIds: ['payslip_explained'], catchUpMomentIds: [] } as unknown as TodayResponse;
+    const row = buildMomente(PERSONAS.maria, done, SEED_LESSONS).rest.find((m) => m.id === 'payslip_explained');
+    expect(row).toMatchObject({ status: 'done', href: '/salariu' });
+  });
+});
+
 describe('roadmap', () => {
   const l0: Profile = { ...PERSONAS.maria, quizLevel: 0, level: 0, bufferMonths: 0, completedMomentIds: [] };
 

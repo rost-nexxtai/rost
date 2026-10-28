@@ -22,7 +22,7 @@ const T = copy(
     set: 'Setați',
     confirmed: 'Confirmați',
     skipped: 'Săriți',
-    guessTitle: 'Ce ghicesc oamenii la fluturaș',
+    guessTitle: 'Ce ghicesc oamenii la salariu',
     guess: (avg: string, actual: string, under: number, count: number) => [
       'Media răspunsurilor pentru contribuția la pensie: ',
       avg,

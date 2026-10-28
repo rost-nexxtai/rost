@@ -308,6 +308,17 @@ export interface CreateUserResponse {
   userId: string;
 }
 
+/** PUT /api/me/salary, body `{ grossMonthly }`: the salary changed. A raise reopens the payslip moment. */
+export interface SalaryChangeResponse {
+  user: User;
+  payslip: PayslipBreakdown;
+  /** The gross salary before; null the first time one is given. */
+  before: number | null;
+  raise: boolean;
+  /** The payslip moment, opened again with the new numbers after a raise. */
+  runs: MomentRun[];
+}
+
 /** GET /api/me. 401 without a session, profile only after the quiz. */
 export interface MeResponse {
   user: User;

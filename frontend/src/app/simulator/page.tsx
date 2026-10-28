@@ -15,9 +15,9 @@ const T = copy(
   {
     events: {
       salary_received: { label: 'A intrat salariul', hint: 'ce ar trimite banca printr-un webhook' },
-      payslip_uploaded: { label: 'Fluturaș încărcat', hint: 'poză cu fluturașul, de la utilizator' },
+      payslip_uploaded: { label: 'Poză cu salariul încărcată', hint: 'poza documentului de salariu, de la utilizator' },
       inflation_published: { label: 'INS publică inflația', hint: 'lunar, în jur de 13' },
-      raise: { label: 'Mărire de salariu', hint: 'repetă momentul fluturașului' },
+      raise: { label: 'Mărire de salariu', hint: 'repetă momentul „Salariul tău”' },
     } as Record<(typeof EVENT_TYPES)[number], { label: string; hint: string }>,
     scenarios: { 'fuel-shortage': 'Criză de carburant', 'energy-spike': 'Scumpirea energiei', 'food-drought': 'Secetă, prețuri la mâncare' } as Record<
       (typeof SCENARIO_IDS)[number],
