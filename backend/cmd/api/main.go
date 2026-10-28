@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"rost/backend/internal/app"
 	"rost/backend/internal/config"
 	"rost/backend/internal/content"
 	"rost/backend/internal/database"
@@ -55,6 +57,13 @@ func run(logger *slog.Logger) error {
 	}
 	if err := st.SeedContent(ctx, content.SeedName, seed); err != nil {
 		return err
+	}
+	if cfg.AdminEmail != "" {
+		created, err := app.Service{Store: st}.EnsureAdmin(ctx, cfg.AdminEmail, cfg.AdminPassword)
+		if err != nil {
+			return fmt.Errorf("admin account: %w", err)
+		}
+		logger.Info("admin account", "email", app.NormalizeEmail(cfg.AdminEmail), "created", created)
 	}
 
 	srv := &http.Server{

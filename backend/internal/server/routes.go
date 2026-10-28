@@ -51,6 +51,7 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/payslip/read", s.readPayslip)
 
 	s.libraryRoutes(mux)
+	s.adminRoutes(mux)
 }
 
 // ---- users and session ----

@@ -22,6 +22,9 @@ type Config struct {
 	// AnthropicAPIKey and PayslipModel turn on payslip photo reading. Both are optional.
 	AnthropicAPIKey string
 	PayslipModel    string
+	// first admin, created on start (both or none)
+	AdminEmail    string
+	AdminPassword string
 }
 
 func Load() (Config, error) {
@@ -33,6 +36,8 @@ func Load() (Config, error) {
 		PostbackSecret:  os.Getenv("POSTBACK_SECRET"),
 		AnthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
 		PayslipModel:    os.Getenv("PAYSLIP_MODEL"),
+		AdminEmail:      os.Getenv("ADMIN_EMAIL"),
+		AdminPassword:   os.Getenv("ADMIN_PASSWORD"),
 	}
 	if cfg.DatabaseURL == "" {
 		return Config{}, errors.New("DATABASE_URL is not set")
@@ -43,6 +48,9 @@ func Load() (Config, error) {
 			return Config{}, errors.New("SHUTDOWN_TIMEOUT must be a duration like 10s")
 		}
 		cfg.ShutdownTimeout = d
+	}
+	if (cfg.AdminEmail == "") != (cfg.AdminPassword == "") {
+		return Config{}, errors.New("set both ADMIN_EMAIL and ADMIN_PASSWORD, or neither")
 	}
 	return cfg, nil
 }

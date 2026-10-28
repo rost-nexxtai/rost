@@ -162,3 +162,73 @@ func TestMariaMomente(t *testing.T) {
 		t.Errorf("for your level = %v", ids)
 	}
 }
+
+func TestAdminStats(t *testing.T) {
+	c := adminClient(t)
+	c.do("POST", "/api/track", `{"events":[{"name":"quiz_start"},{"name":"page_view","path":"/embed?token=secret"}]}`)
+	c.do("POST", "/api/quiz", quizAllNuStiu)
+	c.do("POST", "/api/track", `{"events":[{"name":"moment_open","props":{"momentId":"fondul_urgenta"}},{"name":"moment_open","props":{"momentId":"fondul_urgenta"}},{"name":"asset_view","props":{"assetId":"etf"}}]}`)
+	c.do("POST", "/api/library/fondul_urgenta/complete", `{"answers":[{"step":3,"picked":1}]}`)
+
+	if code, _ := c.do("GET", "/api/admin/stats", ""); code != 401 {
+		t.Errorf("stats without login = %d", code)
+	}
+	c.login()
+	if code, _ := c.do("GET", "/api/admin/stats?days=0", ""); code != 400 {
+		t.Errorf("days=0 = %d", code)
+	}
+	code, st := c.do("GET", "/api/admin/stats?days=7", "")
+	if code != 200 {
+		t.Fatalf("stats = %d %v", code, st)
+	}
+	users := st["users"].(map[string]any)
+	// maria + the new user, only the new one has events
+	if users["total"] != 2.0 || users["withQuiz"] != 2.0 || users["active"] != 1.0 || users["new"] != 2.0 {
+		t.Errorf("users = %v", users)
+	}
+	if q := st["quiz"].(map[string]any); q["started"] != 1.0 || q["completed"] != 1.0 || q["avgScore"] != 0.0 {
+		t.Errorf("quiz = %v", q)
+	}
+	if st["levelUps"] != 0.0 || len(st["daily"].([]any)) != 7 {
+		t.Errorf("levelUps = %v, days = %d", st["levelUps"], len(st["daily"].([]any)))
+	}
+	// maria L1, the new user still L0 after one lesson
+	if lv := st["levels"].(map[string]any); lv["0"] != 1.0 || lv["1"] != 1.0 {
+		t.Errorf("levels = %v", lv)
+	}
+	lib := st["library"].([]any)[0].(map[string]any)
+	if lib["momentId"] != "fondul_urgenta" || lib["opened"] != 2.0 || lib["completed"] != 1.0 || lib["completionRate"] != 0.5 || lib["correctRate"] != 0.0 {
+		t.Errorf("library = %v", lib)
+	}
+	if pages := jsonString(st["pages"]); strings.Contains(pages, "secret") || !strings.Contains(pages, `"/embed"`) {
+		t.Errorf("pages must drop query strings: %s", pages)
+	}
+	if a := st["assets"].([]any)[0].(map[string]any); a["assetId"] != "etf" || a["views"] != 1.0 {
+		t.Errorf("assets = %v", a)
+	}
+	if strings.Contains(jsonString(st), `"userId"`) {
+		t.Error("stats must not list user ids")
+	}
+}
+
+// new core lesson shouldn't demote anyone
+func TestNewCoreLessonDoesNotDemote(t *testing.T) {
+	c := adminClient(t)
+	c.do("POST", "/api/quiz", quizAllNuStiu)
+	if out := completeL0(c); out["levelUp"] != true {
+		t.Fatalf("complete = %v", out)
+	}
+	c.login()
+	core := strings.Replace(newMoment, `"core":false`, `"core":true`, 1)
+	if code, out := c.do("POST", "/api/admin/content/moments", `{"status":"published","doc":`+core+`}`); code != 201 {
+		t.Fatalf("publish core lesson = %d %v", code, out)
+	}
+	_, me := c.do("GET", "/api/me", "")
+	if get(me, "profile", "level") != 1.0 {
+		t.Errorf("level after a new L0 core lesson = %v, want 1", get(me, "profile", "level"))
+	}
+	// still shows up, not done yet
+	if _, m := c.do("GET", "/api/momente", ""); !strings.Contains(jsonString(m["forYourLevel"]), `"buget_50_30_20"`) {
+		t.Errorf("new lesson missing from forYourLevel: %v", m["forYourLevel"])
+	}
+}
