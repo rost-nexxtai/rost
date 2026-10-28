@@ -93,6 +93,14 @@ const NEWS_EN: Record<string, Pick<NewsItem, 'date' | 'title' | 'facts'> & { sou
   },
 };
 
+const MONTHS: Record<string, string> = {
+  'ian.': 'Jan', 'feb.': 'Feb', 'mar.': 'Mar', 'apr.': 'Apr', mai: 'May', 'iun.': 'Jun',
+  'iul.': 'Jul', 'aug.': 'Aug', 'sept.': 'Sep', 'oct.': 'Oct', 'nov.': 'Nov', 'dec.': 'Dec',
+};
+
+/** "28 oct. 2026" → "28 Oct 2026". Anything else (e.g. a bare year) is left as it is. */
+export const dateEn = (ro: string) => ro.replace(/\b(ian\.|feb\.|mar\.|apr\.|mai|iun\.|iul\.|aug\.|sept\.|oct\.|nov\.|dec\.)(?=\s)/, (m) => MONTHS[m]);
+
 /** Provider product names in English. */
 function productEn(ro: string): string {
   return ro
@@ -119,7 +127,7 @@ export function newsFor(lang: Lang): NewsItem[] {
   return NEWS.map((n) => {
     const en = NEWS_EN[n.id];
     const impact = n.impact.kind === 'savings' && en.alternative ? { ...n.impact, alternative: { ...n.impact.alternative, label: en.alternative } } : n.impact;
-    return { ...n, date: en.date, title: en.title, facts: en.facts, sources: n.sources.map((s, i) => ({ ...s, label: en.sources[i] ?? s.label })), impact };
+    return { ...n, date: en.date, title: en.title, facts: en.facts, sources: n.sources.map((s, i) => ({ ...s, label: en.sources[i] ?? s.label, date: dateEn(s.date) })), impact };
   });
 }
 

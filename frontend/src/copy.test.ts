@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assetsFor, newsFor, savingsFor } from './data/fixtures/en';
+import { assetsFor, dateEn, newsFor, savingsFor } from './data/fixtures/en';
 import { LIBRARY, libraryFor } from './data/fixtures/moments';
 import { QUIZ, QUIZ_EN } from './data/fixtures/quiz';
 
@@ -101,6 +101,9 @@ describe('English content mirrors Romanian', () => {
     expect(strip(assetsFor('en'), ['id', 'risk', 'lessonLevel', 'momentId'])).toEqual(strip(assetsFor('ro'), ['id', 'risk', 'lessonLevel', 'momentId']));
     expect(strip(savingsFor('en'), ['id', 'grossRatePct', 'termMonths', 'offerId'])).toEqual(strip(savingsFor('ro'), ['id', 'grossRatePct', 'termMonths', 'offerId']));
     expect(newsFor('en').map((n) => [n.id, n.sources.length, n.facts.length > 0])).toEqual(newsFor('ro').map((n) => [n.id, n.sources.length, true]));
+    expect(newsFor('en').flatMap((n) => n.sources.map((s) => s.date))).not.toContain('28 oct. 2026');
+    expect(dateEn('7 oct. 2026')).toBe('7 Oct 2026');
+    expect(dateEn('2026')).toBe('2026');
     for (const text of [...assetsFor('en').map((a) => a.whatItIs), ...newsFor('en').map((n) => n.title), ...savingsFor('en').map((p) => p.product)]) {
       expect(text).not.toMatch(DIACRITICS);
     }
