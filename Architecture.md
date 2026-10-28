@@ -61,21 +61,26 @@ Games are short, visual, need little text and work on a phone or tablet.
 ## PROGRESS
 Kids collect finished games (e.g. badges). There are no L0-L2 levels and no risk profile for kids.
 
-## PARENT LINK
-At the end of a game the kid can show the result to a parent. The parent sees what the kid learned
-and what a savings account for a child is, with the options from banks, listed like on Home.
+## SHOW A PARENT
+Child and adult accounts are not linked in the MVP. Each is created on its own.
+
+At the end of a game the kid gets a "Show your parent" screen: what they learned, plus what a
+savings account for a child is, with the options from banks, listed like on Home. The kid shows it
+on the same device or sends it as a share link that opens without an account.
 This is the step that turns the kids experience into a savings account.
 
 ## RULES FOR KIDS ACCOUNTS
 - No real money moves, no purchases, no ads.
 - Collect as little data as possible about the child.
 - A parent must agree before a child account is created (GDPR: in Romania, children under 16 need
-  parental consent; verify with a lawyer).
+  parental consent; verify with a lawyer). In the MVP this is a confirmation step at sign-up,
+  since there is no linked parent account.
+
+# DECISIONS
+- Child and adult accounts are not linked in the MVP.
 
 # OPEN QUESTIONS
 Working assumptions until the team decides:
 1. Age range for child accounts? Assumed: about 6-14.
-2. Who creates a child account? Assumed: a parent, from their adult account, so the two accounts are linked.
-3. Can one parent have several children? Assumed: yes.
-4. How does "show a parent" work? Assumed: through the linked parent account (in-app); a share link is the fallback.
-5. Is there anything between kids and adults (teens 14-18)? Assumed: not for now.
+2. Is there anything between kids and adults (teens 14-18)? Assumed: not for now.
+3. Linking a parent and child account after the MVP? Not decided.
