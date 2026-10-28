@@ -105,3 +105,46 @@ export interface SimInput {
   monthlyLei: number;
   years: number;
 }
+
+export type AssetSimulation =
+  | { kind: 'fixed' }
+  | {
+      kind: 'range';
+      worstPct: number;
+      typicalPct: number;
+      bestPct: number;
+      worstYear: { year: number; pct: number };
+      source: { label: string; url: string };
+      note?: string;
+    };
+
+export interface Asset {
+  id: AssetId;
+  name: string;
+  oneLine: string;
+  lessonLevel: Level;
+  risk: 1 | 2 | 3 | 4 | 5;
+  access: string;
+  tax: string;
+  whatItIs: string;
+  momentId: string;
+  simulation: AssetSimulation;
+}
+
+export interface AssetCard {
+  id: AssetId;
+  name: string;
+  oneLine: string;
+  risk: 1 | 2 | 3 | 4 | 5;
+  lessonLevel: Level;
+  headline: string;
+  aboveRiskProfile: boolean;
+}
+
+/** proposed: GET /api/acasa */
+export interface AcasaResponse {
+  profile: Profile;
+  foundation: Foundation;
+  forYourLevel: AssetCard[];
+  later: AssetCard[];
+}
