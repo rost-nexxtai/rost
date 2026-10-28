@@ -1,23 +1,26 @@
 {
-  "name": "rost-frontend",
-  "private": true,
+  "name": "@rost/frontend",
   "version": "0.1.0",
-  "type": "module",
+  "private": true,
+  "description": "Rost web app (Next.js). Talks to the backend only over HTTP; types come from backend/src/contract.ts.",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "next": "^16.4.3",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.2",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.5"
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
   }
 }
