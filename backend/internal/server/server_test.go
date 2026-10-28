@@ -53,6 +53,7 @@ type client struct {
 	t      *testing.T
 	h      http.Handler
 	cookie *http.Cookie
+	lang   string
 }
 
 func (c *client) do(method, path, body string) (int, map[string]any) {
@@ -60,6 +61,9 @@ func (c *client) do(method, path, body string) (int, map[string]any) {
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	if c.cookie != nil {
 		req.AddCookie(c.cookie)
+	}
+	if c.lang != "" {
+		req.AddCookie(&http.Cookie{Name: LangCookie, Value: c.lang})
 	}
 	rec := httptest.NewRecorder()
 	c.h.ServeHTTP(rec, req)
@@ -189,5 +193,39 @@ func TestDemoToolsOff(t *testing.T) {
 	}
 	if code, out := c.do("POST", "/api/payslip/read", ""); code != 501 || out["error"] != "not_configured" {
 		t.Errorf("payslip = %d %v", code, out)
+	}
+}
+
+func TestEnglishOverHTTP(t *testing.T) {
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{AllowDemoTools: true}), lang: "en"}
+	c.do("POST", "/api/users", `{"demo":"maria"}`)
+	_, ev := c.do("POST", "/api/events", `{"type":"salary_received","ignoreWeeklyCap":true}`)
+	runID := ev["runs"].([]any)[0].(map[string]any)["id"].(string)
+
+	_, moment := c.do("GET", "/api/moments/"+runID, "")
+	def := moment["def"].(map[string]any)
+	if def["title"] != "Your payslip, explained" {
+		t.Errorf("title = %v", def["title"])
+	}
+	if q := def["steps"].([]any)[0].(map[string]any)["question"]; q != "Of your 6,000 lei gross salary, how much goes to your pension each month?" {
+		t.Errorf("question = %v", q)
+	}
+	if p := moment["view"].(map[string]any)["payslip"].(map[string]any)["pension"]; p != 1500.0 {
+		t.Errorf("pension = %v", p)
+	}
+
+	_, today := c.do("GET", "/api/today", "")
+	if title := today["moments"].([]any)[1].(map[string]any)["title"]; title != "Your inflation this month" {
+		t.Errorf("today title = %v", title)
+	}
+	_, opts := c.do("GET", "/api/options?horizon=one_to_two_years&amount=5000", "")
+	if p := opts["offers"].([]any)[0].(map[string]any)["product"]; p != "Fidelis, 2 years (lei)" {
+		t.Errorf("offer product = %v", p)
+	}
+
+	c.lang = "ro"
+	_, moment = c.do("GET", "/api/moments/"+runID, "")
+	if title := moment["def"].(map[string]any)["title"]; title != "Fluturașul tău, pe înțeles" {
+		t.Errorf("Romanian title = %v", title)
 	}
 }

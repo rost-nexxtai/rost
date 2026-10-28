@@ -9,12 +9,48 @@ import { SourceLink } from '@/components/ui/SourceLink';
 import { saveMoneyLine } from '@/data/actions';
 import { savingsLossLei, spendImpactLei } from '@/data/mock/stiri';
 import type { MoneyLines, NewsItem } from '@/data/types';
-import { lei, pct } from '@/lib/format';
+import { useLang } from '@/i18n/client';
+import { copy } from '@/i18n/lang';
 
-const LINE = { fuelLei: { what: 'carburant', price: 'prețul carburantului' }, electricityLei: { what: 'curent', price: 'factura la curent' } } as const;
+const T = copy(
+  {
+    line: { fuelLei: { what: 'carburant', price: 'prețul carburantului' }, electricityLei: { what: 'curent', price: 'factura la curent' } } as Record<
+      'fuelLei' | 'electricityLei',
+      { what: string; price: string }
+    >,
+    meaning: 'Ce înseamnă pentru tine',
+    scenario: 'scenariu, nu prognoză',
+    more: 'Află mai mult',
+    askSpend: (what: string) => `Cam cât dai pe ${what} pe lună?`,
+    perMonth: 'pe lună',
+    ifRises: (price: string) => `Dacă ${price} crește cu`,
+    spendNote: (spend: string, what: string, pct: number) => `Pe cei ${spend} pe care îi dai lunar pe ${what}. Pornim de la ${pct}%, estimarea din sursă.`,
+    askSaved: 'Cam cât ai pus deoparte?',
+    onSaved: (saved: string, pct: string) => `Pe ${saved} puși deoparte, cu inflația ta de ${pct}, într-un an:`,
+    current: 'În cont curent',
+    inAlt: (label: string, pct: string) => `În ${label} (${pct}, fără impozit)`,
+    forYou: 'Îți arătăm suma pentru tine.',
+  },
+  {
+    line: { fuelLei: { what: 'fuel', price: 'the price of fuel' }, electricityLei: { what: 'electricity', price: 'your electricity bill' } },
+    meaning: 'What it means for you',
+    scenario: 'a scenario, not a forecast',
+    more: 'Learn more',
+    askSpend: (what) => `Roughly how much do you spend on ${what} a month?`,
+    perMonth: 'a month',
+    ifRises: (price) => `If ${price} goes up by`,
+    spendNote: (spend, what, pct) => `On the ${spend} you spend on ${what} each month. We start from ${pct}%, the estimate in the source.`,
+    askSaved: 'Roughly how much have you put aside?',
+    onSaved: (saved, pct) => `On ${saved} put aside, with your inflation of ${pct}, over a year:`,
+    current: 'In a current account',
+    inAlt: (label, pct) => `In ${label} (${pct}, tax-free)`,
+    forYou: "We'll show you the amount for you.",
+  },
+);
 
 /** One news item: dated facts with sources, then what it means in lei for this user, as a scenario. */
 export function NewsCard({ item, money }: { item: NewsItem; money: MoneyLines }) {
+  const t = T[useLang().lang];
   return (
     <article className="card" aria-labelledby={`n-${item.id}`}>
       <span className="eyebrow">{item.date}</span>
@@ -35,15 +71,15 @@ export function NewsCard({ item, money }: { item: NewsItem; money: MoneyLines })
       <div className="card card-tint" style={{ padding: 16 }}>
         <div className="row">
           <span className="eyebrow" style={{ color: 'var(--primary)' }}>
-            Ce înseamnă pentru tine
+            {t.meaning}
           </span>
-          <span className="tag tag-scenario">scenariu, nu prognoză</span>
+          <span className="tag tag-scenario">{t.scenario}</span>
         </div>
         {item.impact.kind === 'spend' ? <SpendImpact impact={item.impact} money={money} /> : <SavingsImpact impact={item.impact} money={money} />}
       </div>
 
       <Link href={item.momentHref} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }}>
-        Află mai mult
+        {t.more}
       </Link>
     </article>
   );
@@ -52,42 +88,46 @@ export function NewsCard({ item, money }: { item: NewsItem; money: MoneyLines })
 function SpendImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { kind: 'spend' }>; money: MoneyLines }) {
   const [shock, setShock] = useState(impact.shock.defaultPct);
   const spend = money[impact.line];
-  const line = LINE[impact.line];
+  const { lang, f } = useLang();
+  const t = T[lang];
+  const line = t.line[impact.line];
   if (spend <= 0) {
-    return <AskAmount line={impact.line} question={`Cam cât dai pe ${line.what} pe lună?`} amounts={impact.line === 'fuelLei' ? [200, 400, 600] : [100, 150, 250]} />;
+    return <AskAmount line={impact.line} question={t.askSpend(line.what)} amounts={impact.line === 'fuelLei' ? [200, 400, 600] : [100, 150, 250]} />;
   }
   return (
     <>
       <div className="row" style={{ alignItems: 'baseline' }}>
         <Money lei={spendImpactLei(spend, shock)} signed size="md" tone="neg" />
-        <span className="small muted">pe lună</span>
+        <span className="small muted">{t.perMonth}</span>
       </div>
-      <Slider label={`Dacă ${line.price} crește cu`} min={impact.shock.minPct} max={impact.shock.maxPct} step={1} value={shock} onChange={setShock} format={(v) => `${v}%`} />
+      <Slider label={t.ifRises(line.price)} min={impact.shock.minPct} max={impact.shock.maxPct} step={1} value={shock} onChange={setShock} format={(v) => `${v}%`} />
       <p className="note">
-        Pe cei {lei(spend)} pe care îi dai lunar pe {line.what}. Pornim de la {impact.shock.defaultPct}%, estimarea din sursă.
+        {t.spendNote(f.lei(spend), line.what, impact.shock.defaultPct)}
       </p>
     </>
   );
 }
 
 function SavingsImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { kind: 'savings' }>; money: MoneyLines }) {
+  const { lang, f } = useLang();
+  const t = T[lang];
   if (money.savedLei <= 0) {
-    return <AskAmount line="savedLei" question="Cam cât ai pus deoparte?" amounts={[1000, 5000, 10000]} />;
+    return <AskAmount line="savedLei" question={t.askSaved} amounts={[1000, 5000, 10000]} />;
   }
   const cash = savingsLossLei(money.savedLei, money.inflationPct);
   const alt = savingsLossLei(money.savedLei, money.inflationPct, impact.alternative.ratePct);
   return (
     <>
       <p className="small">
-        Pe {lei(money.savedLei)} puși deoparte, cu inflația ta de {pct(money.inflationPct, 2)}, într-un an:
+        {t.onSaved(f.lei(money.savedLei), f.pct(money.inflationPct, 2))}
       </p>
       <div className="list-row" style={{ padding: '6px 0' }}>
-        <span className="small">În cont curent</span>
+        <span className="small">{t.current}</span>
         <Money lei={cash} signed tone={cash < 0 ? 'neg' : 'pos'} />
       </div>
       <div className="list-row" style={{ padding: '6px 0' }}>
         <span className="small">
-          În {impact.alternative.label} ({pct(impact.alternative.ratePct, 2)}, fără impozit)
+          {t.inAlt(impact.alternative.label, f.pct(impact.alternative.ratePct, 2))}
         </span>
         <Money lei={alt} signed tone={alt < 0 ? 'neg' : 'pos'} />
       </div>
@@ -99,10 +139,12 @@ function SavingsImpact({ impact, money }: { impact: Extract<NewsItem['impact'], 
 function AskAmount({ line, question, amounts }: { line: 'fuelLei' | 'electricityLei' | 'savedLei'; question: string; amounts: number[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const { lang, f } = useLang();
+  const t = T[lang];
   return (
     <div className="stack">
       <p className="small">
-        <strong>{question}</strong> Îți arătăm suma pentru tine.
+        <strong>{question}</strong> {t.forYou}
       </p>
       <div className="tiles-row" style={{ gridTemplateColumns: `repeat(${amounts.length}, 1fr)` }}>
         {amounts.map((a) => (
@@ -118,7 +160,7 @@ function AskAmount({ line, question, amounts }: { line: 'fuelLei' | 'electricity
               router.refresh();
             }}
           >
-            {lei(a)}
+            {f.lei(a)}
           </button>
         ))}
       </div>

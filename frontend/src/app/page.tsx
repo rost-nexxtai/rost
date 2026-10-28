@@ -3,11 +3,29 @@ import { redirect } from 'next/navigation';
 import type { MeResponse } from '@/contract';
 import { DemoLogin } from '@/components/ClientActions';
 import { LandingTeaser } from '@/components/LandingTeaser';
+import { LangSwitch } from '@/components/ui/LangSwitch';
+import { copy } from '@/i18n/lang';
+import { getLang } from '@/i18n/server';
 import { getProfile } from '@/data';
 import { entryRoute } from '@/data/mock/scoring';
 import { apiOrNothing } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
+
+const T = copy(
+  {
+    title: 'Banii tăi, pe înțelesul tău.',
+    sub: 'Lecții de 3 minute, pe salariul tău și pe știrile care îți mișcă banii. Ghicești, vezi cifrele, faci un pas.',
+    start: 'Începe · durează un minut',
+    note: 'Educație financiară, nu consultanță de investiții. Rost nu îți mută niciodată banii.',
+  },
+  {
+    title: 'Your money, made clear.',
+    sub: 'Three-minute lessons on your salary and the news that moves your money. You guess, see the numbers, take one step.',
+    start: 'Start · takes a minute',
+    note: 'Financial education, not investment advice. Rost never moves your money.',
+  },
+);
 
 async function hasSession() {
   try {
@@ -20,6 +38,7 @@ async function hasSession() {
 export default async function Home() {
   const route = entryRoute(await hasSession(), Boolean(await getProfile()));
   if (route !== '/') redirect(route);
+  const t = T[await getLang()];
 
   return (
     <main className="shell shell-bare">
@@ -27,23 +46,24 @@ export default async function Home() {
         <span className="wordmark">
           rost<span>.</span>
         </span>
+        <LangSwitch />
       </header>
 
       <section className="stack-lg rise" style={{ paddingTop: 20 }}>
-        <h1 style={{ fontSize: 40, lineHeight: 1.04, letterSpacing: -1.4 }}>Banii tăi, pe înțelesul tău.</h1>
-        <p className="muted" style={{ fontSize: 17 }}>Lecții de 3 minute, pe salariul tău și pe știrile care îți mișcă banii. Ghicești, vezi cifrele, faci un pas.</p>
+        <h1 style={{ fontSize: 40, lineHeight: 1.04, letterSpacing: -1.4 }}>{t.title}</h1>
+        <p className="muted" style={{ fontSize: 17 }}>{t.sub}</p>
       </section>
 
       <LandingTeaser />
 
       <div className="stack">
         <Link href="/quiz" className="btn btn-primary btn-block">
-          Începe · durează un minut
+          {t.start}
         </Link>
         <DemoLogin />
       </div>
       <p className="note" style={{ textAlign: 'center' }}>
-        Educație financiară, nu consultanță de investiții. Rost nu îți mută niciodată banii.
+        {t.note}
       </p>
     </main>
   );

@@ -362,3 +362,13 @@ legend { font-size: 13px; color: var(--muted); padding: 0; margin-bottom: 8px; }
   0% { opacity: 1; transform: translate(0, 0) rotate(0); }
   100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)); }
 }
+
+/* ---------- Language switch ---------- */
+.lang-switch { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.lang-switch button {
+  min-width: 36px; height: 26px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent;
+  font: 700 12px var(--body); letter-spacing: 0.4px; color: var(--muted); cursor: pointer;
+}
+.lang-switch button[aria-pressed='true'] { background: var(--ink); color: #fff; }
+.lang-switch[aria-busy='true'] { opacity: 0.6; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }

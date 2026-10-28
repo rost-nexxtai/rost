@@ -1,5 +1,8 @@
 // Package reference serves the versioned reference data under data/: moment definitions,
 // inflation figures, savings offers, partners, scenarios and demo personas. It is reviewed like code.
+//
+// Romanian is the source language. English is an overlay of words only (data/moments/en and
+// data/seed/en.json); ids and numbers always come from the Romanian files.
 package reference
 
 import (
@@ -15,6 +18,22 @@ import (
 
 //go:embed data
 var files embed.FS
+
+// Lang is the language text is served in.
+type Lang string
+
+const (
+	RO Lang = "ro"
+	EN Lang = "en"
+)
+
+// ParseLang reads a cookie value; anything but "en" is Romanian.
+func ParseLang(v string) Lang {
+	if v == string(EN) {
+		return EN
+	}
+	return RO
+}
 
 type CPIRelease struct {
 	Period      string                `json:"period"`
@@ -51,8 +70,13 @@ type PublicPartner struct {
 	FeeIsExample    *bool   `json:"feeIsExample,omitempty"`
 }
 
-func (p Partner) Public() PublicPartner {
-	return PublicPartner{p.ID, p.Kind, p.DisplayName, p.Theme, p.FeePerFundedLei, p.FeeIsExample}
+// Public is what a client may see of a partner, with the display name in the given language.
+func (p Partner) Public(lang Lang) PublicPartner {
+	name := p.DisplayName
+	if n, ok := english.Partners[p.ID]; ok && lang == EN {
+		name = n
+	}
+	return PublicPartner{p.ID, p.Kind, name, p.Theme, p.FeePerFundedLei, p.FeeIsExample}
 }
 
 type Scenario struct {
@@ -70,13 +94,32 @@ type Scenario struct {
 // DemoUser is a synthetic persona from data/seed/demo-users.json.
 type DemoUser = domain.User
 
+type offerText struct {
+	Provider   string   `json:"provider"`
+	Product    string   `json:"product"`
+	Conditions []string `json:"conditions"`
+}
+
+type scenarioText struct {
+	Title   string `json:"title"`
+	Context string `json:"context"`
+}
+
 var (
 	cpi       []CPIRelease
 	offers    []rules.Offer
 	partners  []Partner
 	scenarios []Scenario
 	demoUsers []DemoUser
-	defs      []moments.Definition
+	defs      map[Lang][]moments.Definition
+
+	// english holds the words from data/seed/en.json, keyed by id.
+	english struct {
+		CPISource string                  `json:"cpiSource"`
+		Offers    map[string]offerText    `json:"offers"`
+		Partners  map[string]string       `json:"partners"`
+		Scenarios map[string]scenarioText `json:"scenarios"`
+	}
 )
 
 func load(path string, v any) {
@@ -110,17 +153,32 @@ func init() {
 	load("seed/demo-users.json", &u)
 	demoUsers = u.Users
 
+	load("seed/en.json", &english)
+
+	defs = map[Lang][]moments.Definition{}
 	for _, name := range []string{"payslip_explained", "personal_inflation", "whatif_shock"} {
-		var d moments.Definition
-		load("moments/"+name+".json", &d)
-		defs = append(defs, d)
+		var ro, en moments.Definition
+		load("moments/"+name+".json", &ro)
+		load("moments/en/"+name+".json", &en)
+		defs[RO] = append(defs[RO], ro)
+		defs[EN] = append(defs[EN], en)
 	}
 }
 
-func Offers() []rules.Offer { return append([]rules.Offer(nil), offers...) }
-
-func FindOffer(id string) (rules.Offer, bool) {
+// Offers lists the savings offers, with provider, product and conditions in the given language.
+func Offers(lang Lang) []rules.Offer {
+	out := make([]rules.Offer, 0, len(offers))
 	for _, o := range offers {
+		if t, ok := english.Offers[o.ID]; ok && lang == EN {
+			o.Provider, o.Product, o.Conditions = t.Provider, t.Product, append([]string{}, t.Conditions...)
+		}
+		out = append(out, o)
+	}
+	return out
+}
+
+func FindOffer(id string, lang Lang) (rules.Offer, bool) {
+	for _, o := range Offers(lang) {
 		if o.ID == id {
 			return o, true
 		}
@@ -142,25 +200,34 @@ func GetPartner(id *string) (Partner, bool) {
 	return Partner{}, false
 }
 
-func LatestCPI() CPIRelease {
+// LatestCPI is the newest inflation release, with its source label in the given language.
+func LatestCPI(lang Lang) CPIRelease {
 	sorted := append([]CPIRelease(nil), cpi...)
 	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Period > sorted[j].Period })
-	return sorted[0]
+	latest := sorted[0]
+	if lang == EN && english.CPISource != "" {
+		latest.Source = english.CPISource
+	}
+	return latest
 }
 
 // Scenarios lists approved scenarios only: only those can reach users.
-func Scenarios() []Scenario {
+func Scenarios(lang Lang) []Scenario {
 	out := []Scenario{}
 	for _, s := range scenarios {
-		if s.Status == "approved" {
-			out = append(out, s)
+		if s.Status != "approved" {
+			continue
 		}
+		if t, ok := english.Scenarios[s.ID]; ok && lang == EN {
+			s.Title, s.Context = t.Title, t.Context
+		}
+		out = append(out, s)
 	}
 	return out
 }
 
-func GetScenario(id any) (Scenario, bool) {
-	for _, s := range Scenarios() {
+func GetScenario(id any, lang Lang) (Scenario, bool) {
+	for _, s := range Scenarios(lang) {
 		if s.ID == id {
 			return s, true
 		}
@@ -168,10 +235,14 @@ func GetScenario(id any) (Scenario, bool) {
 	return Scenario{}, false
 }
 
-func MomentDefs() []moments.Definition { return append([]moments.Definition(nil), defs...) }
+// MomentDefs are the moment definitions in the given language. Both languages have the same ids,
+// triggers and step shapes (a test checks it), so the engine can decide on either.
+func MomentDefs(lang Lang) []moments.Definition {
+	return append([]moments.Definition(nil), defs[ParseLang(string(lang))]...)
+}
 
-func GetMomentDef(id string) (moments.Definition, bool) {
-	for _, d := range defs {
+func GetMomentDef(id string, lang Lang) (moments.Definition, bool) {
+	for _, d := range MomentDefs(lang) {
 		if d.ID == id {
 			return d, true
 		}

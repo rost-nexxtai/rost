@@ -30,7 +30,7 @@ func CalendarEvents(u domain.User, todayISO string) []CalendarEvent {
 			out = append(out, CalendarEvent{domain.Pillar2DeadlineNear, map[string]any{"deadline": deadline, "daysLeft": left}})
 		}
 	}
-	cpi := reference.LatestCPI()
+	cpi := reference.LatestCPI(reference.RO)
 	if since := rules.DaysBetween(cpi.PublishedAt, todayISO); since >= 0 && since <= 2 {
 		out = append(out, CalendarEvent{domain.InflationPublished, map[string]any{"period": cpi.Period}})
 	}

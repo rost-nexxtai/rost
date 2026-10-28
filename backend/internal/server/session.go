@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"rost/backend/internal/domain"
+	"rost/backend/internal/reference"
 	"rost/backend/internal/store"
 )
 
@@ -55,4 +56,16 @@ func (s *server) user(w http.ResponseWriter, r *http.Request) (domain.User, bool
 		return u, false
 	}
 	return u, true
+}
+
+// LangCookie holds the visitor's language ("ro" or "en"), set by the frontend's switch.
+// The Next.js proxy forwards it with the session cookie, so text comes back in the same language.
+const LangCookie = "rost_lang"
+
+func langOf(r *http.Request) reference.Lang {
+	c, err := r.Cookie(LangCookie)
+	if err != nil {
+		return reference.RO
+	}
+	return reference.ParseLang(c.Value)
 }

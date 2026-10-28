@@ -1,4 +1,6 @@
+import type { Lang } from '@/i18n/lang';
 import type { LibraryMoment } from '../types';
+import { LIBRARY_EN } from './moments.en';
 
 /**
  * FIXTURE until backend ships library moments as data (backend/internal/reference/data/moments).
@@ -272,3 +274,6 @@ export const LIBRARY: LibraryMoment[] = [
   { id: 'actiuni', title: 'Acțiuni', hook: 'O bucată dintr-o companie.', series: 'Investiții', level: 2, core: true, minutes: 4, assetIds: ['actiuni'], steps: [], takeaways: [] },
   { id: 'aur', title: 'Aur și mărfuri', hook: 'Protecție în crize, fără dobândă.', series: 'Investiții', level: 2, core: true, minutes: 4, assetIds: ['aur'], steps: [], takeaways: [] },
 ];
+
+/** The lessons in the visitor's language. Romanian is the source; English mirrors it (moments.en.ts). */
+export const libraryFor = (lang: Lang): LibraryMoment[] => (lang === 'en' ? LIBRARY_EN : LIBRARY);

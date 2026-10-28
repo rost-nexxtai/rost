@@ -8,22 +8,54 @@ import { LessonShell } from '@/components/lesson/LessonShell';
 import { ActionStep } from '@/components/lesson/steps/ActionStep';
 import { FinishStep } from '@/components/lesson/steps/FinishStep';
 import { PredictStep } from '@/components/lesson/steps/PredictStep';
-import { lei } from '@/lib/format';
+import { useLang } from '@/i18n/client';
+import { copy } from '@/i18n/lang';
 import { scenarioProps } from '@/lib/scenario';
 import { InflationReveal } from './InflationReveal';
 import { PayslipReveal } from './PayslipReveal';
 import { ScenarioSlider } from './ScenarioSlider';
 
-/** Why the answer is what it is, keyed by the predict step's answer key. */
-const EXPLAIN: Record<string, string> = {
-  pension: 'Un sfert din brut merge la pensie (CAS 25%). Pe ecranul următor vezi unde ajunge fiecare leu.',
-  personalPct: 'Inflația ta ține de pe ce cheltui: serviciile s-au scumpit mai mult decât mâncarea.',
-};
-
-const CONFIRM_LABEL: Record<string, string> = {
-  payday_savings_rule: 'Îl setez în banca mea',
-  update_buffer_target: 'Actualizează ținta',
-};
+const T = copy(
+  {
+    // Why the answer is what it is, keyed by the predict step's answer key.
+    explain: {
+      pension: 'Un sfert din brut merge la pensie (CAS 25%). Pe ecranul următor vezi unde ajunge fiecare leu.',
+      personalPct: 'Inflația ta ține de pe ce cheltui: serviciile s-au scumpit mai mult decât mâncarea.',
+    } as Record<string, string>,
+    confirm: { payday_savings_rule: 'Îl setez în banca mea', update_buffer_target: 'Actualizează ținta' } as Record<string, string>,
+    done: 'Gata',
+    cantOpen: 'Nu putem deschide momentul',
+    loading: 'Se încarcă…',
+    alreadyDone: 'Gata deja',
+    alreadyDoneBody: 'Ai terminat momentul ăsta.',
+    savingsRule: (amount: string) => `De ziua salariului muți ${amount} în economii, din banca ta.`,
+    bufferTarget: (amount: string) => `Ținta fondului de urgență e acum ${amount}.`,
+    checkBack: 'Revenim peste o săptămână să vedem dacă ai făcut-o. Abia atunci se pune.',
+    backIn: (days: number) => `Revenim peste ${days} zile.`,
+    back: 'Înapoi la Momente',
+    yourNumbers: 'Pe cifrele tale',
+    continue: 'Continuă',
+  },
+  {
+    explain: {
+      pension: 'A quarter of gross goes to your pension (CAS 25%). The next screen shows where every leu goes.',
+      personalPct: 'Your inflation depends on what you spend on: services went up more than food.',
+    },
+    confirm: { payday_savings_rule: "I'll set it up in my bank", update_buffer_target: 'Update my target' },
+    done: 'Done',
+    cantOpen: "We can't open this moment",
+    loading: 'Loading…',
+    alreadyDone: 'Already done',
+    alreadyDoneBody: "You've finished this moment.",
+    savingsRule: (amount) => `On payday you move ${amount} into savings, in your own bank.`,
+    bufferTarget: (amount) => `Your emergency fund target is now ${amount}.`,
+    checkBack: "We'll check in a week to see if you did it. Only then does it count.",
+    backIn: (days) => `We'll check back in ${days} days.`,
+    back: 'Back to Moments',
+    yourNumbers: 'On your numbers',
+    continue: 'Continue',
+  },
+);
 
 async function post(runId: string, body: unknown) {
   const res = await fetch(`/api/moments/${runId}`, {
@@ -43,6 +75,8 @@ export function MomentPlayer({ runId }: { runId: string }) {
   const [results, setResults] = useState<boolean[]>([]);
   const [done, setDone] = useState<{ actionType: string; params: Record<string, unknown> }>();
   const started = useRef(Date.now());
+  const { lang, f } = useLang();
+  const t = T[lang];
 
   useEffect(() => {
     fetch(`/api/moments/${runId}`)
@@ -51,28 +85,28 @@ export function MomentPlayer({ runId }: { runId: string }) {
       .catch((e: Error) => setError(e.message));
   }, [runId]);
 
-  if (error) return <Message title="Nu putem deschide momentul" body={error} />;
-  if (!data) return <p className="muted" style={{ padding: 20 }}>Se încarcă…</p>;
+  if (error) return <Message title={t.cantOpen} body={error} back={t.back} />;
+  if (!data) return <p className="muted" style={{ padding: 20 }}>{t.loading}</p>;
 
   const { def, view, run } = data;
-  if (run.state === 'completed' && !done) return <Message title="Gata deja" body="Ai terminat momentul ăsta." />;
+  if (run.state === 'completed' && !done) return <Message title={t.alreadyDone} body={t.alreadyDoneBody} back={t.back} />;
   const total = def.steps.length + 1;
 
   if (done) {
     const what =
       done.actionType === 'payday_savings_rule'
-        ? `De ziua salariului muți ${lei(Number(done.params.amountLei))} în economii, din banca ta.`
-        : `Ținta fondului de urgență e acum ${lei(Number(done.params.bufferTargetLei))}.`;
+        ? t.savingsRule(f.lei(Number(done.params.amountLei)))
+        : t.bufferTarget(f.lei(Number(done.params.bufferTargetLei)));
     return (
       <LessonShell index={total - 1} total={total}>
         <FinishStep
           title={def.title}
-          takeaways={[what, 'Revenim peste o săptămână să vedem dacă ai făcut-o. Abia atunci se pune.']}
+          takeaways={[what, t.checkBack]}
           right={results.filter(Boolean).length}
           graded={results.length}
           seconds={(Date.now() - started.current) / 1000}
-          cta={{ label: 'Înapoi la Momente', href: '/momente' }}
-          onFinish={async () => `Revenim peste ${def.followUpDays} zile.`}
+          cta={{ label: t.back, href: '/momente' }}
+          onFinish={async () => t.backIn(def.followUpDays)}
         />
       </LessonShell>
     );
@@ -102,7 +136,7 @@ export function MomentPlayer({ runId }: { runId: string }) {
           unit={step.unit}
           start={step.start}
           answer={view.answers[step.answer] ?? 0}
-          explain={EXPLAIN[step.answer]}
+          explain={t.explain[step.answer]}
           onCheck={async (value) => {
             try {
               await post(runId, { kind: 'guess', value, answerKey: step.answer });
@@ -120,13 +154,13 @@ export function MomentPlayer({ runId }: { runId: string }) {
 
       {step.type === 'reveal' && (
         <>
-          <span className="lesson-kicker">Pe cifrele tale</span>
+          <span className="lesson-kicker">{t.yourNumbers}</span>
           {step.view === 'payslip' && view.payslip && <PayslipReveal p={view.payslip} />}
           {step.view === 'personal_inflation' && view.inflation && (
             <InflationReveal iv={view.inflation} scenario={view.scenario && scenarioProps(view.scenario)} />
           )}
           {step.view === 'scenario' && view.scenario && <ScenarioSlider {...scenarioProps(view.scenario)} />}
-          <LessonBar label="Continuă" onClick={next} />
+          <LessonBar label={t.continue} onClick={next} />
         </>
       )}
 
@@ -139,7 +173,7 @@ export function MomentPlayer({ runId }: { runId: string }) {
               {step.link.label}
             </a>
           )}
-          <LessonBar label="Continuă" onClick={next} />
+          <LessonBar label={t.continue} onClick={next} />
         </>
       )}
 
@@ -149,7 +183,7 @@ export function MomentPlayer({ runId }: { runId: string }) {
           body={step.body}
           options={step.options}
           defaultOption={step.defaultOption}
-          confirmLabel={CONFIRM_LABEL[step.action] ?? 'Gata'}
+          confirmLabel={t.confirm[step.action] ?? t.done}
           onSubmit={(choice) => submitAction(step, choice)}
         />
       )}
@@ -157,14 +191,14 @@ export function MomentPlayer({ runId }: { runId: string }) {
   );
 }
 
-function Message({ title, body }: { title: string; body: string }) {
+function Message({ title, body, back }: { title: string; body: string; back: string }) {
   return (
     <main className="lesson">
       <div className="lesson-body">
         <h1 className="lesson-q">{title}</h1>
         <p className="muted">{body}</p>
         <Link href="/momente" className="btn btn-primary">
-          Înapoi la Momente
+          {back}
         </Link>
       </div>
     </main>

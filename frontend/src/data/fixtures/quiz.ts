@@ -1,3 +1,4 @@
+import type { Lang } from '@/i18n/lang';
 import type { AgeBand, Situation } from '../types';
 
 export interface KnowledgeQuestion {
@@ -54,3 +55,34 @@ export const QUIZ = {
     ],
   },
 };
+
+/** The same quiz in English: same questions, same order, same right answers. */
+export const QUIZ_EN: typeof QUIZ = {
+  knowledge: [
+    { id: 'inflatie', question: 'You keep 1,000 lei under the mattress for a year, with 6% inflation. With it you can buy…', options: ['More', 'The same', 'Less'], correct: 2 },
+    { id: 'dobanda_compusa', question: '1,000 lei at 10% a year, for 2 years, taking nothing out. You have…', options: ['Exactly 1,200 lei', 'Over 1,200 lei', 'Under 1,200 lei'], correct: 1 },
+    { id: 'actiune_vs_etf', question: 'Which is riskier?', options: ["One company's shares", 'An ETF with hundreds of companies', 'Equally risky'], correct: 0 },
+  ],
+  profile: {
+    ageBand: [
+      { value: 'sub_25', label: 'Under 25' },
+      { value: '25_29', label: '25–29' },
+      { value: '30_plus', label: '30+' },
+    ],
+    situation: [
+      { value: 'student', label: "I'm studying" },
+      { value: 'graduate', label: 'I just finished school' },
+      { value: 'employed', label: 'I have a job' },
+      { value: 'freelance', label: "I'm self-employed" },
+      { value: 'between_jobs', label: "I'm looking for a job" },
+    ],
+    bufferMonths: [
+      { value: 0, label: 'Nothing put aside' },
+      { value: 1, label: 'About a month' },
+      { value: 2, label: 'Two months' },
+      { value: 3, label: 'Three months or more' },
+    ],
+  },
+};
+
+export const quizFor = (lang: Lang) => (lang === 'en' ? QUIZ_EN : QUIZ);

@@ -47,7 +47,7 @@ func (s Service) HandleEvent(ctx context.Context, in EventInput) (EventResult, e
 	if err != nil {
 		return EventResult{}, err
 	}
-	d := moments.Decide(reference.MomentDefs(), u, moments.Event{Type: ev.Type, Payload: ev.Payload, Source: ev.Source}, runs, clock.NowISO(), in.IgnoreWeeklyCap)
+	d := moments.Decide(reference.MomentDefs(reference.RO), u, moments.Event{Type: ev.Type, Payload: ev.Payload, Source: ev.Source}, runs, clock.NowISO(), in.IgnoreWeeklyCap)
 	out := EventResult{Event: ev, Decision: d, Runs: []domain.MomentRun{}}
 	for _, id := range d.Open {
 		run, err := s.Store.CreateRun(ctx, domain.MomentRun{UserID: u.ID, MomentID: id, TriggerEventID: domain.Ptr(ev.ID), State: domain.RunPending})
@@ -65,9 +65,9 @@ type RunWithView struct {
 	View views.MomentView   `json:"view"`
 }
 
-// RunWithView loads one of the user's runs with its view, and marks a pending run started.
+// RunWithView loads one of the user's runs with its view (text in lang), and marks a pending run started.
 // It returns store.ErrNotFound when the run doesn't exist or belongs to someone else.
-func (s Service) RunWithView(ctx context.Context, runID, userID string) (RunWithView, error) {
+func (s Service) RunWithView(ctx context.Context, runID, userID string, lang reference.Lang) (RunWithView, error) {
 	run, err := s.Store.GetRun(ctx, runID)
 	if err != nil || run.UserID != userID {
 		return RunWithView{}, notFoundOr(err)
@@ -76,7 +76,7 @@ func (s Service) RunWithView(ctx context.Context, runID, userID string) (RunWith
 	if err != nil {
 		return RunWithView{}, err
 	}
-	def, ok := reference.GetMomentDef(run.MomentID)
+	def, ok := reference.GetMomentDef(run.MomentID, lang)
 	if !ok {
 		return RunWithView{}, store.ErrNotFound
 	}
@@ -92,7 +92,7 @@ func (s Service) RunWithView(ctx context.Context, runID, userID string) (RunWith
 			}
 		}
 	}
-	view, err := views.Build(u, payload)
+	view, err := views.Build(u, payload, lang)
 	if err != nil {
 		return RunWithView{}, err
 	}
@@ -198,7 +198,7 @@ var ErrUnknownOffer = errors.New("unknown offer")
 
 // TrackReferralClick records a referral click and returns its click id.
 func (s Service) TrackReferralClick(ctx context.Context, offerID string, userID *string) (string, error) {
-	offer, ok := reference.FindOffer(offerID)
+	offer, ok := reference.FindOffer(offerID, reference.RO)
 	if !ok {
 		return "", ErrUnknownOffer
 	}

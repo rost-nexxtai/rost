@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { useLang } from '@/i18n/client';
+import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 
 const COLORS = ['var(--primary)', 'var(--accent)', '#d4a53a', 'var(--ink)'];
@@ -34,6 +36,7 @@ export function FinishStep({
   onFinish: () => Promise<string>;
 }) {
   const router = useRouter();
+  const t = LESSON[useLang().lang];
   const [line, setLine] = useState<string>();
   useEffect(() => {
     onFinish().then(setLine).catch(() => setLine(''));
@@ -55,27 +58,27 @@ export function FinishStep({
         <div className="celebrate-badge">
           <Icon name="check" size={48} />
         </div>
-        <h1 className="lesson-q">Gata: {title}</h1>
+        <h1 className="lesson-q">{t.done(title)}</h1>
         <p className="muted" aria-live="polite">
-          {line ?? 'Salvăm progresul…'}
+          {line ?? t.savingProgress}
         </p>
         <div className="score-row" style={graded < 2 ? { gridTemplateColumns: '1fr' } : undefined}>
           {graded >= 2 && (
             <div className="score">
-              <span className="play-caption">Corecte</span>
+              <span className="play-caption">{t.rightAnswers}</span>
               <strong>
                 {right}/{graded}
               </strong>
             </div>
           )}
           <div className="score">
-            <span className="play-caption">Timp</span>
-            <strong>{minutes} min</strong>
+            <span className="play-caption">{t.time}</span>
+            <strong>{t.minutes(minutes)}</strong>
           </div>
         </div>
         {takeaways.length > 0 && (
           <div className="play" style={{ width: '100%' }}>
-            <strong>De ținut minte</strong>
+            <strong>{t.remember}</strong>
             <ul className="takeaways" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {takeaways.map((t) => (
                 <li key={t}>{t}</li>
@@ -84,7 +87,7 @@ export function FinishStep({
           </div>
         )}
         <Link href="/momente" className="small">
-          Înapoi la Momente
+          {t.backToMoments}
         </Link>
       </div>
       <LessonBar label={cta.label} onClick={() => router.push(cta.href)} />

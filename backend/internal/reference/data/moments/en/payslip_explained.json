@@ -1,0 +1,60 @@
+{
+  "id": "payslip_explained",
+  "series": "First time",
+  "title": "Your payslip, explained",
+  "minutes": 3,
+  "triggers": [
+    "salary_received",
+    "payslip_uploaded",
+    "pillar2_deadline_near"
+  ],
+  "repeatOn": [
+    "raise"
+  ],
+  "conditions": {
+    "situations": [
+      "employed"
+    ],
+    "requires": [
+      "grossMonthly"
+    ]
+  },
+  "steps": [
+    {
+      "type": "predict",
+      "question": "Of your {{gross}} lei gross salary, how much goes to your pension each month?",
+      "answer": "pension",
+      "min": 0,
+      "max": 3000,
+      "step": 50,
+      "unit": "lei",
+      "start": 500
+    },
+    {
+      "type": "reveal",
+      "view": "payslip"
+    },
+    {
+      "type": "card",
+      "title": "The fund nobody chose",
+      "body": "If you're under 35 and don't pick a Pillar II fund within 4 months, one is assigned to you. {{pillar2Line}} The {{pillar2}} lei a month that goes there is yours, and it can be inherited.",
+      "link": {
+        "label": "Check your contributions in MyCNPP",
+        "href": "https://www.cnpp.ro"
+      }
+    },
+    {
+      "type": "action",
+      "action": "payday_savings_rule",
+      "title": "Pay yourself first",
+      "body": "Every payday, move a fixed amount into savings, in your own bank. Rost never moves your money.",
+      "options": [
+        200,
+        400,
+        600
+      ],
+      "defaultOption": 400
+    }
+  ],
+  "followUpDays": 7
+}
