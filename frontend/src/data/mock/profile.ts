@@ -33,6 +33,8 @@ export function parseProfile(raw: string | undefined): Profile | undefined {
     isNum(p.money.savedLei) &&
     isNum(p.money.inflationPct) &&
     (p.money.known === undefined || (Array.isArray(p.money.known) && p.money.known.every((l) => LINES.includes(l)))) &&
+    (p.money.expensesLei === undefined || (isNum(p.money.expensesLei) && p.money.expensesLei > 0)) &&
+    (p.money.inflationPersonal === undefined || typeof p.money.inflationPersonal === 'boolean') &&
     Array.isArray(p.completedMomentIds) &&
     p.completedMomentIds.every((id) => typeof id === 'string');
   if (!ok) return undefined;

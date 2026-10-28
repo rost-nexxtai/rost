@@ -45,6 +45,8 @@ export async function getAsset(id: string): Promise<AssetResponse | undefined> {
     providers: res ? providerRows(res, lang) : [],
     providerKind: res?.providerKind ?? (asset.simulation.kind === 'fixed' ? 'savings' : 'brokers'),
     inflationPct: profile?.money.inflationPct ?? NATIONAL_INFLATION_PCT,
+    inflationPersonal: !!profile?.money.inflationPersonal,
+    savedLei: profile?.money.known?.includes('savedLei') && profile.money.savedLei > 0 ? profile.money.savedLei : undefined,
     providersDown: !res,
   };
 }
@@ -86,6 +88,15 @@ export async function getMomente(): Promise<MomenteResponse | undefined> {
 export async function getStiri(): Promise<StiriResponse | undefined> {
   const [p, lang] = await Promise.all([getProfile(), getLang()]);
   return p && buildStiri(p, lang);
+}
+
+/** The backend's record of the user (salary, dates, spending, inflation). `down` when unreachable; undefined without a session. */
+export async function getMe(): Promise<MeResponse | undefined | 'down'> {
+  try {
+    return await apiOrNothing<MeResponse>('/api/me');
+  } catch {
+    return 'down';
+  }
 }
 
 /**

@@ -25,6 +25,8 @@ const T = copy(
     quiz: (reason: string) => `Testul de la început: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
     salary: 'Salariul tău',
     salaryLine: 'Unde merg banii din brut. Schimbă-l când primești o mărire.',
+    money: 'Banii tăi',
+    moneyLine: 'Jobul, salariul, cât cheltui și pe ce. Rost calculează cu cifrele tale.',
     risk: 'Profil de risc',
     riskNote: 'Pornește de la nivel: începător prudent, mediu echilibrat, avansat dinamic. Dacă ai nevoie de bani în mai puțin de un an, sau nu ai încă un fond de urgență de 3 luni, îl ținem mai prudent.',
     retake: 'Refă testul',
@@ -41,6 +43,8 @@ const T = copy(
     quiz: (reason) => `Starting quiz: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
     salary: 'Your salary',
     salaryLine: 'Where your gross pay goes. Change it when you get a raise.',
+    money: 'Your money',
+    moneyLine: 'Your job, salary, what you spend and on what. Rost works with your numbers.',
     risk: 'Risk profile',
     riskNote: "It starts from your level: beginner cautious, intermediate balanced, advanced adventurous. If you need the money within a year, or don't have a 3-month emergency fund yet, we keep it more cautious.",
     retake: 'Retake the quiz',
@@ -63,6 +67,18 @@ export default async function Profil() {
     <main className="shell">
       <TopBar profile={profile} />
       <h1>{t.title}</h1>
+
+      <Link href="/bani" className="card card-link">
+        <div className="row">
+          <div className="stack" style={{ gap: 2 }}>
+            <span className="eyebrow">{t.money}</span>
+            <span className="small muted">{t.moneyLine}</span>
+          </div>
+          <span style={{ color: 'var(--muted)' }}>
+            <Icon name="chevron" size={20} />
+          </span>
+        </div>
+      </Link>
 
       <Card>
         <div className="row">

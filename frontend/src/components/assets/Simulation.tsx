@@ -16,6 +16,7 @@ const T = copy(
     years: 'Timp de',
     inflation: 'Inflație pe an',
     inflationYours: (pct: string) => `Pornește de la inflația ta, ${pct}. Mut-o ca să vezi ce se întâmplă dacă urcă.`,
+    inflationNational: (pct: string) => `Pornește de la inflația națională, ${pct}. Spune-ne pe ce cheltui (Profil → Banii tăi) și calculăm cu a ta.`,
     yearsN: (n: number) => (n === 1 ? '1 an' : `${n} ani`),
     paper: 'Pe hârtie',
     real: 'În banii de azi',
@@ -38,6 +39,7 @@ const T = copy(
     years: 'For',
     inflation: 'Inflation a year',
     inflationYours: (pct) => `Starts at your inflation, ${pct}. Move it to see what happens if it rises.`,
+    inflationNational: (pct) => `Starts at the national inflation, ${pct}. Tell us how you spend (Profile → Your money) and we'll use yours.`,
     yearsN: (n) => (n === 1 ? '1 year' : `${n} years`),
     paper: 'On paper',
     real: "In today's money",
@@ -62,8 +64,21 @@ function useSim() {
 }
 
 /** Sliders for start amount, monthly amount, years and inflation; the result and chart redraw as they move. */
-export function Simulation({ basis, ratePct, inflationPct }: { basis: AssetSimulation; ratePct?: number; inflationPct: number }) {
-  const [startLei, setStart] = useState(5000);
+export function Simulation({
+  basis,
+  ratePct,
+  inflationPct,
+  inflationPersonal = false,
+  savedLei,
+}: {
+  basis: AssetSimulation;
+  ratePct?: number;
+  inflationPct: number;
+  inflationPersonal?: boolean;
+  /** What the user has saved: the starting amount, when we know it. */
+  savedLei?: number;
+}) {
+  const [startLei, setStart] = useState(savedLei !== undefined ? Math.min(100000, Math.round(savedLei / 500) * 500) : 5000);
   const [monthlyLei, setMonthly] = useState(400);
   const [years, setYears] = useState(10);
   const [inflation, setInflation] = useState(inflationPct);
@@ -83,7 +98,7 @@ export function Simulation({ basis, ratePct, inflationPct }: { basis: AssetSimul
         <Slider label={t.monthly} min={0} max={5000} step={50} value={monthlyLei} onChange={setMonthly} format={lei} />
         <Slider label={t.years} min={1} max={40} step={1} value={years} onChange={setYears} format={t.yearsN} />
         <Slider label={t.inflation} min={0} max={15} step={0.5} value={inflation} onChange={setInflation} format={(v) => pct(v, 1)} />
-        <p className="note">{t.inflationYours(pct(inflationPct, 2))}</p>
+        <p className="note">{inflationPersonal ? t.inflationYours(pct(inflationPct, 2)) : t.inflationNational(pct(inflationPct, 2))}</p>
       </div>
     </div>
   );

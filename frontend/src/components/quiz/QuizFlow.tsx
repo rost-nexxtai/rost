@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { LessonBar } from '@/components/lesson/LessonBar';
 import { Icon } from '@/components/ui/Icon';
+import { Slider } from '@/components/ui/Slider';
 import { nextLesson, saveQuiz } from '@/data/actions';
 import { quizFor } from '@/data/fixtures/quiz';
 import { askQuestion } from '@/data/mock/scoring';
@@ -35,6 +37,10 @@ const T = copy(
     previous: 'Întrebarea anterioară',
     screen: (n: number, of: number) => `Ecranul ${n} din ${of}`,
     preparing: 'Îți pregătim prima lecție…',
+    gross: 'Cât e salariul tău brut pe lună?',
+    grossHint: 'Suma din contract, înainte de taxe. O folosim doar ca să-ți arătăm unde merg banii din el.',
+    grossLabel: 'Salariul brut',
+    next: 'Continuă',
   },
   {
     aboutYou: 'About you',
@@ -50,11 +56,17 @@ const T = copy(
     previous: 'Previous question',
     screen: (n, of) => `Screen ${n} of ${of}`,
     preparing: 'Getting your first lesson ready…',
+    gross: "What's your gross monthly salary?",
+    grossHint: 'The amount in your contract, before tax. We only use it to explain your payslip.',
+    grossLabel: 'Gross salary',
+    next: 'Continue',
   },
 );
 
 /** Age, situation, savings cushion, expensive debt: the screens before the knowledge questions. */
 const PROFILE_SCREENS = 4;
+/** The situation screen. "Am un job" adds a salary step after it, so the first lesson can be the payslip. */
+const SITUATION = 1;
 
 function screensFor(lang: Lang): Screen[] {
   const t = T[lang];
@@ -84,11 +96,13 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
   const [tapped, setTapped] = useState<Answer>();
   const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<{ profile: Profile; lesson: Awaited<ReturnType<typeof nextLesson>> }>();
-  const { lang } = useLang();
+  const [gross, setGross] = useState<number>();
+  const [askGross, setAskGross] = useState(false);
+  const { lang, f } = useLang();
   const t = T[lang];
   const SCREENS = screensFor(lang);
 
-  if (result) return <QuizResult profile={result.profile} lesson={result.lesson} />;
+  if (result) return <QuizResult profile={result.profile} lesson={result.lesson} grossMonthly={gross} />;
   const screen = SCREENS[i];
 
   async function finish(all: Answer[]) {
@@ -106,7 +120,7 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
       await fetch('/api/users', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ situations: [quiz.situation] }),
+        body: JSON.stringify({ situations: [quiz.situation], grossMonthly: gross }),
       }).catch(() => undefined);
     }
     const profile = await saveQuiz(quiz, { retake });
@@ -117,6 +131,18 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
     if (tapped !== undefined) return;
     setTapped(value);
     const all = [...answers.slice(0, i), value];
+    if (i === SITUATION) {
+      if (value !== 'employed') setGross(undefined);
+      else {
+        setTimeout(() => {
+          setAnswers(all);
+          setTapped(undefined);
+          setGross((g) => g ?? 6000);
+          setAskGross(true);
+        }, 260);
+        return;
+      }
+    }
     // Skip the questions that can't change the level any more (a later tier when the basics
     // weren't both right). They count as "Nu știu".
     let next = i + 1;
@@ -132,6 +158,36 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
       if (next >= SCREENS.length) void finish(all);
       else setI(next);
     }, 260);
+  }
+
+  if (askGross) {
+    return (
+      <main className="onboard">
+        <header className="lesson-top">
+          <button type="button" className="lesson-close" aria-label={t.previous} onClick={() => setAskGross(false)}>
+            <Icon name="back" size={22} />
+          </button>
+          <div className="segments" aria-hidden="true">
+            {SCREENS.map((_, n) => (
+              <i key={n} data-on={n <= i ? 'done' : undefined} />
+            ))}
+          </div>
+        </header>
+        <div className="onboard-body">
+          <h1 className="lesson-q rise">{t.gross}</h1>
+          <span className="lesson-hint rise">{t.aboutYou}</span>
+          <p className="onboard-hint">{t.grossHint}</p>
+          <Slider label={t.grossLabel} min={3000} max={30000} step={250} value={gross ?? 6000} onChange={setGross} format={f.lei} />
+        </div>
+        <LessonBar
+          label={t.next}
+          onClick={() => {
+            setAskGross(false);
+            setI(SITUATION + 1);
+          }}
+        />
+      </main>
+    );
   }
 
   return (

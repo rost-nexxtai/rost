@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Slider } from '@/components/ui/Slider';
+import { DEFAULT_EXPENSES_LEI, type FundStart } from '@/data/mock/money';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 import { bondsVsDeposit, fundTarget, growth, LESSON_RATES, lossIfOneFails, monthsToGoal, netDepositPct, savingsVsDeposit } from './math';
@@ -22,7 +23,8 @@ const T = copy(
     afterYear: 'După un an ai',
     ofTarget: (have: string, target: string) => `${have} din ${target}`,
     reach: 'Ajungi la țintă în',
-    already: (x: string) => `Ai deja cam ${x} puși deoparte, din ce ne-ai spus la început.`,
+    already: (x: string) => `Ai deja cam ${x} puși deoparte, din ce ne-ai spus.`,
+    assumed: (x: string) => `Am pornit de la ${x} pe lună, o medie. Pune-ți cifrele în Profil → Banii tăi și calculăm pe ale tale.`,
     reached: 'Ești deja la țintă. Bravo!',
     // Compound
     afterYears: (y: string) => `După ${y} ai`,
@@ -63,7 +65,8 @@ const T = copy(
     afterYear: 'After a year you have',
     ofTarget: (have, target) => `${have} of ${target}`,
     reach: 'You reach it in',
-    already: (x) => `You already have about ${x} saved, from what you told us at the start.`,
+    already: (x) => `You already have about ${x} saved, from what you told us.`,
+    assumed: (x) => `We started from ${x} a month, an average. Add your numbers in Profile → Your money and we'll use yours.`,
     reached: "You're already there. Well done!",
     afterYears: (y) => `After ${y} you have`,
     split: (paid) => `you put in ${paid}, interest added`,
@@ -124,16 +127,18 @@ function Bar({ label, value, max, color, right }: { label: string; value: number
 
 /**
  * Emergency fund: your expenses set the target, your monthly saving sets how long it takes.
- * Starts from the months you said you already have saved at onboarding.
+ * Starts from your own spending and savings (Profil → "Banii tăi"), or says it assumed them.
  */
-function FundBuilder({ onTouch, haveMonths = 0 }: { onTouch: () => void; haveMonths?: number }) {
+function FundBuilder({ onTouch, you }: { onTouch: () => void; you?: FundStart }) {
   const { t, f } = useWidget();
   const touch = useTouch(onTouch);
-  const [spend, setSpend] = useState(2500);
+  const start = you?.spendLei ?? DEFAULT_EXPENSES_LEI;
+  const [spend, setSpend] = useState(Math.min(8000, Math.max(1000, start)));
   const [span, setSpan] = useState(3);
   const [save, setSave] = useState(300);
   const target = fundTarget(spend, span);
-  const have = Math.min(target, fundTarget(spend, haveMonths));
+  // what you said you have, in lei; it doesn't grow when you slide your spending
+  const have = Math.min(target, you?.haveLei ?? 0);
   const n = monthsToGoal(target, save, have);
   const afterYear = Math.min(target, have + save * 12);
   const firstYear = target > 0 ? afterYear / target : 1;
@@ -153,6 +158,7 @@ function FundBuilder({ onTouch, haveMonths = 0 }: { onTouch: () => void; haveMon
       </div>
       <Slider label={t.save} min={100} max={2000} step={50} value={save} onChange={touch(setSave)} format={f.lei} />
       {have > 0 && <p className="note">{t.already(f.lei(have))}</p>}
+      {!you?.yours && <p className="note">{t.assumed(f.lei(DEFAULT_EXPENSES_LEI))}</p>}
       <Bar label={t.afterYear} value={firstYear} max={1} color="var(--primary)" right={t.ofTarget(f.lei(afterYear), f.lei(target))} />
       <p className="lesson-text">
         {n === 0 ? (
@@ -295,10 +301,10 @@ function BondsVsDeposit({ onTouch }: { onTouch: () => void }) {
   );
 }
 
-export function Widget({ id, onTouch, haveMonths }: { id: WidgetId; onTouch: () => void; haveMonths?: number }) {
+export function Widget({ id, onTouch, you }: { id: WidgetId; onTouch: () => void; you?: FundStart }) {
   switch (id) {
     case 'fund_builder':
-      return <FundBuilder onTouch={onTouch} haveMonths={haveMonths} />;
+      return <FundBuilder onTouch={onTouch} you={you} />;
     case 'compound':
       return <Compound onTouch={onTouch} />;
     case 'savings_vs_deposit':
