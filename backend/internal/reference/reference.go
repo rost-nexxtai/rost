@@ -105,6 +105,15 @@ type scenarioText struct {
 	Context string `json:"context"`
 }
 
+// Correct = index of the right option
+type QuizQuestion struct {
+	ID       string   `json:"id"`
+	Question string   `json:"question"`
+	Options  []string `json:"options"`
+	Correct  int      `json:"correct"`
+	Explain  string   `json:"explain,omitempty"`
+}
+
 var (
 	cpi       []CPIRelease
 	offers    []rules.Offer
@@ -112,6 +121,7 @@ var (
 	scenarios []Scenario
 	demoUsers []DemoUser
 	defs      map[Lang][]moments.Definition
+	quiz      []QuizQuestion
 
 	// english holds the words from data/seed/en.json, keyed by id.
 	english struct {
@@ -152,6 +162,10 @@ func init() {
 	var u struct{ Users []DemoUser }
 	load("seed/demo-users.json", &u)
 	demoUsers = u.Users
+
+	var q struct{ Knowledge []QuizQuestion }
+	load("seed/quiz.json", &q)
+	quiz = q.Knowledge
 
 	load("seed/en.json", &english)
 
@@ -249,6 +263,8 @@ func GetMomentDef(id string, lang Lang) (moments.Definition, bool) {
 	}
 	return moments.Definition{}, false
 }
+
+func Quiz() []QuizQuestion { return append([]QuizQuestion(nil), quiz...) }
 
 // DemoUsers are the synthetic personas seeded into the database.
 func DemoUsers() []DemoUser { return append([]DemoUser(nil), demoUsers...) }

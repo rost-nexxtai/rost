@@ -19,6 +19,13 @@ type Memory struct {
 	runs      map[string]domain.MomentRun
 	actions   map[string]domain.Action
 	referrals map[string]domain.Referral
+
+	content     map[string]domain.ContentItem
+	seeds       map[string]bool
+	completions []domain.Completion
+	tracking    []domain.TrackEvent
+	admins      map[string]domain.Admin
+	sessions    map[string]domain.AdminSession
 }
 
 var _ store.Store = (*Memory)(nil)
@@ -30,6 +37,10 @@ func New(users ...domain.User) *Memory {
 		runs:      map[string]domain.MomentRun{},
 		actions:   map[string]domain.Action{},
 		referrals: map[string]domain.Referral{},
+		content:   map[string]domain.ContentItem{},
+		seeds:     map[string]bool{},
+		admins:    map[string]domain.Admin{},
+		sessions:  map[string]domain.AdminSession{},
 	}
 	for _, u := range users {
 		if u.CreatedAt == "" {
@@ -235,6 +246,20 @@ func (m *Memory) ResetUsers(_ context.Context, seed []domain.User) error {
 				delete(m.referrals, id)
 			}
 		}
+		completions := m.completions[:0]
+		for _, c := range m.completions {
+			if c.UserID != u.ID {
+				completions = append(completions, c)
+			}
+		}
+		m.completions = completions
+		tracking := m.tracking[:0]
+		for _, e := range m.tracking {
+			if e.UserID == nil || *e.UserID != u.ID {
+				tracking = append(tracking, e)
+			}
+		}
+		m.tracking = tracking
 		u.CreatedAt = clock.NowISO()
 		m.users[u.ID] = clone(u)
 	}

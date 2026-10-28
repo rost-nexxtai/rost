@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"rost/backend/internal/app"
+	"rost/backend/internal/auth"
 	"rost/backend/internal/config"
 	"rost/backend/internal/store"
 )
@@ -30,10 +31,12 @@ type Deps struct {
 type server struct {
 	Deps
 	svc app.Service
+	// admin login limiter
+	logins *auth.Limiter
 }
 
 func New(d Deps) http.Handler {
-	s := &server{Deps: d, svc: app.Service{Store: d.Store}}
+	s := &server{Deps: d, svc: app.Service{Store: d.Store}, logins: auth.NewLimiter()}
 	mux := http.NewServeMux()
 
 	// Liveness: the process is up.

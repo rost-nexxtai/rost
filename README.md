@@ -18,7 +18,7 @@ docker compose up -d --build        # Postgres on :5432, Go API on :8080 (demo t
 curl localhost:8080/readyz
 ```
 
-The API applies its migrations and seeds the demo persona (Maria) on start. See [backend/README.md](backend/README.md) for configuration and local development without Docker.
+The API applies its migrations and seeds the demo persona (Maria) and the first content on start. For an admin account (content editing, statistics), set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in a root `.env` file first. See [backend/README.md](backend/README.md) for configuration, the admin API and local development without Docker.
 
 The UI is a Next.js app. It covers the adult experience only so far; its design and plan are in [docs/superpowers](docs/superpowers). Run it with Node 20.12 or newer:
 
@@ -36,7 +36,7 @@ Click **Continuă ca Maria (demo)**. The browser only talks to the Next.js app; 
 | Screen | Source today |
 | --- | --- |
 | Session, Maria login, triggered moments and the moment player, follow-ups, simulator, clock, calendar, partner view, referral click → mock bank → funded, metrics | **Go API** |
-| Quiz, level and risk profile, Acasă, asset pages, Știri, library moments | Fixtures and mock logic in `frontend/src/data/` (each file names the endpoint that will replace it) |
+| Quiz, level and risk profile, Acasă, asset pages, Știri, library moments | Fixtures and mock logic in `frontend/src/data/` (each file names the endpoint that will replace it). The Go API now serves the quiz, profile, library, Momente, Știri and tracking (`/api/quiz`, `/api/me`, `/api/library`, `/api/momente`, `/api/stiri`, `/api/track`); the frontend doesn't call them yet |
 
 Request and response shapes live in `frontend/src/contract.ts` and match the Go handlers' JSON tags in `backend/internal/server`.
 

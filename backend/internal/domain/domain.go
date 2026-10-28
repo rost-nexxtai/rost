@@ -90,7 +90,11 @@ type User struct {
 	MonthlyExpenses *float64         `json:"monthlyExpenses,omitempty"`
 	FirstsDone      []FirstDone      `json:"firstsDone"`
 	Spending        *SpendingProfile `json:"spending,omitempty"`
-	CreatedAt       string           `json:"createdAt"`
+	// nil until the quiz
+	Quiz *QuizProfile `json:"quiz,omitempty"`
+	// max level reached, never goes down
+	LevelEarned Level  `json:"levelEarned"`
+	CreatedAt   string `json:"createdAt"`
 }
 
 func (u User) HasSituation(s Situation) bool {

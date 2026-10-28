@@ -96,15 +96,15 @@ func notFound(err error) error {
 
 // ---- users ----
 
-const userCols = `id, name, situations, payday, hire_date, gross_monthly, last_raise_date, monthly_expenses, firsts_done, spending, created_at`
+const userCols = `id, name, situations, payday, hire_date, gross_monthly, last_raise_date, monthly_expenses, firsts_done, spending, quiz, level_earned, created_at`
 
 func (s *Postgres) insertUser(ctx context.Context, db execer, u domain.User, ignoreExisting bool) error {
-	sql := `INSERT INTO users (` + userCols + `) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11)`
+	sql := `INSERT INTO users (` + userCols + `) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13)`
 	if ignoreExisting {
 		sql += ` ON CONFLICT (id) DO NOTHING`
 	}
 	_, err := db.Exec(ctx, sql, u.ID, u.Name, jsonb(nonNil(u.Situations)), u.Payday, u.HireDate, u.GrossMonthly, u.LastRaiseDate,
-		u.MonthlyExpenses, jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), u.CreatedAt)
+		u.MonthlyExpenses, jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned, u.CreatedAt)
 	return err
 }
 
@@ -117,9 +117,9 @@ func nonNil[T any](s []T) []T {
 
 func scanUser(row pgx.Row) (domain.User, error) {
 	var u domain.User
-	var situations, firsts, spending []byte
+	var situations, firsts, spending, quiz []byte
 	var payday *int32
-	err := row.Scan(&u.ID, &u.Name, &situations, &payday, &u.HireDate, &u.GrossMonthly, &u.LastRaiseDate, &u.MonthlyExpenses, &firsts, &spending, &u.CreatedAt)
+	err := row.Scan(&u.ID, &u.Name, &situations, &payday, &u.HireDate, &u.GrossMonthly, &u.LastRaiseDate, &u.MonthlyExpenses, &firsts, &spending, &quiz, &u.LevelEarned, &u.CreatedAt)
 	if err != nil {
 		return u, notFound(err)
 	}
@@ -136,6 +136,12 @@ func scanUser(row pgx.Row) (domain.User, error) {
 	if spending != nil {
 		u.Spending = &domain.SpendingProfile{}
 		if err := unjson(spending, u.Spending); err != nil {
+			return u, err
+		}
+	}
+	if quiz != nil {
+		u.Quiz = &domain.QuizProfile{}
+		if err := unjson(quiz, u.Quiz); err != nil {
 			return u, err
 		}
 	}
@@ -156,9 +162,9 @@ func (s *Postgres) GetUser(ctx context.Context, id string) (domain.User, error) 
 
 func (s *Postgres) UpdateUser(ctx context.Context, u domain.User) error {
 	tag, err := s.db.Exec(ctx, `UPDATE users SET name = $2, situations = $3::jsonb, payday = $4, hire_date = $5, gross_monthly = $6,
-		last_raise_date = $7, monthly_expenses = $8, firsts_done = $9::jsonb, spending = $10::jsonb WHERE id = $1`,
+		last_raise_date = $7, monthly_expenses = $8, firsts_done = $9::jsonb, spending = $10::jsonb, quiz = $11::jsonb, level_earned = $12 WHERE id = $1`,
 		u.ID, u.Name, jsonb(nonNil(u.Situations)), u.Payday, u.HireDate, u.GrossMonthly, u.LastRaiseDate, u.MonthlyExpenses,
-		jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending))
+		jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned)
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
@@ -339,6 +345,8 @@ func (s *Postgres) ResetUsers(ctx context.Context, seed []domain.User) error {
 				`DELETE FROM moment_runs WHERE user_id = $1`,
 				`DELETE FROM events WHERE user_id = $1`,
 				`DELETE FROM referrals WHERE user_id = $1`,
+				`DELETE FROM library_completions WHERE user_id = $1`,
+				`DELETE FROM track_events WHERE user_id = $1`,
 				`DELETE FROM users WHERE id = $1`,
 			} {
 				if _, err := tx.Exec(ctx, sql, u.ID); err != nil {

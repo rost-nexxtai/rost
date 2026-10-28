@@ -11,7 +11,11 @@ import (
 	"rost/backend/internal/domain"
 )
 
-var ErrNotFound = errors.New("not found")
+var (
+	ErrNotFound = errors.New("not found")
+	// duplicate id / email
+	ErrConflict = errors.New("already exists")
+)
 
 // Store is everything that changes at runtime.
 type Store interface {
@@ -19,6 +23,8 @@ type Store interface {
 	// GetUser returns ErrNotFound for an unknown id.
 	GetUser(ctx context.Context, id string) (domain.User, error)
 	UpdateUser(ctx context.Context, u domain.User) error
+	// only for stats
+	ListUsers(ctx context.Context) ([]domain.User, error)
 
 	AddEvent(ctx context.Context, e domain.AppEvent) (domain.AppEvent, error)
 	ListEvents(ctx context.Context, userID string) ([]domain.AppEvent, error)
@@ -41,6 +47,48 @@ type Store interface {
 	// ResetUsers deletes everything these users did (events, runs, actions, referrals) and
 	// writes their rows back from the given seed. Stage helper for the demo personas.
 	ResetUsers(ctx context.Context, seed []domain.User) error
+
+	ContentStore
+	ProgressStore
+	TrackingStore
+	AdminStore
+}
+
+// moments + news, edited by admins
+type ContentStore interface {
+	// by position, then id
+	ListContent(ctx context.Context, kind domain.ContentKind, withDrafts bool) ([]domain.ContentItem, error)
+	GetContent(ctx context.Context, kind domain.ContentKind, id string) (domain.ContentItem, error)
+	// ErrConflict if the id exists
+	CreateContent(ctx context.Context, c domain.ContentItem) (domain.ContentItem, error)
+	UpdateContent(ctx context.Context, c domain.ContentItem) (domain.ContentItem, error)
+	DeleteContent(ctx context.Context, kind domain.ContentKind, id string) error
+	// once per seedName, so admin edits survive restarts
+	SeedContent(ctx context.Context, seedName string, items []domain.ContentItem) error
+}
+
+type ProgressStore interface {
+	// false if it was already done
+	AddCompletion(ctx context.Context, c domain.Completion) (bool, error)
+	// userID "" = everyone
+	ListCompletions(ctx context.Context, userID string) ([]domain.Completion, error)
+}
+
+type TrackingStore interface {
+	AddTrackEvents(ctx context.Context, events []domain.TrackEvent) error
+	// from <= createdAt < to
+	ListTrackEvents(ctx context.Context, fromISO, toISO string) ([]domain.TrackEvent, error)
+}
+
+type AdminStore interface {
+	// ErrConflict if the email exists
+	CreateAdmin(ctx context.Context, a domain.Admin) (domain.Admin, error)
+	GetAdmin(ctx context.Context, id string) (domain.Admin, error)
+	GetAdminByEmail(ctx context.Context, email string) (domain.Admin, error)
+	ListAdmins(ctx context.Context) ([]domain.Admin, error)
+	CreateAdminSession(ctx context.Context, s domain.AdminSession) error
+	GetAdminSession(ctx context.Context, tokenHash string) (domain.AdminSession, error)
+	DeleteAdminSession(ctx context.Context, tokenHash string) error
 }
 
 // NewID returns a random UUID (version 4).
