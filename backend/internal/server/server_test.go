@@ -13,6 +13,7 @@ import (
 
 	"rost/backend/internal/clock"
 	"rost/backend/internal/config"
+	"rost/backend/internal/content"
 	"rost/backend/internal/reference"
 	"rost/backend/internal/store/storetest"
 )
@@ -22,8 +23,22 @@ type fakeDB struct{ err error }
 func (f fakeDB) Ping(context.Context) error { return f.err }
 
 func testServer(db fakeDB, cfg config.Config) http.Handler {
+	h, _ := testServerWithStore(db, cfg)
+	return h
+}
+
+// also seeds content
+func testServerWithStore(db fakeDB, cfg config.Config) (http.Handler, *storetest.Memory) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return New(Deps{Logger: logger, DB: db, Store: storetest.New(reference.DemoUsers()...), Config: cfg})
+	st := storetest.New(reference.DemoUsers()...)
+	seed, err := content.Seed()
+	if err != nil {
+		panic(err)
+	}
+	if err := st.SeedContent(context.Background(), content.SeedName, seed); err != nil {
+		panic(err)
+	}
+	return New(Deps{Logger: logger, DB: db, Store: st, Config: cfg}), st
 }
 
 func TestHealthAndReadiness(t *testing.T) {
@@ -48,24 +63,29 @@ func TestHealthAndReadiness(t *testing.T) {
 	}
 }
 
-// client keeps the session cookie between calls, like a browser.
+// client keeps cookies between calls, like a browser.
 type client struct {
-	t      *testing.T
-	h      http.Handler
-	cookie *http.Cookie
+	t       *testing.T
+	h       http.Handler
+	cookies map[string]*http.Cookie
 }
 
 func (c *client) do(method, path, body string) (int, map[string]any) {
 	c.t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	if c.cookie != nil {
-		req.AddCookie(c.cookie)
+	for _, ck := range c.cookies {
+		req.AddCookie(ck)
 	}
 	rec := httptest.NewRecorder()
 	c.h.ServeHTTP(rec, req)
+	if c.cookies == nil {
+		c.cookies = map[string]*http.Cookie{}
+	}
 	for _, ck := range rec.Result().Cookies() {
-		if ck.Name == UIDCookie {
-			c.cookie = ck
+		if ck.MaxAge < 0 {
+			delete(c.cookies, ck.Name)
+		} else {
+			c.cookies[ck.Name] = ck
 		}
 	}
 	var out map[string]any

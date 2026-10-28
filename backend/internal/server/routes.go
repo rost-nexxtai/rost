@@ -49,6 +49,8 @@ func (s *server) routes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/metrics", s.metrics)
 	mux.HandleFunc("POST /api/payslip/read", s.readPayslip)
+
+	s.libraryRoutes(mux)
 }
 
 // ---- users and session ----
@@ -118,12 +120,22 @@ func (s *server) signOut(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+// profile only after the quiz
 func (s *server) me(w http.ResponseWriter, r *http.Request) {
 	u, ok := s.user(w, r)
 	if !ok {
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"user": u})
+	p, err := s.svc.Profile(r.Context(), u)
+	if err != nil {
+		s.internal(w, r, err)
+		return
+	}
+	out := map[string]any{"user": u}
+	if p != nil {
+		out["profile"] = p
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // ---- triggers ----
@@ -228,40 +240,14 @@ func (s *server) today(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	runs, err := s.Store.ListRuns(r.Context(), u.ID)
-	if err != nil {
-		s.internal(w, r, err)
-		return
-	}
-	open := []domain.MomentRun{}
-	openIDs, done := map[string]bool{}, map[string]bool{}
-	doneIDs := []string{}
-	for _, run := range runs {
-		switch run.State {
-		case domain.RunPending, domain.RunStarted:
-			open = append(open, run)
-			openIDs[run.MomentID] = true
-		case domain.RunCompleted:
-			if !done[run.MomentID] {
-				done[run.MomentID] = true
-				doneIDs = append(doneIDs, run.MomentID)
-			}
-		}
-	}
-	defs := reference.MomentDefs()
-	catchUp := []string{}
-	for _, d := range defs {
-		if !done[d.ID] && !openIDs[d.ID] && d.Triggers[0] != domain.ShockScenario {
-			catchUp = append(catchUp, d.ID)
-		}
-	}
-	due, err := s.svc.DueFollowUps(r.Context(), u.ID)
+	t, err := s.svc.Today(r.Context(), u.ID)
 	if err != nil {
 		s.internal(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"user": u, "open": open, "moments": defs, "doneMomentIds": doneIDs, "catchUpMomentIds": catchUp, "dueFollowUps": due,
+		"user": u, "open": t.Open, "moments": reference.MomentDefs(), "doneMomentIds": t.DoneIDs, "catchUpMomentIds": t.CatchUpIDs,
+		"dueFollowUps": t.DueFollowUps,
 	})
 }
 
