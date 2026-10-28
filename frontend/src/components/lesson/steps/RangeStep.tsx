@@ -2,7 +2,8 @@
 
 import { SimChart } from '@/components/ui/SimChart';
 import { SourceLink } from '@/components/ui/SourceLink';
-import { simulateRange } from '@/data/mock/simulation';
+import { NATIONAL_INFLATION_PCT } from '@/data/mock/scoring';
+import { simulateRange, todayMoney } from '@/data/mock/simulation';
 import type { Asset } from '@/data/types';
 import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
@@ -36,7 +37,7 @@ export function RangeStep({ asset, onDone }: { asset: Asset; onDone: () => void 
             <strong className="money">{f.lei(r.best.at(-1)!.valueLei)}</strong>
           </div>
         </div>
-        <SimChart kind="range" worst={r.worst} typical={r.typical} best={r.best} />
+        <SimChart kind="range" worst={r.worst} typical={r.typical} best={r.best} typicalToday={todayMoney(r.typical, NATIONAL_INFLATION_PCT)} />
         <p className="note">
           {t.worstYear(s.worstYear.year, f.pct(s.worstYear.pct, 1))} <SourceLink label={s.source.label} url={s.source.url} />. {t.rangeNote}
         </p>

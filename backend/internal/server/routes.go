@@ -39,6 +39,8 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/followups", s.answerFollowUp)
 
 	mux.HandleFunc("GET /api/options", s.options)
+	mux.HandleFunc("GET /api/providers", s.allProviders)
+	mux.HandleFunc("GET /api/providers/{assetId}", s.assetProviders)
 
 	mux.HandleFunc("POST /api/referrals/clicks", s.referralClick)
 	mux.HandleFunc("POST /api/referrals/postback", s.referralPostback)
@@ -164,6 +166,19 @@ func (s *server) fireEvent(w http.ResponseWriter, r *http.Request) {
 	source := domain.SourceSimulator
 	if body.Type == domain.CatchUp {
 		source = domain.SourceUser
+		// A catch-up may bring the gross salary the moment needs (Momente asks for it).
+		if v, given := body.Payload["grossMonthly"]; given {
+			gross, ok := v.(float64)
+			if !ok || gross < minGrossLei || gross > maxGrossLei {
+				fail(w, http.StatusBadRequest, "grossMonthly must be a monthly gross salary in lei")
+				return
+			}
+			u.GrossMonthly = &gross
+			if err := s.Store.UpdateUser(r.Context(), u); err != nil {
+				s.internal(w, r, err)
+				return
+			}
+		}
 	}
 	res, err := s.svc.HandleEvent(r.Context(), app.EventInput{
 		UserID: u.ID, Type: body.Type, Payload: body.Payload, Source: source, IgnoreWeeklyCap: body.IgnoreWeeklyCap,
@@ -174,6 +189,12 @@ func (s *server) fireEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, res)
 }
+
+// The gross salaries a catch-up accepts: from the 2026 minimum wage up to a generous ceiling.
+const (
+	minGrossLei = 1_000
+	maxGrossLei = 200_000
+)
 
 // POST /api/calendar runs today's calendar for the current user. In production this is a daily
 // cron over all users; here the simulator calls it so the trigger on stage is computed, not pressed.
@@ -241,13 +262,13 @@ func (s *server) today(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	t, err := s.svc.Today(r.Context(), u.ID)
+	t, err := s.svc.Today(r.Context(), u)
 	if err != nil {
 		s.internal(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"user": u, "open": t.Open, "moments": reference.MomentDefs(langOf(r)), "doneMomentIds": t.DoneIDs, "catchUpMomentIds": t.CatchUpIDs,
+		"user": u, "open": t.Open, "moments": reference.MomentDefs(langOf(r)), "doneMomentIds": t.DoneIDs, "catchUpMomentIds": t.CatchUpIDs, "catchUpNeeds": t.CatchUpNeeds,
 		"dueFollowUps": t.DueFollowUps,
 	})
 }

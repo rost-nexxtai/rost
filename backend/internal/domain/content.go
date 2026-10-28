@@ -52,9 +52,23 @@ type LibraryMoment struct {
 	Steps    []LibraryStep `json:"steps"`
 	// shown on the finish screen
 	Takeaways []string `json:"takeaways"`
+	// English words for the same lesson. Numbers and answers only live in the fields above.
+	EN *LessonText `json:"en,omitempty"`
 }
 
 func (m LibraryMoment) Playable() bool { return len(m.Steps) > 0 }
+
+// LessonText is a lesson's words in another language, step by step, with the same shape as the
+// lesson: title, hook, series, one takeaway per takeaway and one entry per step holding only that
+// step's text (question, options, explain, buckets, item labels and reasons, title, body, value,
+// label, unit, cta label).
+type LessonText struct {
+	Title     string        `json:"title"`
+	Hook      string        `json:"hook"`
+	Series    string        `json:"series"`
+	Takeaways []string      `json:"takeaways"`
+	Steps     []LibraryStep `json:"steps"`
+}
 
 type NewsSource struct {
 	Label string `json:"label"`

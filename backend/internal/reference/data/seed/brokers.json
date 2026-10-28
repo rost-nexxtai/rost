@@ -1,0 +1,110 @@
+{
+  "note": "Brokeri reali pentru acțiuni, ETF-uri și aur. Costul comparat e cel al unui ordin de 1.000 lei; comisioanele în euro sunt convertite la 1 EUR = 5.09 lei. Verificați tarifele pe site-ul oficial; actualizați lunar.",
+  "assets": [
+    "etf",
+    "actiuni",
+    "aur"
+  ],
+  "brokers": [
+    {
+      "id": "tradeville",
+      "name": "Tradeville",
+      "country": "RO",
+      "regulator": "ASF",
+      "commissionPct": 0.42,
+      "minCommissionLei": 0,
+      "fixedFeeLei": 1.53,
+      "fxPct": 0,
+      "withholdsTax": true,
+      "conditions": [
+        "0,38% + 0,3 EUR pe ordin, plus taxa ASF de 0,04% la ETF-uri; ETF-uri la BVB, în lei"
+      ],
+      "url": "https://tradeville.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "fricadebani.ro, ghid Tradeville 2026",
+        "url": "https://fricadebani.ro/blog/tradeville-ghid-cont-comisioane-2026/"
+      }
+    },
+    {
+      "id": "bt-capital-partners",
+      "name": "BT Capital Partners",
+      "country": "RO",
+      "regulator": "ASF",
+      "commissionPct": 0.54,
+      "minCommissionLei": 5,
+      "fixedFeeLei": 0,
+      "fxPct": 0,
+      "withholdsTax": true,
+      "conditions": [
+        "0,5% (minim 5 lei) plus taxa ASF de 0,04%; comision din surse secundare, verificați tariful"
+      ],
+      "url": "https://www.btcapitalpartners.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "folositor.ro, BT Capital Partners 2026",
+        "url": "https://folositor.ro/ghid/bt-capital-partners-review-2026"
+      }
+    },
+    {
+      "id": "xtb",
+      "name": "XTB",
+      "country": "EU",
+      "regulator": "KNF (Polonia)",
+      "commissionPct": 0,
+      "minCommissionLei": 0,
+      "fixedFeeLei": 0,
+      "fxPct": 0.5,
+      "withholdsTax": false,
+      "conditions": [
+        "0% comision până la 100.000 EUR rulaj pe lună; 0,5% conversie valutară"
+      ],
+      "url": "https://www.xtb.com/ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "freenance.io, comparație brokeri 2026",
+        "url": "https://freenance.io/comparisons/best-stock-brokers-romania-2026/"
+      }
+    },
+    {
+      "id": "trading212",
+      "name": "Trading 212",
+      "country": "EU",
+      "regulator": "FSC (Bulgaria)",
+      "commissionPct": 0,
+      "minCommissionLei": 0,
+      "fixedFeeLei": 0,
+      "fxPct": 0.15,
+      "withholdsTax": false,
+      "conditions": [
+        "0% comision; 0,15% conversie valutară"
+      ],
+      "url": "https://www.trading212.com",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "rankia.ro, XTB vs Trading 212",
+        "url": "https://rankia.ro/xtb-vs-trading-212/"
+      }
+    },
+    {
+      "id": "interactive-brokers",
+      "name": "Interactive Brokers",
+      "country": "EU",
+      "regulator": "Banca Centrală a Irlandei",
+      "commissionPct": 0.05,
+      "minCommissionLei": 6.36,
+      "fixedFeeLei": 0,
+      "fxPct": 0,
+      "withholdsTax": false,
+      "conditions": [
+        "0,05% (minim 1,25 EUR) pe burse europene, plus conversia valutară"
+      ],
+      "url": "https://www.interactivebrokers.ie",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "freenance.io, comparație brokeri 2026",
+        "url": "https://freenance.io/comparisons/best-stock-brokers-romania-2026/"
+      }
+    }
+  ]
+}

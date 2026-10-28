@@ -109,7 +109,10 @@ func (s *Postgres) AddCompletion(ctx context.Context, c domain.Completion) (bool
 		c.CompletedAt = clock.NowISO()
 	}
 	tag, err := s.db.Exec(ctx, `INSERT INTO library_completions (user_id, moment_id, answers, correct, total, completed_at)
-		VALUES ($1, $2, $3::jsonb, $4, $5, $6) ON CONFLICT DO NOTHING`,
+		VALUES ($1, $2, $3::jsonb, $4, $5, $6)
+		ON CONFLICT (user_id, moment_id) DO UPDATE SET answers = EXCLUDED.answers, correct = EXCLUDED.correct,
+			total = EXCLUDED.total, completed_at = EXCLUDED.completed_at
+		WHERE library_completions.correct < EXCLUDED.correct`,
 		c.UserID, c.MomentID, jsonb(nonNil(c.Answers)), c.Correct, c.Total, c.CompletedAt)
 	return err == nil && tag.RowsAffected() == 1, err
 }

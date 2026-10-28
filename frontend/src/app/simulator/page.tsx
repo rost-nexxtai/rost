@@ -45,6 +45,9 @@ const T = copy(
     bankTitle: 'În aplicația băncii',
     bankSub: 'Același moment în aplicația unei bănci, dintr-un token semnat care conține doar ponderile cheltuielilor.',
     openAs: 'Deschide ca [PARTNER BANK]',
+    referralTitle: 'Recomandare și comision',
+    referralSub: 'Modelul de business, cu o bancă fictivă: click, cont deschis, cont alimentat, comision. Băncile reale din aplicație nu sunt parteneri și nu apar aici.',
+    referralOpen: 'Deschide un depozit la [PARTNER BANK]',
     log: 'Jurnal',
     reset: 'Resetează demo-ul',
     nothingYet: 'Nimic încă.',
@@ -79,6 +82,9 @@ const T = copy(
     bankTitle: "In the bank's app",
     bankSub: "The same moment inside a bank's app, from a signed token that carries only spending shares.",
     openAs: 'Open as [PARTNER BANK]',
+    referralTitle: 'Referral and fee',
+    referralSub: "The business model, with a fictional bank: click, account opened, account funded, fee. The real banks in the app aren't partners and don't appear here.",
+    referralOpen: 'Open a deposit at [PARTNER BANK]',
     log: 'Log',
     reset: 'Reset the demo',
     nothingYet: 'Nothing yet.',
@@ -239,6 +245,15 @@ export default function Simulator() {
         <button className="btn btn-light" onClick={openPartnerView}>
           {t.openAs}
         </button>
+      </section>
+
+      <section className="card">
+        <h2>{t.referralTitle}</h2>
+        <p className="muted small">{t.referralSub}</p>
+        {/* the same referral route a partner's offer would use; demo-bank-12m is never listed with real offers */}
+        <a href="/r/demo-bank-12m" className="btn btn-secondary">
+          {t.referralOpen}
+        </a>
       </section>
 
       <section className="card">

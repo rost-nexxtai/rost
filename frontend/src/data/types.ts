@@ -42,9 +42,19 @@ export interface Profile {
   horizon: MoneyHorizon;
   money: MoneyLines;
   completedMomentIds: string[];
+  /** Lessons started and left before the end, by id: where to pick up. */
+  lessonProgress?: Record<string, LessonProgress>;
 }
 
-/** proposed: POST /api/quiz. Onboarding asks only age, situation, buffer and three knowledge questions. */
+/** A lesson left halfway: the screen to resume on and the graded answers so far. */
+export interface LessonProgress {
+  step: number;
+  results: boolean[];
+  /** How many screens the lesson had, so a lesson edited since starts over. */
+  of: number;
+}
+
+/** proposed: POST /api/quiz. Onboarding asks age, situation, buffer, debt and up to four knowledge questions (two per tier). */
 export interface QuizAnswers {
   knowledge: KnowledgeAnswer[];
   ageBand: AgeBand;
@@ -60,45 +70,30 @@ export interface QuizAnswers {
   savedLei?: number;
 }
 
-export interface SavingsProvider {
-  id: string;
-  assetId: 'cont_economii' | 'depozit' | 'titluri_stat';
-  name: string;
-  product: string;
-  kind: 'deposit' | 'state_bond';
-  grossRatePct: number;
-  termMonths: number;
-  /** 1 any time, 2 lose the interest if you break it, 3 locked until maturity */
-  accessRank: 1 | 2 | 3;
-  isPartner: boolean;
-  example: boolean;
-  /** Offer id in backend/internal/reference/data/seed/offers.json; set only when a real referral link exists. */
-  offerId?: string;
-}
-
-export interface Broker {
-  id: string;
-  name: string;
-  country: 'RO' | 'EU';
-  commissionPct: number;
-  minCommissionLei: number;
-  spreadPct: number;
-  isPartner: boolean;
-  example: true;
-}
-
+/**
+ * One real provider on an asset page, from GET /api/providers/:assetId. None of them is a partner:
+ * the list links to each provider's official site, and nobody pays for a position.
+ */
 export interface RankedProvider {
   id: string;
   rank: number;
   name: string;
   product: string;
+  /** "6,30% pe an, după impozit" or "5,00 lei la un ordin de 1.000 lei" */
   headline: string;
   netRatePct?: number;
   costLei?: number;
   accessRank?: 1 | 2 | 3;
-  isPartner: boolean;
-  example: boolean;
-  offerId?: string;
+  conditions: string[];
+  /** Brokers only: who pays the tax on gains, and how much. */
+  taxNote?: string;
+  /** The provider's official site. */
+  url?: string;
+  /** "oct. 2026": when the rate or fee was last checked. */
+  checked?: string;
+  source?: { label: string; url: string };
+  /** "5,1 mil. clienți în România", when known. */
+  clientsLine?: string;
 }
 
 export interface Point {
@@ -163,6 +158,8 @@ export interface AssetResponse {
   providerKind: 'savings' | 'brokers';
   /** The user's inflation (personal when known), for "in today's money". */
   inflationPct: number;
+  /** The backend couldn't be reached, so there are no providers to show. */
+  providersDown?: boolean;
 }
 
 /** Hands-on calculators a lesson can embed (components/lesson/widgets.tsx). */
@@ -207,10 +204,14 @@ export interface MomentSummary {
   level: Level | null;
   core: boolean;
   minutes: number;
-  status: 'open' | 'done' | 'todo' | 'soon';
+  status: 'open' | 'done' | 'todo' | 'soon' | 'started';
   href?: string;
+  /** Library lessons left halfway: the screen to resume on (1-based) out of how many. */
+  progress?: { step: number; of: number };
   /** Set for a real backend moment the user can open now with a "catch up" tap. */
   catchUpMomentId?: string;
+  /** The catch-up needs a gross salary first (the payslip moment, for someone who never gave one). */
+  catchUpNeedsSalary?: boolean;
 }
 
 /** proposed: GET /api/momente */

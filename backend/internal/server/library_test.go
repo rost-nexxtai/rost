@@ -22,16 +22,24 @@ func get(m map[string]any, path ...string) any {
 }
 
 // no horizon / expensiveDebt, onboarding doesn't ask them anymore
-const quizAllNuStiu = `{"knowledge":["nu_stiu","nu_stiu","nu_stiu"],
+const quizAllNuStiu = `{"knowledge":["nu_stiu","nu_stiu","nu_stiu","nu_stiu"],
 "ageBand":"30_plus","situation":"student","bufferMonths":0,"fuelLei":200}`
 
-// the three L0 core lessons, the last one levels up
+// right answers to the three L0 core lessons; only passed lessons count toward a level
+var l0Right = []struct{ id, body string }{
+	{"fondul_urgenta", `{"answers":[{"step":0,"buckets":[0,1,0,1,0]},{"step":1,"value":4},{"step":3,"picked":0}]}`},
+	{"economii_vs_depozit", `{"answers":[{"step":0,"value":450},{"step":2,"buckets":[0,1,0,1]}]}`},
+	{"dobanda_compusa", `{"answers":[{"step":0,"value":1967},{"step":2,"picked":1}]}`},
+}
+
+// the three L0 core lessons, passed; the last one levels up
 func completeL0(c *client) map[string]any {
 	c.t.Helper()
 	var out map[string]any
-	for _, id := range []string{"fondul_urgenta", "economii_vs_depozit", "dobanda_compusa"} {
+	for _, l := range l0Right {
+		id := l.id
 		var code int
-		if code, out = c.do("POST", "/api/library/"+id+"/complete", ""); code != 200 {
+		if code, out = c.do("POST", "/api/library/"+id+"/complete", l.body); code != 200 {
 			c.t.Fatalf("complete %s = %d %v", id, code, out)
 		}
 	}
@@ -44,8 +52,8 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 	c := &client{t: t, h: h}
 
 	_, quiz := c.do("GET", "/api/quiz", "")
-	if qs := quiz["knowledge"].([]any); len(qs) != 3 || strings.Contains(jsonString(qs), "correct") {
-		t.Fatalf("quiz must list 3 questions without answers: %v", qs)
+	if qs := quiz["knowledge"].([]any); len(qs) != 4 || strings.Contains(jsonString(qs), "correct") {
+		t.Fatalf("quiz must list 4 questions without answers: %v", qs)
 	}
 	if code, _ := c.do("POST", "/api/track", `{"events":[{"name":"quiz_start","path":"/quiz"}]}`); code != 202 {
 		t.Errorf("track before onboarding = %d", code)
@@ -69,7 +77,7 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 		get(p, "money", "fuelLei") != 200.0 || get(p, "money", "inflationPct") != 6.61 {
 		t.Errorf("profile = %v", p)
 	}
-	if r := out["results"].([]any)[0].(map[string]any); r["correct"] != false || r["correctIndex"] != 2.0 || r["explain"] != nil {
+	if r := out["results"].([]any)[0].(map[string]any); r["correct"] != false || r["correctIndex"] != 2.0 || r["explain"] == "" {
 		t.Errorf("results = %v", r)
 	}
 
@@ -93,9 +101,14 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 		t.Errorf("answer on an explore step = %d", code)
 	}
 	c.do("POST", "/api/track", `{"events":[{"name":"moment_open","props":{"momentId":"fondul_urgenta"},"path":"/moment/lib/fondul_urgenta?from=acasa"}]}`)
-	// sort, predict (4 is close to 3) and choice, all right
-	code, done := c.do("POST", "/api/library/fondul_urgenta/complete", `{"answers":[{"step":0,"buckets":[0,1,0,1,0]},{"step":1,"value":4},{"step":3,"picked":0}]}`)
-	if code != 200 || done["levelUp"] != false || get(done, "profile", "level") != 0.0 || done["correct"] != 3.0 || done["total"] != 3.0 {
+	// 1 of 3 right: finished, but not passed, so it doesn't count yet
+	code, failed := c.do("POST", "/api/library/fondul_urgenta/complete", `{"answers":[{"step":0,"buckets":[1,0,1,0,1]},{"step":1,"value":20},{"step":3,"picked":0}]}`)
+	if code != 200 || failed["passed"] != false || failed["correct"] != 1.0 || len(get(failed, "profile", "completedMomentIds").([]any)) != 0 {
+		t.Fatalf("failed attempt = %d %v", code, failed)
+	}
+	// sort, predict (4 is inside 3–6 months) and choice, all right: the retake replaces the attempt
+	code, done := c.do("POST", "/api/library/fondul_urgenta/complete", l0Right[0].body)
+	if code != 200 || done["passed"] != true || done["alreadyDone"] != false || done["levelUp"] != false || get(done, "profile", "level") != 0.0 || done["correct"] != 3.0 || done["total"] != 3.0 {
 		t.Fatalf("complete = %d %v", code, done)
 	}
 	if _, again := c.do("POST", "/api/library/fondul_urgenta/complete", ""); again["alreadyDone"] != true || again["levelUp"] != false {
@@ -230,5 +243,92 @@ func TestNewCoreLessonDoesNotDemote(t *testing.T) {
 	// still shows up, not done yet
 	if _, m := c.do("GET", "/api/momente", ""); !strings.Contains(jsonString(m["forYourLevel"]), `"buget_50_30_20"`) {
 		t.Errorf("new lesson missing from forYourLevel: %v", m["forYourLevel"])
+	}
+}
+
+func TestLessonsInBothLanguages(t *testing.T) {
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	for lang, want := range map[string][2]string{
+		"":   {"Fondul de urgență", "Ți se strică mașina cu care mergi la job"},
+		"ro": {"Fondul de urgență", "Ți se strică mașina cu care mergi la job"},
+		"en": {"Your emergency fund", "The car you drive to work breaks down"},
+	} {
+		c.lang = lang
+		code, out := c.do("GET", "/api/library/fondul_urgenta", "")
+		m, _ := out["moment"].(map[string]any)
+		if code != 200 || m["title"] != want[0] {
+			t.Errorf("lang %q: %d %v", lang, code, m["title"])
+			continue
+		}
+		if _, leaked := m["en"]; leaked {
+			t.Errorf("lang %q: translation block in the response", lang)
+		}
+		item := m["steps"].([]any)[0].(map[string]any)["items"].([]any)[0].(map[string]any)
+		if item["label"] != want[1] || item["bucket"] != 0.0 {
+			t.Errorf("lang %q: first card = %v", lang, item)
+		}
+		_, list := c.do("GET", "/api/library", "")
+		if first := list["moments"].([]any)[0].(map[string]any); first["title"] != want[0] {
+			t.Errorf("lang %q: library title = %v", lang, first["title"])
+		}
+	}
+}
+
+func TestQuizPlacementOverHTTP(t *testing.T) {
+	for _, c := range []struct {
+		name, knowledge string
+		level           float64
+	}{
+		{"basics and tier 1", `[2,1,0,1]`, 2},
+		{"basics only", `[2,1,"nu_stiu","nu_stiu"]`, 1},
+		{"hard ones right, a basic wrong", `[0,1,0,1]`, 0},
+	} {
+		cl := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+		code, out := cl.do("POST", "/api/quiz", `{"knowledge":`+c.knowledge+`,"ageBand":"25_29","situation":"employed","bufferMonths":3}`)
+		if code != 200 {
+			t.Fatalf("%s: %d %v", c.name, code, out)
+		}
+		if got := get(out, "profile", "quizLevel"); got != c.level {
+			t.Errorf("%s: quizLevel %v, want %v", c.name, got, c.level)
+		}
+	}
+}
+
+// A quiz-only user has no salary or spending. The payslip moment is still offered: Momente asks
+// for a gross salary and the catch-up brings it. The inflation moments need spending, so they aren't.
+func TestCatchUpOnlyWhatCanOpen(t *testing.T) {
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	c.do("POST", "/api/quiz", quizAllNuStiu)
+	_, today := c.do("GET", "/api/today", "")
+	if ids := jsonString(today["catchUpMomentIds"]); ids != `["payslip_explained"]` {
+		t.Errorf("quiz-only user can catch up on %s", ids)
+	}
+	if needs := jsonString(today["catchUpNeeds"]); needs != `{"payslip_explained":["grossMonthly"]}` {
+		t.Errorf("needs = %s", needs)
+	}
+	// without the salary nothing opens; a silly salary is refused
+	if _, ev := c.do("POST", "/api/events", `{"type":"catch_up","payload":{"momentId":"payslip_explained"}}`); len(ev["runs"].([]any)) != 0 {
+		t.Errorf("opened without a salary: %v", ev)
+	}
+	if code, _ := c.do("POST", "/api/events", `{"type":"catch_up","payload":{"momentId":"payslip_explained","grossMonthly":5}}`); code != 400 {
+		t.Errorf("salary of 5 lei = %d", code)
+	}
+	_, ev := c.do("POST", "/api/events", `{"type":"catch_up","payload":{"momentId":"payslip_explained","grossMonthly":6000}}`)
+	runs, _ := ev["runs"].([]any)
+	if len(runs) != 1 {
+		t.Fatalf("catch-up with a salary didn't open: %v", ev)
+	}
+	if code, m := c.do("GET", "/api/moments/"+runs[0].(map[string]any)["id"].(string), ""); code != 200 {
+		t.Errorf("payslip moment = %d %v", code, m)
+	}
+	if _, today = c.do("GET", "/api/today", ""); jsonString(today["catchUpNeeds"]) != `{}` {
+		t.Errorf("still asks for a salary: %v", today["catchUpNeeds"])
+	}
+
+	m := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	m.do("POST", "/api/users", `{"demo":"maria"}`)
+	_, today = m.do("GET", "/api/today", "")
+	if !strings.Contains(jsonString(today["catchUpMomentIds"]), "personal_inflation") || jsonString(today["catchUpNeeds"]) != `{}` {
+		t.Errorf("maria's catch-ups = %v %v", today["catchUpMomentIds"], today["catchUpNeeds"])
 	}
 }

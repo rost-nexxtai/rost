@@ -2,39 +2,66 @@ import { describe, expect, it } from 'vitest';
 import { QUIZ } from '../fixtures/quiz';
 import type { KnowledgeAnswer } from '../types';
 import { PERSONAS } from '../fixtures/personas';
-import { CORE_MOMENTS, entryRoute, foundationFor, levelFromScore, levelWithMoments, profileFromQuiz, quizProfile, riskProfile, scoreKnowledge } from './scoring';
+import { askQuestion, CORE_MOMENTS, entryRoute, foundationFor, levelWithMoments, passed, placeLevel, profileFromQuiz, quizProfile, riskProfile, scoreKnowledge } from './scoring';
 
-const all = (v: KnowledgeAnswer): KnowledgeAnswer[] => Array(3).fill(v);
-const correct = QUIZ.knowledge.map((q) => q.correct);
-const wrongAt = (n: number) => correct.map((c, i) => (i < n ? c : (c + 1) % QUIZ.knowledge[i].options.length));
+// The placement cases and the backend's questions: the same files the Go tests read.
+import placement from '../../../../backend/internal/learning/testdata/placement.json';
+import backendQuiz from '../../../../backend/internal/reference/data/seed/quiz.json';
 
-describe('quiz level', () => {
-  it('scores 1 as L0 and 3 as L2', () => {
-    expect(levelFromScore(scoreKnowledge(wrongAt(1)))).toBe(0);
-    expect(levelFromScore(scoreKnowledge(correct))).toBe(2);
+/** Every question answered right. */
+const correct: KnowledgeAnswer[] = QUIZ.knowledge.map((q) => q.correct);
+
+const cases = placement.cases as { name: string; answers: KnowledgeAnswer[]; level: number; asked: number }[];
+
+/** How many knowledge questions onboarding shows for these answers (QuizFlow skips the rest). */
+function asked(answers: KnowledgeAnswer[]): number {
+  const given: KnowledgeAnswer[] = [];
+  let n = 0;
+  QUIZ.knowledge.forEach((_, i) => {
+    if (askQuestion(i, given)) {
+      n++;
+      given.push(answers[i]);
+    } else given.push('nu_stiu');
+  });
+  return n;
+}
+
+describe('quiz placement (shared cases with the backend)', () => {
+  it.each(cases.map((c) => [c.name, c] as const))('%s', (_, c) => {
+    expect(placeLevel(c.answers)).toBe(c.level);
+    expect(asked(c.answers)).toBe(c.asked);
+    expect(profileFromQuiz({ knowledge: c.answers, ageBand: '25_29', situation: 'employed', bufferMonths: 3 }).quizLevel).toBe(c.level);
   });
 
-  it('scores three "Nu știu" answers as 0', () => {
-    expect(scoreKnowledge(all('nu_stiu'))).toBe(0);
+  it('asks the same questions, with the same right answers and tiers, as the backend', () => {
+    const shape = (qs: { id: string; correct: number; tier: number; options: string[] }[]) => qs.map((q) => [q.id, q.correct, q.tier, q.options.length]);
+    expect(shape(QUIZ.knowledge)).toEqual(shape(backendQuiz.knowledge));
+    expect(QUIZ.knowledge.map((q) => q.question)).toEqual(backendQuiz.knowledge.map((q) => q.question));
   });
 
-  it('maps 0–1, 2–3 and 4 right answers to L0, L1, L2', () => {
-    expect([0, 1, 2, 3, 4].map(levelFromScore)).toEqual([0, 0, 1, 1, 2]);
+  it('still counts right answers for the score', () => {
+    expect(scoreKnowledge(cases[0].answers)).toBe(QUIZ.knowledge.length);
+    expect(scoreKnowledge(['nu_stiu', 'nu_stiu', 'nu_stiu', 'nu_stiu'])).toBe(0);
   });
+});
 
-  it('does not call the three basics "advanced": L2 needs the bond question too', () => {
-    const basicsOnly = correct.map((c, i) => (i < 3 ? c : 'nu_stiu' as const));
-    expect(levelFromScore(scoreKnowledge(basicsOnly))).toBe(1);
+describe('passing a lesson', () => {
+  it('needs two thirds of the graded screens right, or nothing graded (learning.Passed)', () => {
+    expect(passed(2, 3)).toBe(true);
+    expect(passed(1, 3)).toBe(false);
+    expect(passed(3, 4)).toBe(true);
+    expect(passed(2, 4)).toBe(false);
+    expect(passed(0, 0)).toBe(true);
   });
 });
 
 describe('risk profile', () => {
-  const base = { ageBand: 'sub_25', horizon: 'peste_3_ani', bufferMonths: 6, expensiveDebt: false } as const;
+  const base = { horizon: 'peste_3_ani', bufferMonths: 6, expensiveDebt: false } as const;
 
-  it('adds one for under-30s', () => {
-    expect(riskProfile({ ...base, level: 0 })).toBe('echilibrat');
+  it('follows the level, with nothing added for age', () => {
+    expect(riskProfile({ ...base, level: 0 })).toBe('prudent');
+    expect(riskProfile({ ...base, level: 1 })).toBe('echilibrat');
     expect(riskProfile({ ...base, level: 2 })).toBe('dinamic');
-    expect(riskProfile({ ...base, level: 0, ageBand: '30_plus' })).toBe('prudent');
   });
 
   it('caps at prudent when the money is needed within a year', () => {

@@ -92,7 +92,7 @@ func TestPostgresRoundTrip(t *testing.T) {
 		t.Errorf("actions = %+v", actions)
 	}
 
-	ref, err := s.CreateReferral(ctx, domain.Referral{ClickID: store.NewID(), UserID: domain.Ptr("maria"), OfferID: "bank-b-12m", PartnerID: domain.Ptr("bank-b"), Status: domain.ReferralClicked})
+	ref, err := s.CreateReferral(ctx, domain.Referral{ClickID: store.NewID(), UserID: domain.Ptr("maria"), OfferID: "demo-bank-12m", PartnerID: domain.Ptr("demo-bank"), Status: domain.ReferralClicked})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestPostgresRoundTrip(t *testing.T) {
 	if err := s.UpdateReferral(ctx, ref); err != nil {
 		t.Fatal(err)
 	}
-	if r, _ := s.GetReferralByClick(ctx, ref.ClickID); r.Status != domain.ReferralFunded || r.FeeLei != 50 || *r.PartnerID != "bank-b" {
+	if r, _ := s.GetReferralByClick(ctx, ref.ClickID); r.Status != domain.ReferralFunded || r.FeeLei != 50 || *r.PartnerID != "demo-bank" {
 		t.Errorf("referral = %+v", r)
 	}
 
@@ -191,12 +191,20 @@ func TestPostgresContentAdminsTracking(t *testing.T) {
 	}
 
 	// completions
-	c := domain.Completion{UserID: "maria", MomentID: "fondul_urgenta", Answers: []map[string]any{{"step": 0.0, "picked": 0.0}}, Correct: 1, Total: 1}
+	c := domain.Completion{UserID: "maria", MomentID: "fondul_urgenta", Answers: []map[string]any{{"step": 0.0, "picked": 1.0}}, Correct: 0, Total: 1}
 	if created, err := s.AddCompletion(ctx, c); !created || err != nil {
 		t.Fatalf("completion: %v %v", created, err)
 	}
 	if created, err := s.AddCompletion(ctx, c); created || err != nil {
-		t.Errorf("completion twice: %v %v", created, err)
+		t.Errorf("same attempt twice: %v %v", created, err)
+	}
+	better := c
+	better.Answers, better.Correct = []map[string]any{{"step": 0.0, "picked": 0.0}}, 1
+	if created, err := s.AddCompletion(ctx, better); !created || err != nil {
+		t.Errorf("better attempt: %v %v", created, err)
+	}
+	if created, _ := s.AddCompletion(ctx, c); created {
+		t.Error("a worse attempt replaced the best one")
 	}
 	if cs, _ := s.ListCompletions(ctx, "maria"); len(cs) != 1 || cs[0].Correct != 1 || cs[0].Answers[0]["picked"] != 0.0 {
 		t.Errorf("completions = %+v", cs)

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rost frontend (fedora host)",
+      "runtimeExecutable": "host-spawn",
+      "runtimeArgs": ["sh", "-c", "cd /home/riciu/nexxt/rost/frontend && npm run dev"],
+      "port": 3000
+    }
+  ]
+}

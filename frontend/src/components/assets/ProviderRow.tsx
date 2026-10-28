@@ -1,14 +1,26 @@
 'use client';
 
+import { Icon } from '@/components/ui/Icon';
 import type { RankedProvider } from '@/data/types';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 
 const T = copy(
-  { place: (n: number) => `Locul ${n}`, partner: 'Partener · putem primi un comision', notPartner: 'Nu e partener', example: 'exemplu', open: 'Deschide', soonTitle: 'Deschiderea prin Rost vine în curând', soon: 'În curând' },
-  { place: (n) => `Rank ${n}`, partner: 'Partner · we may earn a fee', notPartner: 'Not a partner', example: 'example', open: 'Open', soonTitle: 'Opening through Rost is coming soon', soon: 'Soon' },
+  {
+    place: (n: number) => `Locul ${n}`,
+    site: 'Site oficial',
+    siteOf: (name: string) => `Site-ul oficial ${name}, se deschide într-o filă nouă`,
+    checked: (month: string) => `verificat ${month}`,
+  },
+  {
+    place: (n) => `Rank ${n}`,
+    site: 'Official site',
+    siteOf: (name) => `${name}'s official site, opens in a new tab`,
+    checked: (month) => `checked ${month}`,
+  },
 );
 
+/** One real provider: rank, the number that ranks it, its conditions, and a link to its own site. */
 export function ProviderRow({ p }: { p: RankedProvider }) {
   const t = T[useLang().lang];
   return (
@@ -25,20 +37,30 @@ export function ProviderRow({ p }: { p: RankedProvider }) {
           <span className="small" style={{ fontWeight: 600 }}>
             {p.headline}
           </span>
-          <span className="row-start" style={{ gap: 6, flexWrap: 'wrap' }}>
-            {p.isPartner ? <span className="tag tag-partner">{t.partner}</span> : <span className="tag">{t.notPartner}</span>}
-            {p.example && <span className="tag tag-example">{t.example}</span>}
-          </span>
+          {p.clientsLine && <span className="small muted">{p.clientsLine}</span>}
+          {p.taxNote && <span className="small">{p.taxNote}</span>}
+          {p.conditions.map((c) => (
+            <span key={c} className="note">
+              {c}
+            </span>
+          ))}
+          {(p.checked || p.source) && (
+            <span className="note">
+              {p.checked && t.checked(p.checked)}
+              {p.checked && p.source && ' · '}
+              {p.source && (
+                <a href={p.source.url} target="_blank" rel="noreferrer">
+                  {p.source.label}
+                </a>
+              )}
+            </span>
+          )}
         </div>
       </div>
-      {p.offerId ? (
-        <a href={`/r/${p.offerId}`} className="btn btn-secondary btn-sm" style={{ flexShrink: 0 }}>
-          {t.open}
+      {p.url && (
+        <a href={p.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ flexShrink: 0, gap: 4 }} aria-label={t.siteOf(p.name)}>
+          {t.site} <Icon name="external" size={14} />
         </a>
-      ) : (
-        <span className="btn btn-secondary btn-sm" aria-disabled="true" style={{ flexShrink: 0 }} title={t.soonTitle}>
-          {t.soon}
-        </span>
       )}
     </div>
   );

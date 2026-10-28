@@ -72,26 +72,58 @@ func contains[T comparable](list []T, v T) bool {
 	return false
 }
 
+// AskOnCatchUp is the data a user can type in when they start a moment themselves: a gross salary
+// (theirs, or one they expect) is enough for the payslip moment.
+var AskOnCatchUp = []string{"grossMonthly"}
+
+// CatchUpNeeds says whether the user can start this moment themselves, and which data they must
+// type in first (only fields in AskOnCatchUp). Starting it yourself skips the situation check:
+// a student may want to see their first payslip before they have one.
+func CatchUpNeeds(def Definition, u domain.User) (ok bool, needs []string) {
+	for _, field := range def.Conditions.Requires {
+		if !missingField(field, u) {
+			continue
+		}
+		if !contains(AskOnCatchUp, field) {
+			return false, nil
+		}
+		needs = append(needs, field)
+	}
+	return true, needs
+}
+
+func situationOK(def Definition, u domain.User) bool {
+	s := def.Conditions.Situations
+	if len(s) == 0 {
+		return true
+	}
+	for _, x := range s {
+		if u.HasSituation(x) {
+			return true
+		}
+	}
+	return false
+}
+
 func missingRequirement(def Definition, u domain.User) bool {
 	for _, field := range def.Conditions.Requires {
-		switch field {
-		case "grossMonthly":
-			if u.GrossMonthly == nil {
-				return true
-			}
-		case "spending":
-			if u.Spending == nil {
-				return true
-			}
-		case "hireDate":
-			if u.HireDate == nil {
-				return true
-			}
-		case "monthlyExpenses":
-			if u.MonthlyExpenses == nil {
-				return true
-			}
+		if missingField(field, u) {
+			return true
 		}
+	}
+	return false
+}
+
+func missingField(field string, u domain.User) bool {
+	switch field {
+	case "grossMonthly":
+		return u.GrossMonthly == nil
+	case "spending":
+		return u.Spending == nil
+	case "hireDate":
+		return u.HireDate == nil
+	case "monthlyExpenses":
+		return u.MonthlyExpenses == nil
 	}
 	return false
 }
@@ -123,15 +155,9 @@ func Decide(defs []Definition, u domain.User, ev Event, runs []domain.MomentRun,
 			continue
 		}
 
-		if s := def.Conditions.Situations; len(s) > 0 {
-			ok := false
-			for _, x := range s {
-				ok = ok || u.HasSituation(x)
-			}
-			if !ok {
-				d.Skipped = append(d.Skipped, Skip{def.ID, SkipSituation})
-				continue
-			}
+		if ev.Type != domain.CatchUp && !situationOK(def, u) {
+			d.Skipped = append(d.Skipped, Skip{def.ID, SkipSituation})
+			continue
 		}
 		if missingRequirement(def, u) {
 			d.Skipped = append(d.Skipped, Skip{def.ID, SkipMissingData})

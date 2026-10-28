@@ -1,5 +1,5 @@
 {
-  "note": "Parteneri de demo. Numele și comisioanele sunt exemple; nu folosiți numele sau identitatea vizuală a unei bănci reale fără un acord semnat.",
+  "note": "Doar banca fictivă de demo. Băncile reale din offers.json nu sunt parteneri: nu au acord cu Rost, deci nu primesc eticheta de partener și nu plătesc comision. Nu folosiți numele sau identitatea vizuală a unei bănci reale ca partener fără un acord semnat.",
   "partners": [
     {
       "id": "demo-bank",
@@ -11,23 +11,6 @@
         "ink": "#0F1C24"
       },
       "secretEnv": "PARTNER_DEMO_SECRET",
-      "feePerFundedLei": 0
-    },
-    {
-      "id": "bank-b",
-      "kind": "bank",
-      "displayName": "Banca B",
-      "theme": null,
-      "secretEnv": null,
-      "feePerFundedLei": 50,
-      "feeIsExample": true
-    },
-    {
-      "id": "bank-c",
-      "kind": "bank",
-      "displayName": "Banca C",
-      "theme": null,
-      "secretEnv": null,
       "feePerFundedLei": 50,
       "feeIsExample": true
     }

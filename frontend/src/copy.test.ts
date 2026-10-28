@@ -1,8 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assetsFor, dateEn, newsFor, savingsFor } from './data/fixtures/en';
-import { LIBRARY, libraryFor } from './data/fixtures/moments';
+import { assetsFor, dateEn, newsFor } from './data/fixtures/en';
 import { QUIZ, QUIZ_EN } from './data/fixtures/quiz';
 
 const ROOT = new URL('.', import.meta.url).pathname;
@@ -59,52 +58,25 @@ describe('UI copy', () => {
 });
 
 describe('English content mirrors Romanian', () => {
-  it('lessons: same lessons, screens, answers and numbers', () => {
-    const shape = (lang: 'ro' | 'en') =>
-      libraryFor(lang).map((m) => ({
-        id: m.id,
-        level: m.level,
-        minutes: m.minutes,
-        takeaways: m.takeaways.length,
-        steps: m.steps.map((s) => {
-          switch (s.type) {
-            case 'choice':
-              return [s.type, s.options.length, s.correct];
-            case 'predict':
-              return [s.type, s.answerValue, s.min, s.max, s.step, s.start];
-            case 'sort':
-              return [s.type, s.items.map((i) => i.bucket)];
-            case 'explore':
-              return [s.type, s.widget];
-            case 'asset_range':
-              return [s.type, s.assetId];
-            case 'finish':
-              return [s.type, s.cta.href];
-            default:
-              return [s.type];
-          }
-        }),
-      }));
-    expect(shape('en')).toEqual(shape('ro'));
-    expect(libraryFor('ro')).toBe(LIBRARY);
-  });
+  // Lessons live in the backend now; its tests check that every English lesson mirrors the Romanian one.
 
-  it('quiz: same questions, options and right answers', () => {
-    expect(QUIZ_EN.knowledge.map((q) => [q.id, q.options.length, q.correct])).toEqual(QUIZ.knowledge.map((q) => [q.id, q.options.length, q.correct]));
+  it('quiz: same questions, tiers, options and right answers', () => {
+    // scoring.test.ts checks the Romanian quiz against the backend's
+    const shape = (k: typeof QUIZ.knowledge) => k.map((q) => [q.id, q.tier, q.options.length, q.correct]);
+    expect(shape(QUIZ_EN.knowledge)).toEqual(shape(QUIZ.knowledge));
     for (const key of ['ageBand', 'situation', 'bufferMonths', 'expensiveDebt'] as const) {
       expect(QUIZ_EN.profile[key].map((o) => o.value)).toEqual(QUIZ.profile[key].map((o) => o.value));
     }
   });
 
-  it('assets, news and providers: English text, Romanian numbers', () => {
+  it('assets and news: English text, Romanian numbers', () => {
     const strip = <T extends object>(xs: T[], keys: string[]) => xs.map((x) => Object.fromEntries(Object.entries(x).filter(([k]) => keys.includes(k))));
     expect(strip(assetsFor('en'), ['id', 'risk', 'lessonLevel', 'momentId'])).toEqual(strip(assetsFor('ro'), ['id', 'risk', 'lessonLevel', 'momentId']));
-    expect(strip(savingsFor('en'), ['id', 'grossRatePct', 'termMonths', 'offerId'])).toEqual(strip(savingsFor('ro'), ['id', 'grossRatePct', 'termMonths', 'offerId']));
     expect(newsFor('en').map((n) => [n.id, n.sources.length, n.facts.length > 0])).toEqual(newsFor('ro').map((n) => [n.id, n.sources.length, true]));
     expect(newsFor('en').flatMap((n) => n.sources.map((s) => s.date))).not.toContain('28 oct. 2026');
     expect(dateEn('7 oct. 2026')).toBe('7 Oct 2026');
     expect(dateEn('2026')).toBe('2026');
-    for (const text of [...assetsFor('en').map((a) => a.whatItIs), ...newsFor('en').map((n) => n.title), ...savingsFor('en').map((p) => p.product)]) {
+    for (const text of [...assetsFor('en').map((a) => a.whatItIs), ...newsFor('en').map((n) => n.title)]) {
       expect(text).not.toMatch(DIACRITICS);
     }
   });

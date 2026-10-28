@@ -19,4 +19,11 @@ describe('profile cookie parsing', () => {
   it('reads back a valid profile unchanged', () => {
     expect(parseProfile(JSON.stringify(PERSONAS.maria))).toEqual(PERSONAS.maria);
   });
+
+  it('keeps lessons in progress, and drops a broken progress block without losing the profile', () => {
+    const ok = { ...PERSONAS.maria, lessonProgress: { etf: { step: 2, results: [true, false], of: 7 } } };
+    expect(parseProfile(JSON.stringify(ok))).toEqual(ok);
+    const bad = { ...PERSONAS.maria, lessonProgress: { etf: { step: 'two', results: [], of: 7 } } };
+    expect(parseProfile(JSON.stringify(bad))).toEqual(PERSONAS.maria);
+  });
 });

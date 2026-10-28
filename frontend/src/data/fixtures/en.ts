@@ -1,9 +1,7 @@
 import type { Lang } from '@/i18n/lang';
-import type { Asset, AssetId, Broker, NewsItem, SavingsProvider } from '../types';
+import type { Asset, AssetId, NewsItem } from '../types';
 import { ASSETS } from './assets';
-import { BROKERS } from './brokers';
 import { NEWS } from './news';
-import { SAVINGS } from './providers';
 
 /**
  * English text for the asset, news and provider fixtures. Only words live here; numbers, ids and
@@ -101,15 +99,6 @@ const MONTHS: Record<string, string> = {
 /** "28 oct. 2026" → "28 Oct 2026". Anything else (e.g. a bare year) is left as it is. */
 export const dateEn = (ro: string) => ro.replace(/\b(ian\.|feb\.|mar\.|apr\.|mai|iun\.|iul\.|aug\.|sept\.|oct\.|nov\.|dec\.)(?=\s)/, (m) => MONTHS[m]);
 
-/** Provider product names in English. */
-function productEn(ro: string): string {
-  return ro
-    .replace('Cont de economii', 'Savings account')
-    .replace(/Depozit la (\d+) (de )?luni/, '$1-month deposit')
-    .replace(/, (\d+) an$/, ', $1 year')
-    .replace(/, (\d+) ani/, ', $1 years');
-}
-
 export function assetsFor(lang: Lang): Asset[] {
   if (lang === 'ro') return ASSETS;
   return ASSETS.map((a) => {
@@ -129,14 +118,4 @@ export function newsFor(lang: Lang): NewsItem[] {
     const impact = n.impact.kind === 'savings' && en.alternative ? { ...n.impact, alternative: { ...n.impact.alternative, label: en.alternative } } : n.impact;
     return { ...n, date: en.date, title: en.title, facts: en.facts, sources: n.sources.map((s, i) => ({ ...s, label: en.sources[i] ?? s.label, date: dateEn(s.date) })), impact };
   });
-}
-
-export function savingsFor(lang: Lang): SavingsProvider[] {
-  if (lang === 'ro') return SAVINGS;
-  return SAVINGS.map((p) => ({ ...p, name: p.name === 'Statul român' ? 'Romanian state' : p.name.replace('Banca ', 'Bank '), product: productEn(p.product) }));
-}
-
-export function brokersFor(lang: Lang): Broker[] {
-  if (lang === 'ro') return BROKERS;
-  return BROKERS.map((b) => ({ ...b, name: b.name.replace('(UE)', '(EU)') }));
 }

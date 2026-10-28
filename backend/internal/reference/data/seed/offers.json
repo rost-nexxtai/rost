@@ -1,142 +1,861 @@
 {
-  "note": "OFERTE DE EXEMPLU pentru demo. Ratele și furnizorii sunt ilustrativi, nu date de piață. Înlocuiți cu un flux actualizat săptămânal (site-urile băncilor, MFP pentru titluri de stat) înainte de orice folosire reală.",
+  "note": "Oferte reale din România, cu sursa și luna verificării. Ratele se schimbă des: verificați-le pe site-ul oficial înainte de orice decizie și actualizați fișierul lunar. Singurul partener e banca fictivă demo-bank, folosită doar în demo-ul de recomandare din Simulator.",
   "offers": [
     {
-      "id": "fidelis-2y-lei",
-      "provider": "Statul român",
-      "product": "Fidelis, 2 ani (lei)",
-      "kind": "state_bond",
-      "grossRatePct": 7.6,
-      "termMonths": 24,
-      "accessRank": 3,
-      "minAmountLei": 5000,
-      "conditions": [
-        "Se cumpără prin bancă sau broker, în perioada de subscriere"
-      ],
-      "partnerId": null,
-      "example": true,
-      "updatedAt": "2026-10-28"
-    },
-    {
       "id": "tezaur-1y",
+      "assetId": "titluri_stat",
       "provider": "Statul român",
       "product": "Tezaur, 1 an",
       "kind": "state_bond",
-      "grossRatePct": 7.4,
+      "grossRatePct": 6.5,
       "termMonths": 12,
       "accessRank": 3,
       "minAmountLei": 1,
       "conditions": [
-        "La Trezorerie, la Poștă sau online"
+        "Subscrieri 5 octombrie – 6 noiembrie 2026, pe Ghișeul.ro, în SPV, la Trezorerie sau la Poștă"
       ],
       "partnerId": null,
-      "example": true,
+      "url": "https://mfinante.gov.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "Ministerul Finanțelor, emisiunile din octombrie 2026, via Goldring",
+        "url": "https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "tezaur-3y",
+      "assetId": "titluri_stat",
+      "provider": "Statul român",
+      "product": "Tezaur, 3 ani",
+      "kind": "state_bond",
+      "grossRatePct": 7.0,
+      "termMonths": 36,
+      "accessRank": 3,
+      "minAmountLei": 1,
+      "conditions": [
+        "Subscrieri 5 octombrie – 6 noiembrie 2026, pe Ghișeul.ro, în SPV, la Trezorerie sau la Poștă"
+      ],
+      "partnerId": null,
+      "url": "https://mfinante.gov.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "Ministerul Finanțelor, emisiunile din octombrie 2026, via Goldring",
+        "url": "https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "tezaur-5y",
+      "assetId": "titluri_stat",
+      "provider": "Statul român",
+      "product": "Tezaur, 5 ani",
+      "kind": "state_bond",
+      "grossRatePct": 7.5,
+      "termMonths": 60,
+      "accessRank": 3,
+      "minAmountLei": 1,
+      "conditions": [
+        "Subscrieri 5 octombrie – 6 noiembrie 2026, pe Ghișeul.ro, în SPV, la Trezorerie sau la Poștă"
+      ],
+      "partnerId": null,
+      "url": "https://mfinante.gov.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "Ministerul Finanțelor, emisiunile din octombrie 2026, via Goldring",
+        "url": "https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "fidelis-2y-lei",
+      "assetId": "titluri_stat",
+      "provider": "Statul român",
+      "product": "Fidelis, 2 ani (lei)",
+      "kind": "state_bond",
+      "grossRatePct": 6.6,
+      "termMonths": 24,
+      "accessRank": 3,
+      "minAmountLei": 5000,
+      "conditions": [
+        "Emisiunea din 2–9 octombrie 2026 s-a încheiat; următoarea se anunță lunar",
+        "Prin bănci și brokeri: BT, BCR, BRD, UniCredit, BT Capital Partners, Tradeville"
+      ],
+      "partnerId": null,
+      "url": "https://mfinante.gov.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "Ministerul Finanțelor, emisiunile din octombrie 2026, via Goldring",
+        "url": "https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026"
+      },
       "updatedAt": "2026-10-28"
     },
     {
       "id": "fidelis-4y-lei",
+      "assetId": "titluri_stat",
       "provider": "Statul român",
       "product": "Fidelis, 4 ani (lei)",
       "kind": "state_bond",
-      "grossRatePct": 7.45,
+      "grossRatePct": 7.15,
       "termMonths": 48,
       "accessRank": 3,
       "minAmountLei": 5000,
       "conditions": [
-        "Se cumpără prin bancă sau broker, în perioada de subscriere"
+        "Emisiunea din 2–9 octombrie 2026 s-a încheiat; următoarea se anunță lunar",
+        "Prin bănci și brokeri: BT, BCR, BRD, UniCredit, BT Capital Partners, Tradeville"
       ],
       "partnerId": null,
-      "example": true,
+      "url": "https://mfinante.gov.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "Ministerul Finanțelor, emisiunile din octombrie 2026, via Goldring",
+        "url": "https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026"
+      },
       "updatedAt": "2026-10-28"
     },
     {
-      "id": "bank-a-12m",
-      "provider": "Banca A",
-      "product": "Depozit la 12 luni",
-      "kind": "deposit",
-      "grossRatePct": 5.25,
-      "termMonths": 12,
-      "accessRank": 2,
-      "minAmountLei": 500,
+      "id": "fidelis-10y-lei",
+      "assetId": "titluri_stat",
+      "provider": "Statul român",
+      "product": "Fidelis, 10 ani (lei)",
+      "kind": "state_bond",
+      "grossRatePct": 7.75,
+      "termMonths": 120,
+      "accessRank": 3,
+      "minAmountLei": 5000,
       "conditions": [
-        "Doar pentru bani noi"
+        "Emisiunea din 2–9 octombrie 2026 s-a încheiat; următoarea se anunță lunar",
+        "Prin bănci și brokeri: BT, BCR, BRD, UniCredit, BT Capital Partners, Tradeville"
       ],
       "partnerId": null,
-      "example": true,
+      "url": "https://mfinante.gov.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "Ministerul Finanțelor, emisiunile din octombrie 2026, via Goldring",
+        "url": "https://www.goldring.ro/ro/news/ministerul-finantelor-majoreaza-dobanzile-la-titlurile-de-stat-fidelis-si-tezaur-in-octombrie-2026"
+      },
       "updatedAt": "2026-10-28"
     },
     {
-      "id": "bank-b-12m",
-      "provider": "Banca B",
-      "product": "Depozit la 12 luni",
-      "kind": "deposit",
-      "grossRatePct": 4.8,
-      "termMonths": 12,
-      "accessRank": 2,
-      "minAmountLei": 500,
-      "conditions": [],
-      "partnerId": "bank-b",
-      "example": true,
-      "updatedAt": "2026-10-28"
-    },
-    {
-      "id": "bank-c-12m",
-      "provider": "Banca C",
-      "product": "Depozit la 12 luni",
-      "kind": "deposit",
-      "grossRatePct": 4.4,
-      "termMonths": 12,
-      "accessRank": 2,
-      "minAmountLei": 500,
-      "conditions": [
-        "Necesită cont de salariu"
-      ],
-      "partnerId": "bank-c",
-      "example": true,
-      "updatedAt": "2026-10-28"
-    },
-    {
-      "id": "bank-a-36m",
-      "provider": "Banca A",
-      "product": "Depozit la 36 de luni",
+      "id": "tbi-economii",
+      "assetId": "cont_economii",
+      "provider": "TBI Bank",
+      "product": "Cont de economii",
       "kind": "deposit",
       "grossRatePct": 5.0,
-      "termMonths": 36,
-      "accessRank": 2,
-      "minAmountLei": 500,
-      "conditions": [],
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [
+        "Dobândă fixă pentru solduri de până la 500.000 lei"
+      ],
       "partnerId": null,
-      "example": true,
+      "url": "https://tbibank.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
       "updatedAt": "2026-10-28"
     },
     {
-      "id": "bank-b-savings",
-      "provider": "Banca B",
+      "id": "exim-cont-flexibil",
+      "assetId": "cont_economii",
+      "provider": "EXIM Banca Românească",
+      "product": "Cont flexibil",
+      "kind": "deposit",
+      "grossRatePct": 3.5,
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [
+        "3,50% până la 50.000 lei, 4,00% peste"
+      ],
+      "partnerId": null,
+      "url": "https://www.eximbank.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "unicredit-economii",
+      "assetId": "cont_economii",
+      "provider": "UniCredit Bank",
       "product": "Cont de economii",
       "kind": "deposit",
       "grossRatePct": 3.5,
       "termMonths": 0,
       "accessRank": 1,
       "minAmountLei": 0,
-      "conditions": [],
-      "partnerId": "bank-b",
-      "example": true,
+      "conditions": [
+        "Dobândă variabilă"
+      ],
+      "partnerId": null,
+      "url": "https://www.unicredit.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
       "updatedAt": "2026-10-28"
     },
     {
-      "id": "bank-d-savings",
-      "provider": "Banca D",
-      "product": "Cont de economii",
+      "id": "cec-economiseste-smart",
+      "assetId": "cont_economii",
+      "provider": "CEC Bank",
+      "product": "Economisește smart",
       "kind": "deposit",
-      "grossRatePct": 3.8,
+      "grossRatePct": 3.25,
       "termMonths": 0,
       "accessRank": 1,
       "minAmountLei": 0,
       "conditions": [
-        "Doar din aplicația băncii"
+        "Între 2,00% și 3,50% după sold; 3,25% la 5.000–24.999 lei"
       ],
       "partnerId": null,
+      "url": "https://www.cec.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "bt-economii",
+      "assetId": "cont_economii",
+      "provider": "Banca Transilvania",
+      "product": "Cont de economii BT",
+      "kind": "deposit",
+      "grossRatePct": 3.1,
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [
+        "Între 3,00% și 3,35% după sold; 3,10% la 10.000–99.999 lei"
+      ],
+      "partnerId": null,
+      "url": "https://www.bancatransilvania.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "brd-you-save",
+      "assetId": "cont_economii",
+      "provider": "BRD",
+      "product": "YOU Save",
+      "kind": "deposit",
+      "grossRatePct": 2.5,
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [
+        "2,50% până la 199.999 lei"
+      ],
+      "partnerId": null,
+      "url": "https://www.brd.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "bcr-maxicont",
+      "assetId": "cont_economii",
+      "provider": "BCR",
+      "product": "MAXICONT",
+      "kind": "deposit",
+      "grossRatePct": 2.0,
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [
+        "Între 2,00% și 2,50%, după nivelul din aplicația George"
+      ],
+      "partnerId": null,
+      "url": "https://www.bcr.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "ing-economii",
+      "assetId": "cont_economii",
+      "provider": "ING Bank",
+      "product": "ING Economii",
+      "kind": "deposit",
+      "grossRatePct": 2.0,
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://ing.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "libra-economii",
+      "assetId": "cont_economii",
+      "provider": "Libra Internet Bank",
+      "product": "Cont de economii",
+      "kind": "deposit",
+      "grossRatePct": 2.0,
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.librabank.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "raiffeisen-super-acces-plus",
+      "assetId": "cont_economii",
+      "provider": "Raiffeisen Bank",
+      "product": "Super Acces Plus",
+      "kind": "deposit",
+      "grossRatePct": 2.0,
+      "termMonths": 0,
+      "accessRank": 1,
+      "minAmountLei": 0,
+      "conditions": [
+        "2,00% până la 50.000 lei; oferta de 5% pentru clienți noi s-a încheiat pe 31.08.2026"
+      ],
+      "partnerId": null,
+      "url": "https://www.raiffeisen.ro",
+      "checkedAt": "2026-07",
+      "source": {
+        "label": "financer.ro, verificat iulie 2026",
+        "url": "https://financer.ro/banii-tai/cont-de-economii/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "procredit-12m",
+      "assetId": "depozit",
+      "provider": "ProCredit Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 7.0,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.procreditbank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "tbi-12m",
+      "assetId": "depozit",
+      "provider": "TBI Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 6.5,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://tbibank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "unicredit-12m",
+      "assetId": "depozit",
+      "provider": "UniCredit Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 6.3,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [
+        "Pentru bani noi"
+      ],
+      "partnerId": null,
+      "url": "https://www.unicredit.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "libra-12m",
+      "assetId": "depozit",
+      "provider": "Libra Internet Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 6.1,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [
+        "Deschis online sau din bani noi"
+      ],
+      "partnerId": null,
+      "url": "https://www.librabank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "intesa-12m",
+      "assetId": "depozit",
+      "provider": "Intesa Sanpaolo Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.75,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.intesasanpaolobank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "salt-12m",
+      "assetId": "depozit",
+      "provider": "Salt Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.6,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://salt.bank",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "bt-12m",
+      "assetId": "depozit",
+      "provider": "Banca Transilvania",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.5,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.bancatransilvania.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "cec-12m",
+      "assetId": "depozit",
+      "provider": "CEC Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.25,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.cec.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "raiffeisen-12m",
+      "assetId": "depozit",
+      "provider": "Raiffeisen Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.2,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.raiffeisen.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "brd-12m",
+      "assetId": "depozit",
+      "provider": "BRD",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.2,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.brd.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "garanti-12m",
+      "assetId": "depozit",
+      "provider": "Garanti BBVA",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.1,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [
+        "Deschis online sau din bani noi"
+      ],
+      "partnerId": null,
+      "url": "https://www.garantibbva.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "ing-12m",
+      "assetId": "depozit",
+      "provider": "ING Bank",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.0,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://ing.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "bcr-12m",
+      "assetId": "depozit",
+      "provider": "BCR",
+      "product": "Depozit la 12 luni",
+      "kind": "deposit",
+      "grossRatePct": 5.0,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.bcr.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "raiffeisen-24m",
+      "assetId": "depozit",
+      "provider": "Raiffeisen Bank",
+      "product": "Depozit la 24 de luni",
+      "kind": "deposit",
+      "grossRatePct": 6.0,
+      "termMonths": 24,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [
+        "Deschis online sau din bani noi"
+      ],
+      "partnerId": null,
+      "url": "https://www.raiffeisen.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "tbi-24m",
+      "assetId": "depozit",
+      "provider": "TBI Bank",
+      "product": "Depozit la 24 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.95,
+      "termMonths": 24,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://tbibank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "intesa-24m",
+      "assetId": "depozit",
+      "provider": "Intesa Sanpaolo Bank",
+      "product": "Depozit la 24 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.75,
+      "termMonths": 24,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.intesasanpaolobank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "procredit-24m",
+      "assetId": "depozit",
+      "provider": "ProCredit Bank",
+      "product": "Depozit la 24 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.5,
+      "termMonths": 24,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.procreditbank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "bt-24m",
+      "assetId": "depozit",
+      "provider": "Banca Transilvania",
+      "product": "Depozit la 24 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.25,
+      "termMonths": 24,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.bancatransilvania.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "cec-24m",
+      "assetId": "depozit",
+      "provider": "CEC Bank",
+      "product": "Depozit la 24 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.0,
+      "termMonths": 24,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.cec.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "bt-36m",
+      "assetId": "depozit",
+      "provider": "Banca Transilvania",
+      "product": "Depozit la 36 de luni",
+      "kind": "deposit",
+      "grossRatePct": 6.75,
+      "termMonths": 36,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.bancatransilvania.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "tbi-36m",
+      "assetId": "depozit",
+      "provider": "TBI Bank",
+      "product": "Depozit la 36 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.95,
+      "termMonths": 36,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://tbibank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "intesa-36m",
+      "assetId": "depozit",
+      "provider": "Intesa Sanpaolo Bank",
+      "product": "Depozit la 36 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.75,
+      "termMonths": 36,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.intesasanpaolobank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "cec-36m",
+      "assetId": "depozit",
+      "provider": "CEC Bank",
+      "product": "Depozit la 36 de luni",
+      "kind": "deposit",
+      "grossRatePct": 5.0,
+      "termMonths": 36,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.cec.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "libra-36m",
+      "assetId": "depozit",
+      "provider": "Libra Internet Bank",
+      "product": "Depozit la 36 de luni",
+      "kind": "deposit",
+      "grossRatePct": 4.75,
+      "termMonths": 36,
+      "accessRank": 2,
+      "minAmountLei": 0,
+      "conditions": [],
+      "partnerId": null,
+      "url": "https://www.librabank.ro",
+      "checkedAt": "2026-10",
+      "source": {
+        "label": "financer.ro, tabel octombrie 2026",
+        "url": "https://financer.ro/investitii/depozite-bancare/"
+      },
+      "updatedAt": "2026-10-28"
+    },
+    {
+      "id": "demo-bank-12m",
+      "assetId": "depozit",
+      "provider": "[PARTNER BANK]",
+      "product": "Depozit la 12 luni (demo)",
+      "kind": "deposit",
+      "grossRatePct": 5.0,
+      "termMonths": 12,
+      "accessRank": 2,
+      "minAmountLei": 500,
+      "conditions": [
+        "Bancă fictivă pentru demo"
+      ],
+      "partnerId": "demo-bank",
       "example": true,
+      "demoOnly": true,
       "updatedAt": "2026-10-28"
     }
   ]

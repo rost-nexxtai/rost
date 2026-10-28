@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
@@ -38,10 +38,16 @@ export function FinishStep({
   const router = useRouter();
   const t = LESSON[useLang().lang];
   const [line, setLine] = useState<string>();
+  // The completion is saved while this screen shows. Leaving waits for it, so a quick tap on the
+  // button never leaves the lesson unmarked.
+  const saved = useRef<Promise<unknown>>(Promise.resolve());
   useEffect(() => {
-    onFinish().then(setLine).catch(() => setLine(''));
+    saved.current = onFinish().then(setLine).catch(() => setLine(''));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const go = (href: string) => {
+    void saved.current.then(() => router.push(href));
+  };
   const minutes = Math.max(1, Math.round(seconds / 60));
 
   return (
@@ -87,12 +93,19 @@ export function FinishStep({
           </div>
         )}
         {cta.href !== '/momente' && (
-          <Link href="/momente" className="small">
+          <Link
+            href="/momente"
+            className="small"
+            onClick={(e) => {
+              e.preventDefault();
+              go('/momente');
+            }}
+          >
             {t.backToMoments}
           </Link>
         )}
       </div>
-      <LessonBar label={cta.label} onClick={() => router.push(cta.href)} />
+      <LessonBar label={cta.label} onClick={() => go(cta.href)} />
     </>
   );
 }

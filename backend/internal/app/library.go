@@ -2,13 +2,16 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"reflect"
 	"slices"
 
 	"rost/backend/internal/clock"
 	"rost/backend/internal/content"
 	"rost/backend/internal/domain"
 	"rost/backend/internal/learning"
+	"rost/backend/internal/moments"
 	"rost/backend/internal/reference"
 	"rost/backend/internal/rules"
 	"rost/backend/internal/store"
@@ -23,18 +26,20 @@ var (
 
 // was in the today handler, momente needs it too
 type TodayState struct {
-	Open         []domain.MomentRun
-	DoneIDs      []string
-	CatchUpIDs   []string
+	Open       []domain.MomentRun
+	DoneIDs    []string
+	CatchUpIDs []string
+	// CatchUpNeeds: data to ask before a catch-up can open, by moment id (moments.AskOnCatchUp).
+	CatchUpNeeds map[string][]string
 	DueFollowUps []domain.Action
 }
 
-func (s Service) Today(ctx context.Context, userID string) (TodayState, error) {
-	runs, err := s.Store.ListRuns(ctx, userID)
+func (s Service) Today(ctx context.Context, u domain.User) (TodayState, error) {
+	runs, err := s.Store.ListRuns(ctx, u.ID)
 	if err != nil {
 		return TodayState{}, err
 	}
-	t := TodayState{Open: []domain.MomentRun{}, DoneIDs: []string{}, CatchUpIDs: []string{}}
+	t := TodayState{Open: []domain.MomentRun{}, DoneIDs: []string{}, CatchUpIDs: []string{}, CatchUpNeeds: map[string][]string{}}
 	openIDs, done := map[string]bool{}, map[string]bool{}
 	for _, run := range runs {
 		switch run.State {
@@ -48,13 +53,20 @@ func (s Service) Today(ctx context.Context, userID string) (TodayState, error) {
 			}
 		}
 	}
-	// Ids are the same in every language.
+	// Ids are the same in every language. Only moments a catch-up can open, or open once the user
+	// types a salary: one that needs spending they never gave would be a Start button that does nothing.
 	for _, d := range reference.MomentDefs(reference.RO) {
-		if !done[d.ID] && !openIDs[d.ID] && d.Triggers[0] != domain.ShockScenario {
+		if done[d.ID] || openIDs[d.ID] || d.Triggers[0] == domain.ShockScenario {
+			continue
+		}
+		if ok, needs := moments.CatchUpNeeds(d, u); ok {
 			t.CatchUpIDs = append(t.CatchUpIDs, d.ID)
+			if len(needs) > 0 {
+				t.CatchUpNeeds[d.ID] = needs
+			}
 		}
 	}
-	t.DueFollowUps, err = s.DueFollowUps(ctx, userID)
+	t.DueFollowUps, err = s.DueFollowUps(ctx, u.ID)
 	return t, err
 }
 
@@ -103,10 +115,13 @@ func InflationFor(u domain.User) float64 {
 	return cpi.HeadlinePct
 }
 
-func completedIDs(cs []domain.Completion) []string {
+// passedIDs are the lessons whose best attempt passed: only those count as done and toward a level.
+func passedIDs(cs []domain.Completion) []string {
 	ids := make([]string, 0, len(cs))
 	for _, c := range cs {
-		ids = append(ids, c.MomentID)
+		if learning.Passed(c.Correct, c.Total) {
+			ids = append(ids, c.MomentID)
+		}
 	}
 	return ids
 }
@@ -124,7 +139,7 @@ func (s Service) Profile(ctx context.Context, u domain.User) (*domain.Profile, e
 	if err != nil {
 		return nil, err
 	}
-	return learning.BuildProfile(u, completedIDs(done), learning.CoreByLevel(library), InflationFor(u)), nil
+	return learning.BuildProfile(u, passedIDs(done), learning.CoreByLevel(library), InflationFor(u)), nil
 }
 
 // nil in Knowledge = "nu știu"
@@ -160,11 +175,13 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 	questions := reference.Quiz()
 	out := QuizOutcome{Results: make([]QuizResult, 0, len(questions))}
 	score := 0
+	tiers, right := make([]int, len(questions)), make([]bool, len(questions))
 	for i, q := range questions {
 		ok := i < len(in.Knowledge) && in.Knowledge[i] != nil && *in.Knowledge[i] == q.Correct
 		if ok {
 			score++
 		}
+		tiers[i], right[i] = q.Tier, ok
 		out.Results = append(out.Results, QuizResult{ID: q.ID, Correct: ok, CorrectIndex: q.Correct, Explain: q.Explain})
 	}
 
@@ -189,7 +206,7 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 		return *p
 	}
 	u.Quiz = &domain.QuizProfile{
-		Score: score, Level: learning.LevelFromScore(score), AgeBand: in.AgeBand, Situation: string(in.Situation),
+		Score: score, Level: learning.PlaceLevel(tiers, right), AgeBand: in.AgeBand, Situation: string(in.Situation),
 		BufferMonths: in.BufferMonths, ExpensiveDebt: in.ExpensiveDebt, Horizon: in.Horizon,
 		FuelLei: orZero(in.FuelLei), ElectricityLei: orZero(in.ElectricityLei), SavedLei: orZero(in.SavedLei), TakenAt: clock.NowISO(),
 	}
@@ -213,13 +230,15 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 type CompleteOutcome struct {
 	Profile *domain.Profile `json:"profile"`
 	LevelUp bool            `json:"levelUp"`
-	// true = nothing changed
+	// true = nothing changed: an earlier attempt was as good or better
 	AlreadyDone bool `json:"alreadyDone"`
 	Correct     int  `json:"correct"`
 	Total       int  `json:"total"`
+	// Passed: at least 2 of 3 graded screens right, so the lesson counts toward the next level.
+	Passed bool `json:"passed"`
 }
 
-// counts once per user
+// keeps the best attempt per user; a lesson can be retaken until it's passed
 func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momentID string, answers []learning.Answer) (CompleteOutcome, error) {
 	m, err := s.LibraryMoment(ctx, momentID)
 	if err != nil {
@@ -251,7 +270,7 @@ func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momen
 	if err != nil {
 		return CompleteOutcome{}, err
 	}
-	out := CompleteOutcome{AlreadyDone: !created, Correct: correct, Total: total}
+	out := CompleteOutcome{AlreadyDone: !created, Correct: correct, Total: total, Passed: learning.Passed(correct, total)}
 	if out.Profile, err = s.Profile(ctx, u); err != nil || !created {
 		return out, err
 	}
@@ -262,7 +281,7 @@ func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momen
 		}
 	}
 	events := []domain.TrackEvent{serverEvent(u.ID, "library_completed", map[string]any{
-		"momentId": m.ID, "level": m.Level, "correct": correct, "total": total,
+		"momentId": m.ID, "level": m.Level, "correct": correct, "total": total, "passed": out.Passed,
 	})}
 	if before != nil && out.Profile.Level > before.Level {
 		out.LevelUp = true
@@ -283,7 +302,10 @@ func (s Service) Momente(ctx context.Context, u domain.User, lang reference.Lang
 	if err != nil {
 		return learning.MomenteResponse{}, err
 	}
-	today, err := s.Today(ctx, u.ID)
+	for i := range library {
+		library[i] = content.Localize(library[i], string(lang))
+	}
+	today, err := s.Today(ctx, u)
 	if err != nil {
 		return learning.MomenteResponse{}, err
 	}
@@ -309,4 +331,72 @@ func (s Service) Stiri(ctx context.Context, u domain.User) (learning.StiriRespon
 		return learning.StiriResponse{}, err
 	}
 	return learning.Stiri(news, p.Money), nil
+}
+
+// UpgradeSeededLessons brings lessons already in the database up to date with the seed, on start:
+// a lesson nobody has edited since the seed gets the seed's current version; a lesson an admin
+// edited only gets the seed's English text, and only when it has none and the text fits the
+// lesson's current shape. Admin edits are never overwritten. Returns how many lessons changed.
+func (s Service) UpgradeSeededLessons(ctx context.Context, seed []domain.ContentItem) (int, error) {
+	changed := 0
+	for _, want := range seed {
+		if want.Kind != domain.KindMoment {
+			continue
+		}
+		have, err := s.Store.GetContent(ctx, want.Kind, want.ID)
+		if errors.Is(err, store.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return changed, err
+		}
+		doc, ok, err := upgradedDoc(have, want)
+		if err != nil || !ok {
+			if err != nil {
+				return changed, err
+			}
+			continue
+		}
+		have.Doc = doc
+		if _, err := s.Store.UpdateContent(ctx, have); err != nil {
+			return changed, err
+		}
+		changed++
+	}
+	return changed, nil
+}
+
+func upgradedDoc(have, want domain.ContentItem) ([]byte, bool, error) {
+	ms, err := content.Moments([]domain.ContentItem{have, want})
+	if err != nil {
+		return nil, false, err
+	}
+	current, seeded := ms[0], ms[1]
+	if have.UpdatedBy == "seed" {
+		// Postgres stores JSON in its own key order, so compare the content, not the text.
+		if sameJSON(have.Doc, want.Doc) {
+			return nil, false, nil
+		}
+		return want.Doc, true, nil
+	}
+	if current.EN != nil || seeded.EN == nil {
+		return nil, false, nil
+	}
+	current.EN = seeded.EN
+	_, doc, err := content.Validate(domain.KindMoment, mustJSON(current))
+	if err != nil {
+		// the admin changed the lesson's shape; it stays Romanian until someone translates it
+		return nil, false, nil
+	}
+	return doc, true, nil
+}
+
+func sameJSON(a, b []byte) bool {
+	var x, y any
+	return json.Unmarshal(a, &x) == nil && json.Unmarshal(b, &y) == nil && reflect.DeepEqual(x, y)
+}
+
+func mustJSON(v any) []byte {
+	b, _ := json.Marshal(v)
+	return b
 }

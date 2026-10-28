@@ -16,16 +16,50 @@ var (
 	Horizons = []string{"sub_1_an", "1_3_ani", "peste_3_ani"}
 )
 
-// 3 questions: 0-1 -> L0, 2 -> L1, 3 -> L2
-func LevelFromScore(score int) domain.Level {
-	switch {
-	case score >= 3:
-		return 2
-	case score == 2:
-		return 1
+// PlaceLevel is the starting level from the onboarding answers (docs/level-assessment.md).
+// tiers[i] is the tier question i tests and right[i] whether it was answered right ("Nu știu" and
+// questions never asked are not right). A tier passes when every one of its questions is right;
+// tiers pass in order, so a later tier only counts once every earlier one has passed. The level is
+// the number of tiers passed, at most L2.
+func PlaceLevel(tiers []int, right []bool) domain.Level {
+	maxTier := 0
+	for _, t := range tiers {
+		maxTier = max(maxTier, t)
 	}
-	return 0
+	level := domain.Level(0)
+	for tier := 0; tier <= maxTier && level < 2; tier++ {
+		asked := false
+		for i, t := range tiers {
+			if t != tier {
+				continue
+			}
+			asked = true
+			if i >= len(right) || !right[i] {
+				return level
+			}
+		}
+		if !asked {
+			return level
+		}
+		level++
+	}
+	return level
 }
+
+// AskTier says whether onboarding should still ask a question of this tier: only while every
+// earlier tier has passed, because otherwise the answer can't change the level.
+func AskTier(tier int, tiers []int, right []bool) bool {
+	for i, t := range tiers {
+		if t < tier && (i >= len(right) || !right[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// Passed: a lesson counts toward the next level only with at least 2 of 3 graded screens right.
+// A lesson with nothing graded passes by finishing it.
+func Passed(correct, total int) bool { return total == 0 || correct*3 >= total*2 }
 
 type RiskInput struct {
 	Level         domain.Level
@@ -35,19 +69,17 @@ type RiskInput struct {
 	ExpensiveDebt bool
 }
 
-// level (+1 under 30), then the horizon/buffer/debt caps
+// Risk follows the level (L0 prudent, L1 echilibrat, L2 dinamic), then the horizon/buffer/debt caps.
+// Age doesn't add risk: being young says nothing about knowing what you buy.
 func Risk(in RiskInput) domain.RiskProfile {
 	if in.Horizon == "sub_1_an" {
 		return domain.RiskPrudent
 	}
-	points := int(in.Level)
-	if in.AgeBand != "30_plus" {
-		points++
-	}
 	raw := domain.RiskEchilibrat
-	if points == 0 {
+	switch in.Level {
+	case 0:
 		raw = domain.RiskPrudent
-	} else if points >= 3 {
+	case 2:
 		raw = domain.RiskDinamic
 	}
 	if raw == domain.RiskDinamic && (in.BufferMonths < 3 || in.ExpensiveDebt) {
@@ -83,7 +115,7 @@ func LevelWithMoments(quizLevel domain.Level, core map[domain.Level][]string, co
 	return max(quizLevel, earned)
 }
 
-// nil before the quiz
+// nil before the quiz. completed = the lessons passed (see Passed).
 func BuildProfile(u domain.User, completed []string, core map[domain.Level][]string, inflationPct float64) *domain.Profile {
 	q := u.Quiz
 	if q == nil {
@@ -154,8 +186,8 @@ func ScoreAnswers(m domain.LibraryMoment, answers []Answer) (correct, total int,
 			if a.Value == nil || a.Picked != nil || a.Buckets != nil {
 				return 0, 0, false
 			}
-			// close enough counts, like in the app
-			if content.IsClose(*a.Value, num(step, "answerValue"), num(step, "min"), num(step, "max"), num(step, "step")) {
+			// close enough, or inside the step's acceptRange, counts, like in the app
+			if content.PredictRight(step, *a.Value) {
 				correct++
 			}
 		case "sort":

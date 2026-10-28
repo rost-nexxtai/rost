@@ -6,12 +6,15 @@ export interface KnowledgeQuestion {
   question: string;
   options: string[];
   correct: number;
+  /** The knowledge tier it tests: 0 = the basics (passing skips the L0 lessons), 1 = L1 concepts. */
+  tier: 0 | 1;
 }
 
 /**
- * FIXTURE until backend ships POST /api/quiz. Eight taps in all: four about you, four quick
- * questions that set the starting level. The fourth is harder on purpose, so the basics alone
- * don't place anyone at "advanced". "Nu știu" is added by the UI to every question.
+ * FIXTURE until onboarding uses POST /api/quiz; the questions, right answers and tiers must match
+ * backend/internal/reference/data/seed/quiz.json (a test checks). Four taps about you, then two
+ * questions per tier: the tier-1 pair is only asked once both basics are right (see
+ * docs/level-assessment.md). "Nu știu" is added by the UI to every question.
  */
 export const QUIZ = {
   knowledge: [
@@ -20,24 +23,28 @@ export const QUIZ = {
       question: 'Ții 1.000 lei sub saltea un an, cu inflație de 6%. Cu ei cumperi…',
       options: ['Mai mult', 'La fel', 'Mai puțin'],
       correct: 2,
+      tier: 0,
     },
     {
       id: 'dobanda_compusa',
       question: '1.000 lei la 10% pe an, 2 ani, fără să scoți nimic. Ai…',
       options: ['Exact 1.200 lei', 'Peste 1.200 lei', 'Sub 1.200 lei'],
       correct: 1,
+      tier: 0,
     },
     {
       id: 'actiune_vs_etf',
       question: 'Ce e mai riscant?',
       options: ['Acțiunile unei singure companii', 'Un ETF cu sute de companii', 'La fel de riscante'],
       correct: 0,
+      tier: 1,
     },
     {
       id: 'obligatiuni_dobanzi',
       question: 'Dobânzile cresc. Ce se întâmplă de obicei cu prețul obligațiunilor deja emise?',
       options: ['Crește', 'Scade', 'Rămâne la fel'],
       correct: 1,
+      tier: 1,
     },
   ] satisfies KnowledgeQuestion[],
 
@@ -70,10 +77,10 @@ export const QUIZ = {
 /** The same quiz in English: same questions, same order, same right answers. */
 export const QUIZ_EN: typeof QUIZ = {
   knowledge: [
-    { id: 'inflatie', question: 'You keep 1,000 lei under the mattress for a year, with 6% inflation. With it you can buy…', options: ['More', 'The same', 'Less'], correct: 2 },
-    { id: 'dobanda_compusa', question: '1,000 lei at 10% a year, for 2 years, taking nothing out. You have…', options: ['Exactly 1,200 lei', 'Over 1,200 lei', 'Under 1,200 lei'], correct: 1 },
-    { id: 'actiune_vs_etf', question: 'Which is riskier?', options: ["One company's shares", 'An ETF with hundreds of companies', 'Equally risky'], correct: 0 },
-    { id: 'obligatiuni_dobanzi', question: 'Interest rates go up. What usually happens to the price of bonds already issued?', options: ['It goes up', 'It goes down', 'It stays the same'], correct: 1 },
+    { id: 'inflatie', question: 'You keep 1,000 lei under the mattress for a year, with 6% inflation. With it you can buy…', options: ['More', 'The same', 'Less'], correct: 2, tier: 0 },
+    { id: 'dobanda_compusa', question: '1,000 lei at 10% a year, for 2 years, taking nothing out. You have…', options: ['Exactly 1,200 lei', 'Over 1,200 lei', 'Under 1,200 lei'], correct: 1, tier: 0 },
+    { id: 'actiune_vs_etf', question: 'Which is riskier?', options: ["One company's shares", 'An ETF with hundreds of companies', 'Equally risky'], correct: 0, tier: 1 },
+    { id: 'obligatiuni_dobanzi', question: 'Interest rates go up. What usually happens to the price of bonds already issued?', options: ['It goes up', 'It goes down', 'It stays the same'], correct: 1, tier: 1 },
   ],
   profile: {
     ageBand: [

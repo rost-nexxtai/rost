@@ -2,10 +2,12 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 	"testing"
 
 	"rost/backend/internal/clock"
+	"rost/backend/internal/content"
 	"rost/backend/internal/domain"
 	"rost/backend/internal/reference"
 	"rost/backend/internal/store/storetest"
@@ -107,7 +109,7 @@ func TestDemoFlow(t *testing.T) {
 func TestReferralFeeOnlyForPartners(t *testing.T) {
 	ctx := context.Background()
 	s := Service{Store: storetest.New()}
-	partner, _ := s.TrackReferralClick(ctx, "bank-b-12m", nil)
+	partner, _ := s.TrackReferralClick(ctx, "demo-bank-12m", nil)
 	state, _ := s.TrackReferralClick(ctx, "fidelis-2y-lei", nil)
 	if _, err := s.TrackReferralClick(ctx, "nope", nil); err != ErrUnknownOffer {
 		t.Errorf("unknown offer: %v", err)
@@ -134,5 +136,80 @@ func TestCalendar(t *testing.T) {
 	}
 	if !has(types(CalendarEvents(m, "2026-11-10")), domain.SalaryReceived) {
 		t.Error("no salary on payday")
+	}
+}
+
+func TestUpgradeSeededLessons(t *testing.T) {
+	ctx := context.Background()
+	seed, err := content.Seed()
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := storetest.New()
+	if err := st.SeedContent(ctx, content.SeedName, seed); err != nil {
+		t.Fatal(err)
+	}
+	s := Service{Store: st}
+
+	// An old seed: Romanian only, as it was before the English text existed.
+	stripEN := func(id string) domain.ContentItem {
+		c, _ := st.GetContent(ctx, domain.KindMoment, id)
+		var m domain.LibraryMoment
+		_ = json.Unmarshal(c.Doc, &m)
+		m.EN = nil
+		c.Doc, _ = json.Marshal(m)
+		return c
+	}
+	untouched := stripEN("dobanda_compusa")
+	untouched.UpdatedBy = "seed"
+	edited := stripEN("fondul_urgenta")
+	edited.UpdatedBy = "admin@rost.ro"
+	reshaped := stripEN("etf")
+	reshaped.UpdatedBy = "admin@rost.ro"
+	var r domain.LibraryMoment
+	_ = json.Unmarshal(reshaped.Doc, &r)
+	r.Steps = append(r.Steps[:1], r.Steps[2:]...) // the admin removed a step
+	reshaped.Doc, _ = json.Marshal(r)
+	for _, c := range []domain.ContentItem{untouched, edited, reshaped} {
+		if _, err := st.UpdateContent(ctx, c); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	n, err := s.UpgradeSeededLessons(ctx, seed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 {
+		t.Errorf("upgraded %d lessons, want 2", n)
+	}
+	lessonEN := func(id string) (*domain.LessonText, domain.ContentItem) {
+		c, _ := st.GetContent(ctx, domain.KindMoment, id)
+		var m domain.LibraryMoment
+		_ = json.Unmarshal(c.Doc, &m)
+		return m.EN, c
+	}
+	if en, c := lessonEN("dobanda_compusa"); en == nil || c.UpdatedBy != "seed" {
+		t.Error("seed-owned lesson not upgraded")
+	}
+	if en, c := lessonEN("fondul_urgenta"); en == nil || c.UpdatedBy != "admin@rost.ro" {
+		t.Error("admin-edited lesson didn't get its English, or lost its editor")
+	}
+	if en, _ := lessonEN("etf"); en != nil {
+		t.Error("English added to a lesson whose steps no longer match it")
+	}
+	if n, _ := s.UpgradeSeededLessons(ctx, seed); n != 0 {
+		t.Errorf("second run changed %d lessons", n)
+	}
+	// Postgres hands JSON back with its own key order and spacing; that alone isn't a change.
+	c, _ := st.GetContent(ctx, domain.KindMoment, "dobanda_compusa")
+	var doc map[string]any
+	_ = json.Unmarshal(c.Doc, &doc)
+	c.Doc, _ = json.MarshalIndent(doc, "", "    ")
+	if _, err := st.UpdateContent(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := s.UpgradeSeededLessons(ctx, seed); n != 0 {
+		t.Errorf("reformatted JSON counted as %d changes", n)
 	}
 }

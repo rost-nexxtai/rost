@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Simulation } from '@/components/assets/Simulation';
-import { ProviderRow } from '@/components/assets/ProviderRow';
+import { ProviderList } from '@/components/assets/ProviderList';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { RiskMeter } from '@/components/ui/RiskMeter';
@@ -23,9 +23,10 @@ const T = copy(
     tax: 'Impozit 2026',
     where: 'Unde găsești',
     brokers: 'Brokeri',
-    orderSavings: 'Ordinea vine dintr-o formulă publică: randament după impozit, apoi acces, apoi nume. ',
-    orderBrokers: 'Ordinea vine dintr-o formulă publică: costul unui ordin de 1.000 lei (comision plus diferența de curs), apoi nume. ',
-    partners: 'Partenerii nu plătesc pentru poziție; primim un comision fix doar dacă deschizi și alimentezi un cont.',
+    orderSavings: 'Întâi cea mai bună ofertă a fiecărei bănci, de la banca cu cei mai mulți clienți în România în jos, apoi celelalte termene. Cea mai bună rată poate fi mai jos în listă, așa că uită-te la toate. ',
+    orderBrokers: 'Primii sunt brokerii cu cei mai mulți clienți în România; cei fără o cifră publică pentru România vin după, cel mai ieftin întâi. ',
+    partners: 'Nu avem parteneri printre ei și nu primim nimic de la nimeni pentru poziție. Ratele și comisioanele se schimbă des: verifică-le pe site-ul oficial înainte să deschizi ceva.',
+    down: 'Nu putem încărca lista acum. Încearcă din nou peste un minut.',
     simulation: 'Simulare',
     learnMore: (name: string) => `Vreau să aflu mai multe despre ${name}`,
     note: 'Educație financiară, nu consultanță de investiții. Verifică termenii furnizorului înainte să deschizi ceva.',
@@ -41,9 +42,10 @@ const T = copy(
     tax: '2026 tax',
     where: 'Where to find it',
     brokers: 'Brokers',
-    orderSavings: 'The order comes from a public formula: return after tax, then access, then name. ',
-    orderBrokers: 'The order comes from a public formula: the cost of a 1,000 lei order (fee plus the currency spread), then name. ',
-    partners: "Partners don't pay for their position; we earn a fixed fee only if you open and fund an account.",
+    orderSavings: "Each bank's best offer first, from the bank with the most clients in Romania down, then their other terms. The best rate may be further down the list, so look at them all. ",
+    orderBrokers: 'The brokers with the most clients in Romania come first; those without a Romanian figure follow, cheapest first. ',
+    partners: "None of them is a partner, and nobody pays us for a position. Rates and fees change often: check them on the official site before you open anything.",
+    down: "We can't load the list right now. Try again in a minute.",
     simulation: 'Simulation',
     learnMore: (name) => `Tell me more about ${name}`,
     note: "Financial education, not investment advice. Check the provider's terms before you open anything.",
@@ -69,8 +71,9 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
     );
   }
 
-  const { asset, providers, providerKind, inflationPct } = data;
-  const best = providers[0];
+  const { asset, providers, providerKind, inflationPct, providersDown } = data;
+  // the list starts with the best-known providers; the simulation runs on the best rate in it
+  const best = providers.reduce<(typeof providers)[number] | undefined>((b, p) => ((p.netRatePct ?? -Infinity) > (b?.netRatePct ?? -Infinity) ? p : b), undefined);
 
   return (
     <main className="shell">
@@ -96,9 +99,7 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
           {providerKind === 'savings' ? t.where : t.brokers}
         </h2>
         <Card style={{ gap: 0 }}>
-          {providers.map((p) => (
-            <ProviderRow key={p.id} p={p} />
-          ))}
+          {providersDown ? <p className="small muted">{t.down}</p> : <ProviderList providers={providers} />}
         </Card>
         <p className="note">
           {providerKind === 'savings' ? t.orderSavings : t.orderBrokers}

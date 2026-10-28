@@ -448,6 +448,14 @@ Lesson content on its own is easy to copy; don't count it as a moat.
 - **Grants:** check non-dilutive startup programmes for the first months (verify which are open).
 - **Pre-seed:** raise after gates G2 and G3, with pilot data in hand. It covers about 12 months of team, compliance and security work.
 
+## Pitch: kids accounts (not built)
+
+An idea for the pitch, kept out of the implementation. Kids would get no Home, Momente or Știri, only small games, each a complete experience that teaches one concept by playing: saving vs spending pocket money, interest that grows a little every month, needs vs wants on a fixed budget, saving for a goal, and prices that go up. Short, visual, little text, on a phone or tablet. Kids collect badges; there are no levels and no risk profile.
+
+At the end of a game a "Show your parent" screen says what the kid learned and what a savings account for a child is, with the bank options listed like on Acasă. That's the step that would turn the game into an account for the child.
+
+Rules if it's ever built: no real money, purchases or ads; as little data about the child as possible; a parent agrees before the account exists (in Romania, children under 16 need parental consent under GDPR; check with a lawyer). Open questions: the age range (assumed 6–14), anything for teens 14–18, and linking a parent's account to a child's.
+
 ## Sources
 
 Market and rule sources for the idea itself are in the "Young adults: Prima dată" tab. This plan adds:

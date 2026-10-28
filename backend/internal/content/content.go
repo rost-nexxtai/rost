@@ -125,6 +125,11 @@ func ValidateMoment(m *domain.LibraryMoment) error {
 	if slices.ContainsFunc(m.Takeaways, blank) {
 		return invalid("takeaways can't be empty")
 	}
+	if m.EN != nil {
+		if err := validateText(m); err != nil {
+			return invalid("en: %v", err)
+		}
+	}
 	graded := 0
 	for i, s := range m.Steps {
 		if err := validateStep(s); err != nil {
@@ -168,12 +173,14 @@ type predictStep struct {
 	Type        string   `json:"type"`
 	Question    string   `json:"question"`
 	AnswerValue *float64 `json:"answerValue"`
-	Min         float64  `json:"min"`
-	Max         float64  `json:"max"`
-	Step        float64  `json:"step"`
-	Unit        string   `json:"unit"`
-	Start       *float64 `json:"start"`
-	Explain     string   `json:"explain"`
+	// any guess in [from, to] also counts as right, e.g. 3–6 months for the emergency fund
+	AcceptRange *[2]float64 `json:"acceptRange"`
+	Min         float64     `json:"min"`
+	Max         float64     `json:"max"`
+	Step        float64     `json:"step"`
+	Unit        string      `json:"unit"`
+	Start       *float64    `json:"start"`
+	Explain     string      `json:"explain"`
 }
 
 type sortStep struct {
@@ -183,6 +190,8 @@ type sortStep struct {
 	Items    []struct {
 		Label  string `json:"label"`
 		Bucket *int   `json:"bucket"`
+		// one line shown when this card is sorted wrong
+		Why string `json:"why"`
 	} `json:"items"`
 	Explain string `json:"explain"`
 }
@@ -251,8 +260,11 @@ func validateStep(step domain.LibraryStep) error {
 		if !(s.Min < s.Max) || !(s.Step > 0) || *s.AnswerValue < s.Min || *s.AnswerValue > s.Max {
 			return errors.New("predict needs min < max, step > 0 and min <= answerValue <= max")
 		}
+		if r := s.AcceptRange; r != nil && !(s.Min <= r[0] && r[0] <= *s.AnswerValue && *s.AnswerValue <= r[1] && r[1] <= s.Max) {
+			return errors.New("predict acceptRange must be on the scale and contain the answerValue")
+		}
 		// otherwise the slider starts on the answer
-		if s.Start != nil && (*s.Start < s.Min || *s.Start > s.Max || IsClose(*s.Start, *s.AnswerValue, s.Min, s.Max, s.Step)) {
+		if s.Start != nil && (*s.Start < s.Min || *s.Start > s.Max || predictRight(*s.Start, *s.AnswerValue, s.AcceptRange, s.Min, s.Max, s.Step)) {
 			return errors.New("predict start must be on the scale and not next to the answer")
 		}
 	case "sort":
