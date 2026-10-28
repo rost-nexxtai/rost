@@ -7,10 +7,12 @@ import { LevelBadge } from '@/components/ui/LevelBadge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
-import { getProfile } from '@/data';
+import { SalaryEditor } from '@/components/SalaryEditor';
+import { getProfile, getSalary } from '@/data';
 import { CORE_MOMENTS } from '@/data/mock/scoring';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
+import { lei } from '@/lib/format';
 import { TERMS } from '@/i18n/terms';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +29,9 @@ const T = copy(
     salaryLine: 'Unde merg banii din brut. Schimbă-l când primești o mărire.',
     money: 'Banii tăi',
     moneyLine: 'Jobul, salariul, cât cheltui și pe ce. Rost calculează cu cifrele tale.',
+    salaryNow: (gross: string, net: string) => `${gross} brut · ${net} net pe lună`,
+    salaryNone: 'Nu ne-ai spus încă salariul.',
+    details: 'Vezi detaliile',
     risk: 'Profil de risc',
     riskNote: 'Pornește de la nivel: începător prudent, mediu echilibrat, avansat dinamic. Dacă ai nevoie de bani în mai puțin de un an, sau nu ai încă un fond de urgență de 3 luni, îl ținem mai prudent.',
     retake: 'Refă testul',
@@ -45,6 +50,9 @@ const T = copy(
     salaryLine: 'Where your gross pay goes. Change it when you get a raise.',
     money: 'Your money',
     moneyLine: 'Your job, salary, what you spend and on what. Rost works with your numbers.',
+    salaryNow: (gross, net) => `${gross} gross · ${net} net a month`,
+    salaryNone: "You haven't told us your salary yet.",
+    details: 'See the details',
     risk: 'Risk profile',
     riskNote: "It starts from your level: beginner cautious, intermediate balanced, advanced adventurous. If you need the money within a year, or don't have a 3-month emergency fund yet, we keep it more cautious.",
     retake: 'Retake the quiz',
@@ -55,7 +63,7 @@ const T = copy(
 );
 
 export default async function Profil() {
-  const [profile, lang] = await Promise.all([getProfile(), getLang()]);
+  const [profile, lang, salary] = await Promise.all([getProfile(), getLang(), getSalary()]);
   if (!profile) redirect('/quiz');
   const t = T[lang];
   const terms = TERMS[lang];
@@ -108,17 +116,36 @@ export default async function Profil() {
         <p className="note">{t.riskNote}</p>
       </Card>
 
-      <Link href="/salariu" className="card card-link">
-        <div className="row">
-          <div className="stack" style={{ gap: 2 }}>
-            <span className="eyebrow">{t.salary}</span>
-            <span className="small muted">{t.salaryLine}</span>
+      {salary && salary !== 'down' ? (
+        <Card>
+          <div className="row">
+            <div className="stack" style={{ gap: 2 }}>
+              <span className="eyebrow">{t.salary}</span>
+              <strong style={{ fontSize: 18 }}>
+                {salary.payslip ? t.salaryNow(lei(salary.payslip.gross, lang), lei(salary.payslip.net, lang)) : t.salaryNone}
+              </strong>
+            </div>
           </div>
-          <span style={{ color: 'var(--muted)' }}>
-            <Icon name="chevron" size={20} />
-          </span>
-        </div>
-      </Link>
+          {salary.payslip && (
+            <Link href="/salariu" className="small">
+              {t.details}
+            </Link>
+          )}
+          <SalaryEditor current={salary.gross} now={salary.payslip} compact />
+        </Card>
+      ) : (
+        <Link href="/salariu" className="card card-link">
+          <div className="row">
+            <div className="stack" style={{ gap: 2 }}>
+              <span className="eyebrow">{t.salary}</span>
+              <span className="small muted">{t.salaryLine}</span>
+            </div>
+            <span style={{ color: 'var(--muted)' }}>
+              <Icon name="chevron" size={20} />
+            </span>
+          </div>
+        </Link>
+      )}
 
       <div className="stack">
         <Link href="/quiz?retake=1" className="btn btn-secondary btn-block">

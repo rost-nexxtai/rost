@@ -5,6 +5,7 @@ import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 import { CatchUpButton, CatchUpWithSalary } from '@/components/ClientActions';
 import { Icon } from '@/components/ui/Icon';
+import { SalaryEditor } from '@/components/SalaryEditor';
 import type { MomentSummary } from '@/data/types';
 
 const T = copy(
@@ -46,6 +47,17 @@ export function MomentRow({ m }: { m: MomentSummary }) {
     </>
   );
 
+  // the payslip, done: the row opens the salary page, and the salary can be changed right here
+  if (m.salary !== undefined && m.href) {
+    return (
+      <div className="list-row-stack">
+        <Link href={m.href} className="list-row" style={{ textDecoration: 'none', color: 'inherit' }}>
+          {body}
+        </Link>
+        <SalaryEditor current={m.salary} compact />
+      </div>
+    );
+  }
   // done lessons stay open to replay
   if (m.href) {
     return (
