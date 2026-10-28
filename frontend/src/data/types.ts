@@ -218,6 +218,8 @@ export interface MomentSummary {
   catchUpMomentId?: string;
   /** The catch-up needs a gross salary first (the payslip moment, for someone who never gave one). */
   catchUpNeedsSalary?: boolean;
+  /** The payslip moment, done: the current gross salary, so the row can offer "Mi-am schimbat salariul". */
+  salary?: number;
 }
 
 /** proposed: GET /api/momente */
