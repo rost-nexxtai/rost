@@ -148,3 +148,13 @@ export interface AcasaResponse {
   forYourLevel: AssetCard[];
   later: AssetCard[];
 }
+
+/** proposed: GET /api/assets/:id */
+export interface AssetResponse {
+  asset: Asset;
+  /** Ranked by the public formula: savings by net rate after tax, brokers by the cost of a 1,000 lei order. */
+  providers: RankedProvider[];
+  providerKind: 'savings' | 'brokers';
+  /** The user's inflation (personal when known), for "in today's money". */
+  inflationPct: number;
+}
