@@ -16,7 +16,7 @@ const T = copy(
       `${pillar2} ajung în contul tău de Pilon II`,
       `: sunt ai tăi și se moștenesc. Restul de ${rest} plătesc pensiile de azi și îți aduc puncte de pensie.`,
     ],
-    deduction: (year: number) => `Deducerea personală nu e aplicată încă, așa că pe fluturașul real impozitul poate fi puțin mai mic. Reguli ${year}.`,
+    deduction: (year: number) => `Deducerea personală nu e aplicată încă, așa că în realitate impozitul poate fi puțin mai mic. Reguli ${year}.`,
   },
   {
     parts: { pension: 'Pension (CAS, 25%)', health: 'Health (CASS, 10%)', incomeTax: 'Income tax (10%)', net: 'Net pay, in your hand' },

@@ -297,7 +297,7 @@ func TestEnglishOverHTTP(t *testing.T) {
 
 	c.lang = "ro"
 	_, moment = c.do("GET", "/api/moments/"+runID, "")
-	if title := moment["def"].(map[string]any)["title"]; title != "Fluturașul tău, pe înțeles" {
+	if title := moment["def"].(map[string]any)["title"]; title != "Salariul tău, pe înțeles" {
 		t.Errorf("Romanian title = %v", title)
 	}
 }

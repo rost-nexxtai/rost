@@ -23,6 +23,8 @@ const T = copy(
     finish: (next: number) => `Termină-le ca să treci la L${next}.`,
     advanced: 'Ai ajuns la nivelul avansat.',
     quiz: (reason: string) => `Testul de la început: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
+    salary: 'Salariul tău',
+    salaryLine: 'Unde merg banii din brut. Schimbă-l când primești o mărire.',
     risk: 'Profil de risc',
     riskNote: 'Pornește de la nivel: începător prudent, mediu echilibrat, avansat dinamic. Dacă ai nevoie de bani în mai puțin de un an, sau nu ai încă un fond de urgență de 3 luni, îl ținem mai prudent.',
     retake: 'Refă testul',
@@ -37,6 +39,8 @@ const T = copy(
     finish: (next) => `Finish them to move up to L${next}.`,
     advanced: "You've reached the advanced level.",
     quiz: (reason) => `Starting quiz: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
+    salary: 'Your salary',
+    salaryLine: 'Where your gross pay goes. Change it when you get a raise.',
     risk: 'Risk profile',
     riskNote: "It starts from your level: beginner cautious, intermediate balanced, advanced adventurous. If you need the money within a year, or don't have a 3-month emergency fund yet, we keep it more cautious.",
     retake: 'Retake the quiz',
@@ -87,6 +91,18 @@ export default async function Profil() {
         <p className="small muted">{terms.riskLine[profile.riskProfile]}.</p>
         <p className="note">{t.riskNote}</p>
       </Card>
+
+      <Link href="/salariu" className="card card-link">
+        <div className="row">
+          <div className="stack" style={{ gap: 2 }}>
+            <span className="eyebrow">{t.salary}</span>
+            <span className="small muted">{t.salaryLine}</span>
+          </div>
+          <span style={{ color: 'var(--muted)' }}>
+            <Icon name="chevron" size={20} />
+          </span>
+        </div>
+      </Link>
 
       <div className="stack">
         <Link href="/quiz?retake=1" className="btn btn-secondary btn-block">

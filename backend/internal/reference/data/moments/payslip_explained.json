@@ -1,7 +1,7 @@
 {
   "id": "payslip_explained",
   "series": "Prima dată",
-  "title": "Fluturașul tău, pe înțeles",
+  "title": "Salariul tău, pe înțeles",
   "minutes": 3,
   "triggers": [
     "salary_received",

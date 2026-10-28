@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { AllProvidersResponse, AssetProvidersResponse, LibraryMomentResponse, LibraryResponse, TodayResponse } from '@/contract';
+import type { AllProvidersResponse, AssetProvidersResponse, LibraryMomentResponse, LibraryResponse, MeResponse, PayslipBreakdown, TodayResponse } from '@/contract';
 import { api, apiOrNothing } from '@/lib/api';
 import { parseProfile, PROFILE_COOKIE } from './mock/profile';
 import { getLang } from '@/i18n/server';
@@ -86,4 +86,20 @@ export async function getMomente(): Promise<MomenteResponse | undefined> {
 export async function getStiri(): Promise<StiriResponse | undefined> {
   const [p, lang] = await Promise.all([getProfile(), getLang()]);
   return p && buildStiri(p, lang);
+}
+
+/**
+ * The user's salary and where it goes, from the backend (GET /api/me, GET /api/payslip).
+ * `down` when the backend can't be reached; `undefined` without a session.
+ */
+export async function getSalary(): Promise<{ gross?: number; lastRaiseDate?: string; payslip?: PayslipBreakdown } | undefined | 'down'> {
+  try {
+    const me = await apiOrNothing<MeResponse>('/api/me');
+    if (!me) return undefined;
+    const gross = me.user.grossMonthly;
+    const payslip = gross ? await api<PayslipBreakdown>(`/api/payslip?gross=${gross}`) : undefined;
+    return { gross, lastRaiseDate: me.user.lastRaiseDate, payslip };
+  } catch {
+    return 'down';
+  }
 }
