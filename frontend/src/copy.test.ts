@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assetsFor, dateEn, newsFor, savingsFor } from './data/fixtures/en';
+import { assetsFor, dateEn, newsFor } from './data/fixtures/en';
 import { QUIZ, QUIZ_EN } from './data/fixtures/quiz';
 
 const ROOT = new URL('.', import.meta.url).pathname;
@@ -60,22 +60,26 @@ describe('UI copy', () => {
 describe('English content mirrors Romanian', () => {
   // Lessons live in the backend now; its tests check that every English lesson mirrors the Romanian one.
 
-  it('quiz: same questions, options and right answers', () => {
-    expect(QUIZ_EN.knowledge.map((q) => [q.id, q.options.length, q.correct])).toEqual(QUIZ.knowledge.map((q) => [q.id, q.options.length, q.correct]));
+  it('quiz: same questions, levels, options and right answers', () => {
+    const shape = (k: typeof QUIZ.knowledge) => k.map((q) => [q.id, q.level, q.options.length, q.correct]);
+    expect(shape(QUIZ_EN.knowledge)).toEqual(shape(QUIZ.knowledge));
+    // the backend scores POST /api/quiz from its own copy; both must place a user the same way
+    const backend = JSON.parse(readFileSync(join(ROOT, '../../backend/internal/reference/data/seed/quiz.json'), 'utf8')) as { knowledge: typeof QUIZ.knowledge };
+    expect(shape(backend.knowledge)).toEqual(shape(QUIZ.knowledge));
+    expect(backend.knowledge.map((q) => [q.question, q.options])).toEqual(QUIZ.knowledge.map((q) => [q.question, q.options]));
     for (const key of ['ageBand', 'situation', 'bufferMonths', 'expensiveDebt'] as const) {
       expect(QUIZ_EN.profile[key].map((o) => o.value)).toEqual(QUIZ.profile[key].map((o) => o.value));
     }
   });
 
-  it('assets, news and providers: English text, Romanian numbers', () => {
+  it('assets and news: English text, Romanian numbers', () => {
     const strip = <T extends object>(xs: T[], keys: string[]) => xs.map((x) => Object.fromEntries(Object.entries(x).filter(([k]) => keys.includes(k))));
     expect(strip(assetsFor('en'), ['id', 'risk', 'lessonLevel', 'momentId'])).toEqual(strip(assetsFor('ro'), ['id', 'risk', 'lessonLevel', 'momentId']));
-    expect(strip(savingsFor('en'), ['id', 'grossRatePct', 'termMonths', 'offerId'])).toEqual(strip(savingsFor('ro'), ['id', 'grossRatePct', 'termMonths', 'offerId']));
     expect(newsFor('en').map((n) => [n.id, n.sources.length, n.facts.length > 0])).toEqual(newsFor('ro').map((n) => [n.id, n.sources.length, true]));
     expect(newsFor('en').flatMap((n) => n.sources.map((s) => s.date))).not.toContain('28 oct. 2026');
     expect(dateEn('7 oct. 2026')).toBe('7 Oct 2026');
     expect(dateEn('2026')).toBe('2026');
-    for (const text of [...assetsFor('en').map((a) => a.whatItIs), ...newsFor('en').map((n) => n.title), ...savingsFor('en').map((p) => p.product)]) {
+    for (const text of [...assetsFor('en').map((a) => a.whatItIs), ...newsFor('en').map((n) => n.title)]) {
       expect(text).not.toMatch(DIACRITICS);
     }
   });

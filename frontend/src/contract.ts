@@ -217,8 +217,15 @@ export interface MomentView {
 export type OfferKind = 'deposit' | 'state_bond';
 export type Horizon = 'any_time' | 'one_to_two_years' | 'later';
 
+export interface Source {
+  label: string;
+  url: string;
+}
+
 export interface Offer {
   id: string;
+  /** The Acasă asset it is listed under. */
+  assetId: 'cont_economii' | 'depozit' | 'titluri_stat';
   provider: string;
   product: string;
   kind: OfferKind;
@@ -231,6 +238,13 @@ export interface Offer {
   conditions: string[];
   partnerId: string | null;
   example?: boolean;
+  /** The fictional demo partner's offer: clickable in the demo, never listed. */
+  demoOnly?: boolean;
+  /** The provider's official site. */
+  url?: string;
+  /** Month the rate was last checked, "2026-10". */
+  checkedAt?: string;
+  source?: Source;
   updatedAt: string;
 }
 
@@ -363,6 +377,45 @@ export interface OptionsResponse {
   inflationPct: number;
   personalInflation: boolean;
   offers: (RankedOffer & { realChangeLei: number })[];
+}
+
+export interface Broker {
+  id: string;
+  name: string;
+  /** RO = Romanian broker, EU = elsewhere in the EU. */
+  country: 'RO' | 'EU';
+  regulator: string;
+  commissionPct: number;
+  minCommissionLei: number;
+  fixedFeeLei: number;
+  /** Currency conversion on the order, %. */
+  fxPct: number;
+  /** A Romanian broker withholds the tax on gains (3% or 6%); elsewhere you declare 16% yourself. */
+  withholdsTax: boolean;
+  conditions: string[];
+  url: string;
+  checkedAt: string;
+  source?: Source;
+}
+
+export interface RankedBroker extends Broker {
+  rank: number;
+  /** What a 1,000 lei order costs. */
+  costLei: number;
+}
+
+/**
+ * GET /api/providers/:assetId: real providers of one asset in the neutral order. Savings by net
+ * rate after tax (gains on amountLei), brokers by the cost of a 1,000 lei order. 404 for an unknown asset.
+ */
+export type AssetProvidersResponse = { assetId: string; amountLei: number } & (
+  | { providerKind: 'savings'; offers: RankedOffer[] }
+  | { providerKind: 'brokers'; brokers: RankedBroker[] }
+);
+
+/** GET /api/providers: every asset's providers, for the Acasă headlines. */
+export interface AllProvidersResponse {
+  assets: AssetProvidersResponse[];
 }
 
 /** GET /api/metrics: aggregates only. */

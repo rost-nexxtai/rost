@@ -33,3 +33,48 @@ export function simulateRange(
     best: simulate({ ...i, ratePct: r.bestPct }).value,
   };
 }
+
+/** Real yearly return: what the rate buys after inflation, ((1 + rate) ÷ (1 + inflation) − 1). */
+export function realRatePct(ratePct: number, inflationPct: number): number {
+  return round2(((1 + ratePct / 100) / (1 + inflationPct / 100) - 1) * 100);
+}
+
+export interface InflationImpact {
+  /** End value on paper. */
+  nominalLei: number;
+  /** The same end value in today's money. */
+  realLei: number;
+  /** What inflation takes: paper value minus today's money. */
+  eatenLei: number;
+  paidInLei: number;
+  /** What you paid in, each deposit in today's money from the month it went in. */
+  paidInRealLei: number;
+  /** Today's money minus what you paid in (both in today's money): below zero, you can buy less than you put in. */
+  realGainLei: number;
+  /** The same deposits left in a current account at 0%, in today's money. */
+  cashRealLei: number;
+  realRatePct: number;
+}
+
+/** How much of a simulated result inflation eats, against doing nothing with the same money. */
+export function inflationImpact(i: SimInput & { ratePct: number; inflationPct: number }): InflationImpact {
+  const end = (p: Point[]) => p.at(-1)?.valueLei ?? 0;
+  const { value, paidIn } = simulate(i);
+  const nominalLei = end(value);
+  const realLei = end(todayMoney(value, i.inflationPct));
+  const cashRealLei = end(todayMoney(simulate({ ...i, ratePct: 0 }).value, i.inflationPct));
+  // A deposit made in year 9 is worth less in today's money than one made now; deflate each from its month.
+  let paidInReal = i.startLei;
+  for (let m = 1; m <= i.years * 12; m++) paidInReal += i.monthlyLei / (1 + i.inflationPct / 100) ** (m / 12);
+  const paidInRealLei = round2(paidInReal);
+  return {
+    nominalLei,
+    realLei,
+    eatenLei: round2(nominalLei - realLei),
+    paidInLei: end(paidIn),
+    paidInRealLei,
+    realGainLei: round2(realLei - paidInRealLei),
+    cashRealLei,
+    realRatePct: realRatePct(i.ratePct, i.inflationPct),
+  };
+}

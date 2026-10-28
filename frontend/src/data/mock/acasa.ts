@@ -1,9 +1,10 @@
-// MOCK until backend ships GET /api/acasa.
+// MOCK until backend ships GET /api/acasa. Provider headlines come from GET /api/providers.
+import type { AssetProvidersResponse } from '@/contract';
 import { pct } from '@/lib/format';
 import { copy, type Lang } from '@/i18n/lang';
-import { assetsFor, brokersFor, savingsFor } from '../fixtures/en';
+import { assetsFor } from '../fixtures/en';
+import { providersHeadline } from '../providers';
 import type { AcasaResponse, Asset, AssetCard, Profile, RiskProfile } from '../types';
-import { rankBrokers, rankSavings } from './ranking';
 import { foundationFor } from './scoring';
 
 /** Highest asset risk (1–5) that sits within each risk profile. Above it, the card says so; it never hides. */
@@ -12,48 +13,38 @@ export function maxRiskFor(r: RiskProfile): number {
 }
 
 const T = copy(
-  {
-    upTo: (rate: string) => `până la ${rate} pe an, după impozit`,
-    typical: (rate: string) => `randament istoric tipic ${rate} pe an`,
-    costsFrom: (headline: string) => `costuri de la ${headline}`,
-  },
-  {
-    upTo: (rate) => `up to ${rate} a year, after tax`,
-    typical: (rate) => `typical historical return ${rate} a year`,
-    costsFrom: (headline) => `costs from ${headline}`,
-  },
+  { typical: (rate: string) => `randament istoric tipic ${rate} pe an` },
+  { typical: (rate) => `typical historical return ${rate} a year` },
 );
 
-export function headlineFor(a: Asset, lang: Lang = 'ro'): string {
-  const t = T[lang];
-  if (a.simulation.kind === 'fixed') {
-    const top = rankSavings(savingsFor(lang).filter((p) => p.assetId === a.id), lang)[0];
-    return top?.netRatePct !== undefined ? t.upTo(pct(top.netRatePct, 2, lang)) : '';
-  }
-  if (a.id === 'aur') return t.typical(pct(a.simulation.typicalPct, 2, lang));
-  const cheapest = rankBrokers(brokersFor(lang), lang)[0];
-  return cheapest ? t.costsFrom(cheapest.headline) : '';
+/** Empty when the backend's providers aren't there: the card still shows, without the line. */
+export function headlineFor(a: Asset, lang: Lang = 'ro', providers: AssetProvidersResponse[] = []): string {
+  if (a.id === 'aur' && a.simulation.kind === 'range') return T[lang].typical(pct(a.simulation.typicalPct, 2, lang));
+  return providersHeadline(
+    providers.find((x) => x.assetId === a.id),
+    lang,
+  );
 }
 
-function card(a: Asset, p: Profile, lang: Lang): AssetCard {
+function card(a: Asset, p: Profile, lang: Lang, providers: AssetProvidersResponse[]): AssetCard {
   return {
     id: a.id,
     name: a.name,
     oneLine: a.oneLine,
     risk: a.risk,
     lessonLevel: a.lessonLevel,
-    headline: headlineFor(a, lang),
+    headline: headlineFor(a, lang, providers),
     aboveRiskProfile: a.risk > maxRiskFor(p.riskProfile),
   };
 }
 
 /** Every asset for every user; the level only splits "for your level" from "later", in a fixed order. */
-export function buildAcasa(p: Profile, lang: Lang = 'ro'): AcasaResponse {
+export function buildAcasa(p: Profile, lang: Lang = 'ro', providers: AssetProvidersResponse[] = []): AcasaResponse {
   const assets = assetsFor(lang);
   return {
     profile: p,
     foundation: foundationFor(p),
-    forYourLevel: assets.filter((a) => a.lessonLevel <= p.level).map((a) => card(a, p, lang)),
-    later: assets.filter((a) => a.lessonLevel > p.level).map((a) => card(a, p, lang)),
+    forYourLevel: assets.filter((a) => a.lessonLevel <= p.level).map((a) => card(a, p, lang, providers)),
+    later: assets.filter((a) => a.lessonLevel > p.level).map((a) => card(a, p, lang, providers)),
   };
 }

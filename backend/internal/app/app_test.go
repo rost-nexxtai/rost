@@ -109,7 +109,7 @@ func TestDemoFlow(t *testing.T) {
 func TestReferralFeeOnlyForPartners(t *testing.T) {
 	ctx := context.Background()
 	s := Service{Store: storetest.New()}
-	partner, _ := s.TrackReferralClick(ctx, "bank-b-12m", nil)
+	partner, _ := s.TrackReferralClick(ctx, "demo-bank-12m", nil)
 	state, _ := s.TrackReferralClick(ctx, "fidelis-2y-lei", nil)
 	if _, err := s.TrackReferralClick(ctx, "nope", nil); err != ErrUnknownOffer {
 		t.Errorf("unknown offer: %v", err)

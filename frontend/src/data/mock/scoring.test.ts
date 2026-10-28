@@ -2,39 +2,61 @@ import { describe, expect, it } from 'vitest';
 import { QUIZ } from '../fixtures/quiz';
 import type { KnowledgeAnswer } from '../types';
 import { PERSONAS } from '../fixtures/personas';
-import { CORE_MOMENTS, entryRoute, foundationFor, levelFromScore, levelWithMoments, profileFromQuiz, quizProfile, riskProfile, scoreKnowledge } from './scoring';
+import { CORE_MOMENTS, entryRoute, foundationFor, levelWithMoments, passed, placement, profileFromQuiz, quizLevelOf, quizProfile, riskProfile, scoreKnowledge } from './scoring';
 
-const all = (v: KnowledgeAnswer): KnowledgeAnswer[] => Array(3).fill(v);
 const correct = QUIZ.knowledge.map((q) => q.correct);
-const wrongAt = (n: number) => correct.map((c, i) => (i < n ? c : (c + 1) % QUIZ.knowledge[i].options.length));
+const wrong = (i: number) => (correct[i] + 1) % QUIZ.knowledge[i].options.length;
+/** Right on the listed question indexes, wrong everywhere else. */
+const rightOn = (...idx: number[]): KnowledgeAnswer[] => correct.map((c, i) => (idx.includes(i) ? c : wrong(i)));
 
 describe('quiz level', () => {
-  it('scores 1 as L0 and 3 as L2', () => {
-    expect(levelFromScore(scoreKnowledge(wrongAt(1)))).toBe(0);
-    expect(levelFromScore(scoreKnowledge(correct))).toBe(2);
+  it('has two questions per level, in level order, like the backend', () => {
+    expect(QUIZ.knowledge.map((q) => q.level)).toEqual([0, 0, 1, 1, 2, 2]);
   });
 
-  it('scores three "Nu știu" answers as 0', () => {
-    expect(scoreKnowledge(all('nu_stiu'))).toBe(0);
+  it('places at L2 with everything right and at L0 with nothing right', () => {
+    expect(quizLevelOf(correct)).toBe(2);
+    expect(quizLevelOf(Array(6).fill('nu_stiu'))).toBe(0);
+    expect(scoreKnowledge(Array(6).fill('nu_stiu'))).toBe(0);
   });
 
-  it('maps 0–1, 2–3 and 4 right answers to L0, L1, L2', () => {
-    expect([0, 1, 2, 3, 4].map(levelFromScore)).toEqual([0, 0, 1, 1, 2]);
+  it('needs both basics right before any higher level counts', () => {
+    // one basic wrong, every hard question right: still L0
+    expect(quizLevelOf(rightOn(0, 2, 3, 4, 5))).toBe(0);
+    expect(quizLevelOf(rightOn(0, 1))).toBe(0);
+    expect(quizLevelOf(rightOn(0, 1, 2))).toBe(1);
   });
 
-  it('does not call the three basics "advanced": L2 needs the bond question too', () => {
-    const basicsOnly = correct.map((c, i) => (i < 3 ? c : 'nu_stiu' as const));
-    expect(levelFromScore(scoreKnowledge(basicsOnly))).toBe(1);
+  it('needs both L1 questions right before L2 counts', () => {
+    expect(quizLevelOf(rightOn(0, 1, 2, 4, 5))).toBe(1);
+    expect(quizLevelOf(rightOn(0, 1, 2, 3, 4))).toBe(2);
+  });
+
+  it('matches learning.Placement in Go', () => {
+    const lv = [0, 0, 1, 1, 2, 2] as const;
+    expect(placement([...lv], [true, true, true, true, false, false])).toBe(1);
+    expect(placement([...lv], [true, true, false, false, true, true])).toBe(0);
+    expect(placement([...lv], [true, true, false, true, false, true])).toBe(1);
+  });
+});
+
+describe('passing a lesson', () => {
+  it('needs two thirds of the graded screens right, or nothing graded', () => {
+    expect(passed(2, 3)).toBe(true);
+    expect(passed(1, 3)).toBe(false);
+    expect(passed(3, 4)).toBe(true);
+    expect(passed(2, 4)).toBe(false);
+    expect(passed(0, 0)).toBe(true);
   });
 });
 
 describe('risk profile', () => {
-  const base = { ageBand: 'sub_25', horizon: 'peste_3_ani', bufferMonths: 6, expensiveDebt: false } as const;
+  const base = { horizon: 'peste_3_ani', bufferMonths: 6, expensiveDebt: false } as const;
 
-  it('adds one for under-30s', () => {
-    expect(riskProfile({ ...base, level: 0 })).toBe('echilibrat');
+  it('follows the level, with nothing added for age', () => {
+    expect(riskProfile({ ...base, level: 0 })).toBe('prudent');
+    expect(riskProfile({ ...base, level: 1 })).toBe('echilibrat');
     expect(riskProfile({ ...base, level: 2 })).toBe('dinamic');
-    expect(riskProfile({ ...base, level: 0, ageBand: '30_plus' })).toBe('prudent');
   });
 
   it('caps at prudent when the money is needed within a year', () => {

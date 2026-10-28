@@ -22,8 +22,16 @@ const (
 
 var Horizons = []Horizon{AnyTime, OneToTwoYears, Later}
 
+// Source is where a rate or fee was read, so every number on screen can show it.
+type Source struct {
+	Label string `json:"label"`
+	URL   string `json:"url"`
+}
+
 type Offer struct {
-	ID           string    `json:"id"`
+	ID string `json:"id"`
+	// The Acasă asset this offer is listed under: cont_economii, depozit or titluri_stat.
+	AssetID      string    `json:"assetId"`
 	Provider     string    `json:"provider"`
 	Product      string    `json:"product"`
 	Kind         OfferKind `json:"kind"`
@@ -36,7 +44,14 @@ type Offer struct {
 	Conditions   []string `json:"conditions"`
 	PartnerID    *string  `json:"partnerId"`
 	Example      *bool    `json:"example,omitempty"`
-	UpdatedAt    string   `json:"updatedAt"`
+	// DemoOnly marks the fictional partner's offer: it can be clicked in the demo, never listed.
+	DemoOnly bool `json:"demoOnly,omitempty"`
+	// URL is the provider's official site.
+	URL string `json:"url,omitempty"`
+	// CheckedAt is the month the rate was last checked, "2026-10".
+	CheckedAt string  `json:"checkedAt,omitempty"`
+	Source    *Source `json:"source,omitempty"`
+	UpdatedAt string  `json:"updatedAt"`
 }
 
 type RankedOffer struct {
@@ -70,15 +85,25 @@ func MatchesHorizon(o Offer, h Horizon) bool {
 // RankOffers is the neutral ranking. Public formula: net yearly return after tax, then easier
 // access, then name. Partner status is deliberately NOT an input; a test proves it.
 func RankOffers(offers []Offer, horizon Horizon, amountLei float64) []RankedOffer {
+	var fit []Offer
+	for _, o := range offers {
+		if MatchesHorizon(o, horizon) && o.MinAmountLei <= amountLei {
+			fit = append(fit, o)
+		}
+	}
+	return RankByNet(fit, amountLei)
+}
+
+// RankByNet is the same neutral order without the horizon and minimum filters, for an asset
+// page that lists every offer of one kind. GainLei is the yearly gain on amountLei.
+func RankByNet(offers []Offer, amountLei float64) []RankedOffer {
 	type scored struct {
 		o   Offer
 		net float64
 	}
-	var list []scored
+	list := make([]scored, 0, len(offers))
 	for _, o := range offers {
-		if MatchesHorizon(o, horizon) && o.MinAmountLei <= amountLei {
-			list = append(list, scored{o, NetRatePct(o.Kind, o.GrossRatePct)})
-		}
+		list = append(list, scored{o, NetRatePct(o.Kind, o.GrossRatePct)})
 	}
 	sort.SliceStable(list, func(i, j int) bool {
 		a, b := list[i], list[j]

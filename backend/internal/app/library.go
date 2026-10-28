@@ -105,10 +105,13 @@ func InflationFor(u domain.User) float64 {
 	return cpi.HeadlinePct
 }
 
-func completedIDs(cs []domain.Completion) []string {
+// passedIDs are the lessons whose best attempt passed: only those count as done and toward a level.
+func passedIDs(cs []domain.Completion) []string {
 	ids := make([]string, 0, len(cs))
 	for _, c := range cs {
-		ids = append(ids, c.MomentID)
+		if learning.Passed(c.Correct, c.Total) {
+			ids = append(ids, c.MomentID)
+		}
 	}
 	return ids
 }
@@ -126,7 +129,7 @@ func (s Service) Profile(ctx context.Context, u domain.User) (*domain.Profile, e
 	if err != nil {
 		return nil, err
 	}
-	return learning.BuildProfile(u, completedIDs(done), learning.CoreByLevel(library), InflationFor(u)), nil
+	return learning.BuildProfile(u, passedIDs(done), learning.CoreByLevel(library), InflationFor(u)), nil
 }
 
 // nil in Knowledge = "nu știu"
@@ -162,11 +165,13 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 	questions := reference.Quiz()
 	out := QuizOutcome{Results: make([]QuizResult, 0, len(questions))}
 	score := 0
+	levels, right := make([]domain.Level, len(questions)), make([]bool, len(questions))
 	for i, q := range questions {
 		ok := i < len(in.Knowledge) && in.Knowledge[i] != nil && *in.Knowledge[i] == q.Correct
 		if ok {
 			score++
 		}
+		levels[i], right[i] = q.Level, ok
 		out.Results = append(out.Results, QuizResult{ID: q.ID, Correct: ok, CorrectIndex: q.Correct, Explain: q.Explain})
 	}
 
@@ -191,7 +196,7 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 		return *p
 	}
 	u.Quiz = &domain.QuizProfile{
-		Score: score, Level: learning.LevelFromScore(score), AgeBand: in.AgeBand, Situation: string(in.Situation),
+		Score: score, Level: learning.Placement(levels, right), AgeBand: in.AgeBand, Situation: string(in.Situation),
 		BufferMonths: in.BufferMonths, ExpensiveDebt: in.ExpensiveDebt, Horizon: in.Horizon,
 		FuelLei: orZero(in.FuelLei), ElectricityLei: orZero(in.ElectricityLei), SavedLei: orZero(in.SavedLei), TakenAt: clock.NowISO(),
 	}
@@ -215,13 +220,15 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 type CompleteOutcome struct {
 	Profile *domain.Profile `json:"profile"`
 	LevelUp bool            `json:"levelUp"`
-	// true = nothing changed
+	// true = nothing changed: an earlier attempt was as good or better
 	AlreadyDone bool `json:"alreadyDone"`
 	Correct     int  `json:"correct"`
 	Total       int  `json:"total"`
+	// Passed: at least 2 of 3 graded screens right, so the lesson counts toward the next level.
+	Passed bool `json:"passed"`
 }
 
-// counts once per user
+// keeps the best attempt per user; a lesson can be retaken until it's passed
 func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momentID string, answers []learning.Answer) (CompleteOutcome, error) {
 	m, err := s.LibraryMoment(ctx, momentID)
 	if err != nil {
@@ -253,7 +260,7 @@ func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momen
 	if err != nil {
 		return CompleteOutcome{}, err
 	}
-	out := CompleteOutcome{AlreadyDone: !created, Correct: correct, Total: total}
+	out := CompleteOutcome{AlreadyDone: !created, Correct: correct, Total: total, Passed: learning.Passed(correct, total)}
 	if out.Profile, err = s.Profile(ctx, u); err != nil || !created {
 		return out, err
 	}
@@ -264,7 +271,7 @@ func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momen
 		}
 	}
 	events := []domain.TrackEvent{serverEvent(u.ID, "library_completed", map[string]any{
-		"momentId": m.ID, "level": m.Level, "correct": correct, "total": total,
+		"momentId": m.ID, "level": m.Level, "correct": correct, "total": total, "passed": out.Passed,
 	})}
 	if before != nil && out.Profile.Level > before.Level {
 		out.LevelUp = true

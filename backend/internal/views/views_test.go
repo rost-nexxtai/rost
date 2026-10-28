@@ -46,9 +46,9 @@ func TestSavingsComparison(t *testing.T) {
 		got = append(got, [2]float64{r.NetRatePct, r.RealChangeLei})
 	}
 	want := [][2]float64{
-		{0, -782},    // current account
-		{3.42, -466}, // best instant access: 3.8% gross, minus 10% tax on interest
-		{7.6, -81},   // best 1-2 years: tax-free state bond, still just under her inflation
+		{0, -782},   // current account
+		{4.5, -367}, // best instant access: TBI's 5% savings account, minus 10% tax on interest
+		{6.6, -173}, // best 1-2 years: tax-free Fidelis 2 years, still under her inflation
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("rows = %v, want %v", got, want)

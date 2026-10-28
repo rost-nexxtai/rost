@@ -68,7 +68,7 @@ type ContentStore interface {
 }
 
 type ProgressStore interface {
-	// false if it was already done
+	// Keeps the best attempt per user and lesson. False when an earlier attempt was as good or better.
 	AddCompletion(ctx context.Context, c domain.Completion) (bool, error)
 	// userID "" = everyone
 	ListCompletions(ctx context.Context, userID string) ([]domain.Completion, error)

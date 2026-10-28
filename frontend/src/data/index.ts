@@ -1,14 +1,14 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { LibraryMomentResponse, LibraryResponse, TodayResponse } from '@/contract';
+import type { AllProvidersResponse, AssetProvidersResponse, LibraryMomentResponse, LibraryResponse, TodayResponse } from '@/contract';
 import { api, apiOrNothing } from '@/lib/api';
 import { parseProfile, PROFILE_COOKIE } from './mock/profile';
 import { getLang } from '@/i18n/server';
-import { assetsFor, brokersFor, savingsFor } from './fixtures/en';
+import { assetsFor } from './fixtures/en';
 import { buildAcasa } from './mock/acasa';
 import { buildMomente } from './mock/momente';
 import { buildStiri } from './mock/stiri';
-import { rankBrokers, rankSavings } from './mock/ranking';
+import { providerRows } from './providers';
 import { NATIONAL_INFLATION_PCT } from './mock/scoring';
 import type { AcasaResponse, AssetResponse, LibraryMoment, MomenteResponse, Profile, StiriResponse } from './types';
 
@@ -22,23 +22,30 @@ export async function getProfile(): Promise<Profile | undefined> {
   return parseProfile((await cookies()).get(PROFILE_COOKIE)?.value);
 }
 
-/** MOCK until GET /api/acasa. */
+/** MOCK until GET /api/acasa; the provider headlines are real (GET /api/providers). */
 export async function getAcasa(): Promise<AcasaResponse | undefined> {
   const [p, lang] = await Promise.all([getProfile(), getLang()]);
-  return p && buildAcasa(p, lang);
+  if (!p) return undefined;
+  // backend down: the cards still show, without the rate line
+  const providers = await api<AllProvidersResponse>('/api/providers').catch(() => undefined);
+  return buildAcasa(p, lang, providers?.assets);
 }
 
-/** MOCK until GET /api/assets/:id. Undefined for an unknown id. */
+/** The asset's text is a fixture; its providers are real (GET /api/providers/:assetId). Undefined for an unknown id. */
 export async function getAsset(id: string): Promise<AssetResponse | undefined> {
   const lang = await getLang();
   const asset = assetsFor(lang).find((a) => a.id === id);
   if (!asset) return undefined;
-  const savings = asset.simulation.kind === 'fixed';
+  const [res, profile] = await Promise.all([
+    api<AssetProvidersResponse>(`/api/providers/${encodeURIComponent(asset.id)}`).catch(() => undefined),
+    getProfile(),
+  ]);
   return {
     asset,
-    providers: savings ? rankSavings(savingsFor(lang).filter((p) => p.assetId === asset.id), lang) : rankBrokers(brokersFor(lang), lang),
-    providerKind: savings ? 'savings' : 'brokers',
-    inflationPct: (await getProfile())?.money.inflationPct ?? NATIONAL_INFLATION_PCT,
+    providers: res ? providerRows(res, lang) : [],
+    providerKind: res?.providerKind ?? (asset.simulation.kind === 'fixed' ? 'savings' : 'brokers'),
+    inflationPct: profile?.money.inflationPct ?? NATIONAL_INFLATION_PCT,
+    providersDown: !res,
   };
 }
 

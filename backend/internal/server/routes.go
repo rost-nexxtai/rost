@@ -39,6 +39,8 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/followups", s.answerFollowUp)
 
 	mux.HandleFunc("GET /api/options", s.options)
+	mux.HandleFunc("GET /api/providers", s.allProviders)
+	mux.HandleFunc("GET /api/providers/{assetId}", s.assetProviders)
 
 	mux.HandleFunc("POST /api/referrals/clicks", s.referralClick)
 	mux.HandleFunc("POST /api/referrals/postback", s.referralPostback)

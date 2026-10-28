@@ -16,16 +16,33 @@ var (
 	Horizons = []string{"sub_1_an", "1_3_ani", "peste_3_ani"}
 )
 
-// 3 questions: 0-1 -> L0, 2 -> L1, 3 -> L2
-func LevelFromScore(score int) domain.Level {
-	switch {
-	case score >= 3:
-		return 2
-	case score == 2:
-		return 1
+// Placement is the quiz level. Questions come two per level; you place at a level only if you got
+// every question of the levels below it right and at least one of its own. Scoring by count let
+// 1 in 4 people guess their way to L1; this way a guess rarely skips a level (1 in 16 to L1).
+// right[i] is whether question i, at levels[i], was answered right ("nu știu" is wrong).
+func Placement(levels []domain.Level, right []bool) domain.Level {
+	placed := domain.Level(0)
+	for l := domain.Level(1); l <= 2; l++ {
+		below, own := true, false
+		for i, ql := range levels {
+			switch {
+			case ql < l && !right[i]:
+				below = false
+			case ql == l && right[i]:
+				own = true
+			}
+		}
+		if !below || !own {
+			break
+		}
+		placed = l
 	}
-	return 0
+	return placed
 }
+
+// Passed: a lesson counts toward the next level only with at least 2 of 3 graded screens right.
+// A lesson with nothing graded passes by finishing it.
+func Passed(correct, total int) bool { return total == 0 || correct*3 >= total*2 }
 
 type RiskInput struct {
 	Level         domain.Level
@@ -35,19 +52,17 @@ type RiskInput struct {
 	ExpensiveDebt bool
 }
 
-// level (+1 under 30), then the horizon/buffer/debt caps
+// Risk follows the level (L0 prudent, L1 echilibrat, L2 dinamic), then the horizon/buffer/debt caps.
+// Age doesn't add risk: being young says nothing about knowing what you buy.
 func Risk(in RiskInput) domain.RiskProfile {
 	if in.Horizon == "sub_1_an" {
 		return domain.RiskPrudent
 	}
-	points := int(in.Level)
-	if in.AgeBand != "30_plus" {
-		points++
-	}
 	raw := domain.RiskEchilibrat
-	if points == 0 {
+	switch in.Level {
+	case 0:
 		raw = domain.RiskPrudent
-	} else if points >= 3 {
+	case 2:
 		raw = domain.RiskDinamic
 	}
 	if raw == domain.RiskDinamic && (in.BufferMonths < 3 || in.ExpensiveDebt) {
@@ -83,7 +98,7 @@ func LevelWithMoments(quizLevel domain.Level, core map[domain.Level][]string, co
 	return max(quizLevel, earned)
 }
 
-// nil before the quiz
+// nil before the quiz. completed = the lessons passed (see Passed).
 func BuildProfile(u domain.User, completed []string, core map[domain.Level][]string, inflationPct float64) *domain.Profile {
 	q := u.Quiz
 	if q == nil {

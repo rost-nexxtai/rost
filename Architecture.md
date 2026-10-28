@@ -1,14 +1,8 @@
-# ACCOUNT TYPES
-There are 2 types of user accounts:
-1. Adult: the full experience below (Home, Momente, Stiri).
-2. Child: small interactive games that teach financial concepts (see KIDS EXPERIENCE).
+# ACCOUNTS
+There is one type of account: an adult's (Home, Momente, Stiri). Kids accounts are a pitch idea,
+not part of this build; see "Pitch: kids accounts" in MVP & business plan.md.
 
-The pitch: kids learn about financial tools through play, and that encourages their parents
-to start a savings account for them.
-
-The account type is chosen when the account is created.
-
-# ADULT ACCOUNTS
+# THE APP
 
 ### SECTIONS
 1. Home
@@ -21,7 +15,16 @@ financial education level:
 -L0: little to no knowledge
 -L1: Medium
 -L2: Advanced,
-and the users Risk Profile (based primarily on age + education Level)
+and the users Risk Profile.
+
+Level: the quiz has 6 questions, 2 per level. You place at a level only if every question below
+it is right and at least one of its own is. Lessons move you up only when passed (at least 2 of 3
+graded screens right); a failed attempt can be retaken.
+
+Risk Profile: follows the level (L0 prudent, L1 echilibrat, L2 dinamic), then capped: money needed
+within a year → prudent; dinamic without a 3-month buffer or with expensive debt → echilibrat.
+Age adds nothing. The rule lives in backend/internal/learning and is mirrored in
+frontend/src/data/mock/scoring.ts.
 
 ## HOME SECTION
 After taking the onboarding quizz and building the user's profile we make tailored recommendations 
@@ -31,8 +34,12 @@ For L1: L0 + Fidelis, bonds and ETFs
 For L2: L0 + L1 + Stocks, commodities etc.
 All assets are listed for every level but in priority order.
 
-Every asset is stand-alone and we list all available options from banks/brokers and their interest %
-and a simulation with a graph. The assets contain links to moments that explain the information: "Vreau sa aflu mai multe despre activul X"
+Every asset is stand-alone and we list the real banks/brokers in Romania with their rate after tax
+(or the cost of a 1,000 lei order for brokers), the month we checked it, the source, and a link to
+their official site. None of them pays to be listed; the order is the number alone. The list lives
+in backend/internal/reference/data/seed (offers.json, brokers.json), served by GET /api/providers.
+Each asset has a simulation with a graph that puts inflation first: how much of the result
+inflation takes, the result in today's money, and the same money left in a current account. The assets contain links to moments that explain the information: "Vreau sa aflu mai multe despre activul X"
 
 ## MOMENTS SECTION
 Recommended moments based on profile come on top and the rest below.
@@ -41,46 +48,3 @@ After completing moments, users advance in their level.
 
 ## NEWS SECTION
 A few 2-3 tailored real world geo-political news that affects the users financial situation: eg Iran conflict.
-
-# KIDS EXPERIENCE
-Kids don't get Home, Momente or Stiri. They get small interactive games instead.
-
-## GAMES
-Each game is a complete experience on its own (start, play, an ending that shows what you learned),
-not a lesson inside a course. A game teaches one financial concept through playing, not reading.
-
-Example concepts (ideas, not final):
-- Saving vs spending: put pocket money in a piggy bank or spend it now, and see what you can buy later.
-- Interest: money left in a savings account grows a little every month.
-- Needs vs wants: sort things you need from things you want with a fixed budget.
-- Saving for a goal: pick a goal (a bike, a game) and see how long it takes with a weekly amount.
-- Prices go up: the same coins buy less over time (inflation, explained simply).
-
-Games are short, visual, need little text and work on a phone or tablet.
-
-## PROGRESS
-Kids collect finished games (e.g. badges). There are no L0-L2 levels and no risk profile for kids.
-
-## SHOW A PARENT
-Child and adult accounts are not linked in the MVP. Each is created on its own.
-
-At the end of a game the kid gets a "Show your parent" screen: what they learned, plus what a
-savings account for a child is, with the options from banks, listed like on Home. The kid shows it
-on the same device or sends it as a share link that opens without an account.
-This is the step that turns the kids experience into a savings account.
-
-## RULES FOR KIDS ACCOUNTS
-- No real money moves, no purchases, no ads.
-- Collect as little data as possible about the child.
-- A parent must agree before a child account is created (GDPR: in Romania, children under 16 need
-  parental consent; verify with a lawyer). In the MVP this is a confirmation step at sign-up,
-  since there is no linked parent account.
-
-# DECISIONS
-- Child and adult accounts are not linked in the MVP.
-
-# OPEN QUESTIONS
-Working assumptions until the team decides:
-1. Age range for child accounts? Assumed: about 6-14.
-2. Is there anything between kids and adults (teens 14-18)? Assumed: not for now.
-3. Linking a parent and child account after the MVP? Not decided.

@@ -4,7 +4,7 @@ import type { Profile } from '../types';
 export const PERSONAS = {
   maria: {
     name: 'Maria',
-    quizScore: 2,
+    quizScore: 3,
     quizLevel: 1,
     level: 1,
     riskProfile: 'echilibrat',

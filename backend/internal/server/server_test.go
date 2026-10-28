@@ -175,12 +175,12 @@ func TestDemoPathOverHTTP(t *testing.T) {
 func TestReferralAndEmbedOverHTTP(t *testing.T) {
 	c := &client{t: t, h: testServer(fakeDB{}, config.Config{AllowDemoTools: true, PostbackSecret: "s3cret"})}
 
-	_, click := c.do("POST", "/api/referrals/clicks", `{"offerId":"bank-b-12m"}`)
+	_, click := c.do("POST", "/api/referrals/clicks", `{"offerId":"demo-bank-12m"}`)
 	clickID := click["clickId"].(string)
 	if code, _ := c.do("POST", "/api/referrals/postback", `{"clickId":"`+clickID+`","status":"funded"}`); code != 403 {
 		t.Errorf("postback without secret = %d", code)
 	}
-	if _, ref := c.do("GET", "/api/referrals/"+clickID, ""); ref["partner"].(map[string]any)["id"] != "bank-b" {
+	if _, ref := c.do("GET", "/api/referrals/"+clickID, ""); ref["partner"].(map[string]any)["id"] != "demo-bank" {
 		t.Errorf("referral = %v", ref)
 	}
 
@@ -198,6 +198,44 @@ func TestReferralAndEmbedOverHTTP(t *testing.T) {
 
 	if _, opts := c.do("GET", "/api/options?horizon=one_to_two_years&amount=5000", ""); opts["offers"].([]any)[0].(map[string]any)["id"] != "fidelis-2y-lei" {
 		t.Errorf("options = %v", opts)
+	}
+}
+
+func TestProvidersOverHTTP(t *testing.T) {
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+
+	code, dep := c.do("GET", "/api/providers/depozit", "")
+	offers, _ := dep["offers"].([]any)
+	if code != 200 || dep["providerKind"] != "savings" || len(offers) == 0 {
+		t.Fatalf("depozit = %d %v", code, dep)
+	}
+	first := offers[0].(map[string]any)
+	if first["id"] != "procredit-12m" || first["url"] != "https://www.procreditbank.ro" || first["isPartner"] != false {
+		t.Errorf("first deposit = %v", first)
+	}
+	for _, o := range offers {
+		if o.(map[string]any)["id"] == "demo-bank-12m" {
+			t.Error("the demo partner is listed among real banks")
+		}
+	}
+
+	code, etf := c.do("GET", "/api/providers/etf", "")
+	if brokers, _ := etf["brokers"].([]any); code != 200 || etf["providerKind"] != "brokers" || len(brokers) != 5 {
+		t.Errorf("etf = %d %v", code, etf)
+	}
+	if code, _ := c.do("GET", "/api/providers/nope", ""); code != 404 {
+		t.Errorf("unknown asset = %d", code)
+	}
+
+	c.lang = "en"
+	_, all := c.do("GET", "/api/providers", "")
+	assets, _ := all["assets"].([]any)
+	if len(assets) != 6 {
+		t.Fatalf("all providers = %v", all)
+	}
+	bonds := assets[2].(map[string]any)["offers"].([]any)[0].(map[string]any)
+	if bonds["provider"] != "Romanian state" {
+		t.Errorf("English bond provider = %v", bonds["provider"])
 	}
 }
 

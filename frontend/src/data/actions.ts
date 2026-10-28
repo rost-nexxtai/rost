@@ -5,7 +5,7 @@ import { PERSONAS } from './fixtures/personas';
 import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/profile';
 import { getLibrary } from '.';
 import { firstLesson } from './mock/momente';
-import { levelWithMoments, quizProfile } from './mock/scoring';
+import { levelWithMoments, passed, quizProfile } from './mock/scoring';
 import type { LibraryMoment, MoneyLine, Profile, QuizAnswers } from './types';
 
 // MOCK until backend ships POST /api/quiz and profile progress on the server.
@@ -33,11 +33,16 @@ export async function setDemoProfile(persona: 'maria'): Promise<void> {
   await write(PERSONAS[persona]);
 }
 
-export async function completeLibraryMoment(momentId: string): Promise<Profile | undefined> {
+/**
+ * Records a finished lesson. Only a passed one (2 of 3 graded screens right) counts toward the next
+ * level, like the backend's POST /api/library/{id}/complete; a failed attempt changes nothing.
+ */
+export async function completeLibraryMoment(momentId: string, correct: number, total: number): Promise<{ profile: Profile; passed: boolean } | undefined> {
   const p = await current();
   if (!p) return undefined;
+  if (!passed(correct, total)) return { profile: p, passed: false };
   const completedMomentIds = p.completedMomentIds.includes(momentId) ? p.completedMomentIds : [...p.completedMomentIds, momentId];
-  return write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds) });
+  return { profile: await write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds) }), passed: true };
 }
 
 export async function resetProfile(): Promise<void> {

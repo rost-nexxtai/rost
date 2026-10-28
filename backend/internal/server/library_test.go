@@ -22,16 +22,24 @@ func get(m map[string]any, path ...string) any {
 }
 
 // no horizon / expensiveDebt, onboarding doesn't ask them anymore
-const quizAllNuStiu = `{"knowledge":["nu_stiu","nu_stiu","nu_stiu"],
+const quizAllNuStiu = `{"knowledge":["nu_stiu","nu_stiu","nu_stiu","nu_stiu","nu_stiu","nu_stiu"],
 "ageBand":"30_plus","situation":"student","bufferMonths":0,"fuelLei":200}`
 
-// the three L0 core lessons, the last one levels up
+// right answers to the three L0 core lessons; only passed lessons count toward a level
+var l0Right = []struct{ id, body string }{
+	{"fondul_urgenta", `{"answers":[{"step":0,"buckets":[0,1,0,1,0]},{"step":1,"value":4},{"step":3,"picked":0}]}`},
+	{"economii_vs_depozit", `{"answers":[{"step":0,"value":450},{"step":2,"buckets":[0,1,0,1]}]}`},
+	{"dobanda_compusa", `{"answers":[{"step":0,"value":1967},{"step":2,"picked":1}]}`},
+}
+
+// the three L0 core lessons, passed; the last one levels up
 func completeL0(c *client) map[string]any {
 	c.t.Helper()
 	var out map[string]any
-	for _, id := range []string{"fondul_urgenta", "economii_vs_depozit", "dobanda_compusa"} {
+	for _, l := range l0Right {
+		id := l.id
 		var code int
-		if code, out = c.do("POST", "/api/library/"+id+"/complete", ""); code != 200 {
+		if code, out = c.do("POST", "/api/library/"+id+"/complete", l.body); code != 200 {
 			c.t.Fatalf("complete %s = %d %v", id, code, out)
 		}
 	}
@@ -44,8 +52,8 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 	c := &client{t: t, h: h}
 
 	_, quiz := c.do("GET", "/api/quiz", "")
-	if qs := quiz["knowledge"].([]any); len(qs) != 3 || strings.Contains(jsonString(qs), "correct") {
-		t.Fatalf("quiz must list 3 questions without answers: %v", qs)
+	if qs := quiz["knowledge"].([]any); len(qs) != 6 || strings.Contains(jsonString(qs), "correct") {
+		t.Fatalf("quiz must list 6 questions without answers: %v", qs)
 	}
 	if code, _ := c.do("POST", "/api/track", `{"events":[{"name":"quiz_start","path":"/quiz"}]}`); code != 202 {
 		t.Errorf("track before onboarding = %d", code)
@@ -69,7 +77,7 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 		get(p, "money", "fuelLei") != 200.0 || get(p, "money", "inflationPct") != 6.61 {
 		t.Errorf("profile = %v", p)
 	}
-	if r := out["results"].([]any)[0].(map[string]any); r["correct"] != false || r["correctIndex"] != 2.0 || r["explain"] != nil {
+	if r := out["results"].([]any)[0].(map[string]any); r["correct"] != false || r["correctIndex"] != 2.0 || r["explain"] == "" {
 		t.Errorf("results = %v", r)
 	}
 
@@ -93,9 +101,14 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 		t.Errorf("answer on an explore step = %d", code)
 	}
 	c.do("POST", "/api/track", `{"events":[{"name":"moment_open","props":{"momentId":"fondul_urgenta"},"path":"/moment/lib/fondul_urgenta?from=acasa"}]}`)
-	// sort, predict (4 is close to 3) and choice, all right
-	code, done := c.do("POST", "/api/library/fondul_urgenta/complete", `{"answers":[{"step":0,"buckets":[0,1,0,1,0]},{"step":1,"value":4},{"step":3,"picked":0}]}`)
-	if code != 200 || done["levelUp"] != false || get(done, "profile", "level") != 0.0 || done["correct"] != 3.0 || done["total"] != 3.0 {
+	// 1 of 3 right: finished, but not passed, so it doesn't count yet
+	code, failed := c.do("POST", "/api/library/fondul_urgenta/complete", `{"answers":[{"step":0,"buckets":[1,0,1,0,1]},{"step":1,"value":20},{"step":3,"picked":0}]}`)
+	if code != 200 || failed["passed"] != false || failed["correct"] != 1.0 || len(get(failed, "profile", "completedMomentIds").([]any)) != 0 {
+		t.Fatalf("failed attempt = %d %v", code, failed)
+	}
+	// sort, predict (4 is inside 3–6 months) and choice, all right: the retake replaces the attempt
+	code, done := c.do("POST", "/api/library/fondul_urgenta/complete", l0Right[0].body)
+	if code != 200 || done["passed"] != true || done["alreadyDone"] != false || done["levelUp"] != false || get(done, "profile", "level") != 0.0 || done["correct"] != 3.0 || done["total"] != 3.0 {
 		t.Fatalf("complete = %d %v", code, done)
 	}
 	if _, again := c.do("POST", "/api/library/fondul_urgenta/complete", ""); again["alreadyDone"] != true || again["levelUp"] != false {

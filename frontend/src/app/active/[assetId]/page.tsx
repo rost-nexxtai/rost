@@ -24,8 +24,9 @@ const T = copy(
     where: 'Unde găsești',
     brokers: 'Brokeri',
     orderSavings: 'Ordinea vine dintr-o formulă publică: randament după impozit, apoi acces, apoi nume. ',
-    orderBrokers: 'Ordinea vine dintr-o formulă publică: costul unui ordin de 1.000 lei (comision plus diferența de curs), apoi nume. ',
-    partners: 'Partenerii nu plătesc pentru poziție; primim un comision fix doar dacă deschizi și alimentezi un cont.',
+    orderBrokers: 'Ordinea vine dintr-o formulă publică: costul unui ordin de 1.000 lei (comision plus conversia valutară), apoi nume. ',
+    partners: 'Nu avem parteneri printre ei și nu primim nimic de la nimeni pentru poziție. Ratele și comisioanele se schimbă des: verifică-le pe site-ul oficial înainte să deschizi ceva.',
+    down: 'Nu putem încărca lista acum. Încearcă din nou peste un minut.',
     simulation: 'Simulare',
     learnMore: (name: string) => `Vreau să aflu mai multe despre ${name}`,
     note: 'Educație financiară, nu consultanță de investiții. Verifică termenii furnizorului înainte să deschizi ceva.',
@@ -42,8 +43,9 @@ const T = copy(
     where: 'Where to find it',
     brokers: 'Brokers',
     orderSavings: 'The order comes from a public formula: return after tax, then access, then name. ',
-    orderBrokers: 'The order comes from a public formula: the cost of a 1,000 lei order (fee plus the currency spread), then name. ',
-    partners: "Partners don't pay for their position; we earn a fixed fee only if you open and fund an account.",
+    orderBrokers: 'The order comes from a public formula: the cost of a 1,000 lei order (fee plus currency conversion), then name. ',
+    partners: "None of them is a partner, and nobody pays us for a position. Rates and fees change often: check them on the official site before you open anything.",
+    down: "We can't load the list right now. Try again in a minute.",
     simulation: 'Simulation',
     learnMore: (name) => `Tell me more about ${name}`,
     note: "Financial education, not investment advice. Check the provider's terms before you open anything.",
@@ -69,7 +71,7 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
     );
   }
 
-  const { asset, providers, providerKind, inflationPct } = data;
+  const { asset, providers, providerKind, inflationPct, providersDown } = data;
   const best = providers[0];
 
   return (
@@ -96,9 +98,7 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
           {providerKind === 'savings' ? t.where : t.brokers}
         </h2>
         <Card style={{ gap: 0 }}>
-          {providers.map((p) => (
-            <ProviderRow key={p.id} p={p} />
-          ))}
+          {providersDown ? <p className="small muted">{t.down}</p> : providers.map((p) => <ProviderRow key={p.id} p={p} />)}
         </Card>
         <p className="note">
           {providerKind === 'savings' ? t.orderSavings : t.orderBrokers}

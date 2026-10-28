@@ -108,16 +108,20 @@ func (m *Memory) SeedContent(_ context.Context, seedName string, items []domain.
 func (m *Memory) AddCompletion(_ context.Context, c domain.Completion) (bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	for _, x := range m.completions {
-		if x.UserID == c.UserID && x.MomentID == c.MomentID {
-			return false, nil
-		}
-	}
 	if c.CompletedAt == "" {
 		c.CompletedAt = clock.NowISO()
 	}
 	if c.Answers == nil {
 		c.Answers = []map[string]any{}
+	}
+	for i, x := range m.completions {
+		if x.UserID == c.UserID && x.MomentID == c.MomentID {
+			if x.Correct >= c.Correct {
+				return false, nil
+			}
+			m.completions[i] = clone(c)
+			return true, nil
+		}
 	}
 	m.completions = append(m.completions, clone(c))
 	return true, nil

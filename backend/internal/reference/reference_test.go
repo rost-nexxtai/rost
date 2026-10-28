@@ -63,3 +63,44 @@ func TestEnglishCoversSeedData(t *testing.T) {
 		t.Error("ParseLang")
 	}
 }
+
+// Real providers carry an official link and a dated source, and none of them is a partner:
+// only the fictional demo bank is, and its offer never reaches a list.
+func TestRealProviders(t *testing.T) {
+	for _, o := range Offers(RO) {
+		if o.DemoOnly || o.PartnerID != nil || o.Example != nil {
+			t.Errorf("offer %s: listed offers must be real and not partners", o.ID)
+		}
+		if o.URL == "" || o.CheckedAt == "" || o.Source == nil || o.Source.URL == "" || o.AssetID == "" {
+			t.Errorf("offer %s: needs url, checkedAt, source and assetId", o.ID)
+		}
+	}
+	if demo, ok := FindOffer("demo-bank-12m", RO); !ok || demo.PartnerID == nil || *demo.PartnerID != "demo-bank" {
+		t.Error("the demo partner's offer must still be found for the referral demo")
+	}
+	for _, o := range Offers(EN) {
+		if o.ID == "demo-bank-12m" {
+			t.Error("demo offer listed")
+		}
+	}
+	for _, id := range []string{"cont_economii", "depozit", "titluri_stat"} {
+		if len(AssetOffers(id, RO)) == 0 {
+			t.Errorf("no offers for %s", id)
+		}
+	}
+	ro, en := Brokers(RO), Brokers(EN)
+	if len(ro) == 0 || !IsBrokerAsset("etf") || IsBrokerAsset("depozit") {
+		t.Fatal("brokers")
+	}
+	for i, b := range ro {
+		if b.URL == "" || b.CheckedAt == "" || b.Source == nil {
+			t.Errorf("broker %s: needs url, checkedAt and source", b.ID)
+		}
+		if _, ok := english.Brokers[b.ID]; !ok || en[i].CostInputs() != b.CostInputs() {
+			t.Errorf("broker %s: English text missing or numbers differ", b.ID)
+		}
+	}
+	if en[0].Source.Label == ro[0].Source.Label {
+		t.Error("broker source not translated")
+	}
+}

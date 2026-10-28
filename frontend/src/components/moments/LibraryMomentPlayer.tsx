@@ -20,12 +20,14 @@ const T = copy(
     noProfile: 'Fă testul ca să-ți salvăm progresul.',
     levelUp: (level: Level) => `Ai urcat la nivelul L${level}. Ai lecții noi deblocate.`,
     ticked: 'Lecție bifată.',
+    retake: (right: number, of: number) => `${right} din ${of} corecte. Ca lecția să conteze pentru nivel, ai nevoie de cel puțin două treimi. Mai încearc-o o dată.`,
   },
   {
     coreLeft: (left, next) => (left === 1 ? `One more core lesson to L${next}.` : `${left} more core lessons to L${next}.`),
     noProfile: 'Take the quiz so we can save your progress.',
     levelUp: (level) => `You moved up to level L${level}. New lessons unlocked.`,
     ticked: 'Lesson done.',
+    retake: (right, of) => `${right} of ${of} right. For the lesson to count toward your level you need at least two thirds. Give it another go.`,
   },
 );
 
@@ -57,8 +59,11 @@ export function LibraryMomentPlayer({
   };
 
   async function finish(): Promise<string> {
-    const after = await completeLibraryMoment(moment.id);
-    if (!after) return t.noProfile;
+    const right = results.filter(Boolean).length;
+    const res = await completeLibraryMoment(moment.id, right, results.length);
+    if (!res) return t.noProfile;
+    if (!res.passed) return t.retake(right, results.length);
+    const after = res.profile;
     if (after.level > levelBefore) return t.levelUp(after.level);
     if (after.level === 2) return t.ticked;
     return coreLeftAfter > 0 ? t.coreLeft(coreLeftAfter, (after.level + 1) as Level) : t.ticked;

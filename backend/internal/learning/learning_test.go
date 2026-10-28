@@ -35,8 +35,26 @@ func seedLibrary(t *testing.T) ([]domain.LibraryMoment, []domain.NewsItem) {
 
 // same cases as scoring.test.ts
 func TestLevelAndRisk(t *testing.T) {
-	if got := []domain.Level{LevelFromScore(0), LevelFromScore(1), LevelFromScore(2), LevelFromScore(3)}; !reflect.DeepEqual(got, []domain.Level{0, 0, 1, 2}) {
-		t.Errorf("levels = %v", got)
+	levels := []domain.Level{0, 0, 1, 1, 2, 2}
+	for _, c := range []struct {
+		right []bool
+		want  domain.Level
+	}{
+		{[]bool{false, false, false, false, false, false}, 0},
+		{[]bool{true, true, false, false, false, false}, 0}, // the basics alone stay L0
+		{[]bool{true, true, true, false, false, false}, 1},  // basics + one L1 question
+		{[]bool{true, false, true, true, true, true}, 0},    // a gap in the basics can't be skipped
+		{[]bool{true, true, true, false, true, true}, 1},    // L2 needs both L1 questions
+		{[]bool{true, true, true, true, false, false}, 1},   // and one L2 question
+		{[]bool{true, true, true, true, false, true}, 2},
+		{[]bool{true, true, true, true, true, true}, 2},
+	} {
+		if got := Placement(levels, c.right); got != c.want {
+			t.Errorf("Placement(%v) = %d, want %d", c.right, got, c.want)
+		}
+	}
+	if !Passed(2, 3) || Passed(1, 3) || !Passed(0, 0) || Passed(1, 2) || !Passed(2, 2) {
+		t.Error("Passed: at least 2 of 3 graded screens")
 	}
 	base := RiskInput{AgeBand: "sub_25", Horizon: "peste_3_ani", BufferMonths: 6}
 	with := func(f func(*RiskInput)) RiskInput { in := base; f(&in); return in }
@@ -44,9 +62,10 @@ func TestLevelAndRisk(t *testing.T) {
 		in   RiskInput
 		want domain.RiskProfile
 	}{
-		{with(func(i *RiskInput) { i.Level = 0 }), domain.RiskEchilibrat},
+		{with(func(i *RiskInput) { i.Level = 0 }), domain.RiskPrudent}, // young is not a reason for more risk
+		{with(func(i *RiskInput) { i.Level = 1 }), domain.RiskEchilibrat},
 		{with(func(i *RiskInput) { i.Level = 2 }), domain.RiskDinamic},
-		{with(func(i *RiskInput) { i.AgeBand = "30_plus" }), domain.RiskPrudent},
+		{with(func(i *RiskInput) { i.Level, i.AgeBand = 1, "30_plus" }), domain.RiskEchilibrat},
 		{with(func(i *RiskInput) { i.Level, i.Horizon = 2, "sub_1_an" }), domain.RiskPrudent},
 		{with(func(i *RiskInput) { i.Level, i.BufferMonths = 2, 1 }), domain.RiskEchilibrat},
 		{with(func(i *RiskInput) { i.Level, i.ExpensiveDebt = 2, true }), domain.RiskEchilibrat},

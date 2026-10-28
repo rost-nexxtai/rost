@@ -55,6 +55,7 @@ App routes are under `/api`; shapes are in `frontend/src/contract.ts`. The sessi
 | `GET/POST /api/moments/{runId}` | Load a moment with its view; post a guess, an action or a dismiss |
 | `GET/POST /api/followups` | Due 7-day checks; confirm or skip |
 | `GET /api/options` | Neutral ranking of savings options |
+| `GET /api/providers`, `GET /api/providers/{assetId}` | Real banks and brokers per asset, ranked: savings by rate after tax, brokers by the cost of a 1,000 lei order. Each has its official site, the month checked and the source. No partners among them |
 | `POST /api/referrals/clicks`, `GET /api/referrals/{clickId}` | Record a referral click; read it back for the mock bank |
 | `POST /api/referrals/postback` | Partner reports `opened` or `funded` |
 | `GET /api/partner/demo-token`, `GET /api/embed?token=` | Demo partner token; the partner view's data |
@@ -63,7 +64,7 @@ App routes are under `/api`; shapes are in `frontend/src/contract.ts`. The sessi
 | `GET/POST /api/clock`, `POST /api/demo/reset` | Demo tools: move the app clock; reset the demo personas |
 | `GET /api/quiz`, `POST /api/quiz` | Quiz questions (without answers); score the quiz on the server and store the profile. Creates the user when there is no session |
 | `GET /api/library`, `GET /api/library/{id}` | Published library moments, with steps |
-| `POST /api/library/{id}/complete` | The user finished a library moment (optional `answers`: `picked`, `value` or `buckets` per graded step); returns the profile and `levelUp`. Once per moment |
+| `POST /api/library/{id}/complete` | The user finished a library moment (optional `answers`: `picked`, `value` or `buckets` per graded step); returns the profile, `passed` and `levelUp`. Only a passed attempt (2 of 3 graded right) counts toward the level; the best attempt is kept |
 | `GET /api/momente`, `GET /api/stiri` | The Momente and Știri screens. 404 `no profile` before the quiz |
 | `POST /api/track` | Usage events for statistics (names in `app.ClientEvents`) |
 
@@ -87,7 +88,9 @@ Answers sent with a completion are graded like in the app: a choice by index, a 
 
 ### Levels
 
-A user's level is the highest of: the quiz level, the level their finished core moments earn, and the highest level they reached before. Only core moments that have steps count, so a lesson that isn't written yet doesn't block anyone. Publishing a new core lesson never moves anyone down.
+The quiz has 6 questions, 2 per level. It places you at a level only if you got every question below it right and at least one of its own (`learning.Placement`), so a lucky guess on a hard question doesn't skip the basics. A lesson counts only when passed: at least 2 of 3 graded screens right (`learning.Passed`). The risk profile follows the level (L0 prudent, L1 echilibrat, L2 dinamic) with the horizon, buffer and debt caps; age adds nothing. The frontend mirrors these in `src/data/mock/scoring.ts`.
+
+A user's level is the highest of: the quiz level, the level their passed core moments earn, and the highest level they reached before. Only core moments that have steps count, so a lesson that isn't written yet doesn't block anyone. Publishing a new core lesson never moves anyone down.
 
 ### Tracking
 
@@ -100,8 +103,8 @@ cmd/api/              entry point: config, database, migrations, HTTP server, gr
 internal/config/      settings from the environment
 internal/database/    pgx connection pool
 internal/domain/      runtime records (users, events, runs, actions, referrals) and content, profile, tracking, admin types
-internal/rules/       pure money rules for 2026: payslip, inflation, ranking, dates
-internal/reference/   versioned reference data in data/: moments, inflation, offers, partners, scenarios, demo persona
+internal/rules/       pure money rules for 2026: payslip, inflation, ranking of offers and brokers, dates
+internal/reference/   versioned reference data in data/: moments, inflation, offers (real banks and state bonds), brokers, partners (demo only), scenarios, demo persona
 internal/moments/     the engine that decides which moment an event opens
 internal/views/       the numbers a moment shows one user
 internal/app/         services (events, moments, follow-ups, referrals, quiz, library, tracking, admin), calendar, metrics, stats

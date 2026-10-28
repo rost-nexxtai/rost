@@ -1,5 +1,5 @@
 // Package reference serves the versioned reference data under data/: moment definitions,
-// inflation figures, savings offers, partners, scenarios and demo personas. It is reviewed like code.
+// inflation figures, savings offers, brokers, partners, scenarios and demo personas. It is reviewed like code.
 //
 // Romanian is the source language. English is an overlay of words only (data/moments/en and
 // data/seed/en.json); ids and numbers always come from the Romanian files.
@@ -9,6 +9,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 
 	"rost/backend/internal/domain"
@@ -100,33 +101,44 @@ type offerText struct {
 	Conditions []string `json:"conditions"`
 }
 
+type brokerText struct {
+	Regulator  string   `json:"regulator"`
+	Conditions []string `json:"conditions"`
+}
+
 type scenarioText struct {
 	Title   string `json:"title"`
 	Context string `json:"context"`
 }
 
-// Correct = index of the right option
+// Correct = index of the right option. Level is the level the question tells apart.
 type QuizQuestion struct {
-	ID       string   `json:"id"`
-	Question string   `json:"question"`
-	Options  []string `json:"options"`
-	Correct  int      `json:"correct"`
-	Explain  string   `json:"explain,omitempty"`
+	ID       string       `json:"id"`
+	Level    domain.Level `json:"level"`
+	Question string       `json:"question"`
+	Options  []string     `json:"options"`
+	Correct  int          `json:"correct"`
+	Explain  string       `json:"explain,omitempty"`
 }
 
 var (
-	cpi       []CPIRelease
-	offers    []rules.Offer
-	partners  []Partner
-	scenarios []Scenario
-	demoUsers []DemoUser
-	defs      map[Lang][]moments.Definition
-	quiz      []QuizQuestion
+	cpi     []CPIRelease
+	offers  []rules.Offer
+	brokers []rules.Broker
+	// brokerAssets are the Acasă assets bought through a broker (ETFs, shares, gold).
+	brokerAssets []string
+	partners     []Partner
+	scenarios    []Scenario
+	demoUsers    []DemoUser
+	defs         map[Lang][]moments.Definition
+	quiz         []QuizQuestion
 
 	// english holds the words from data/seed/en.json, keyed by id.
 	english struct {
 		CPISource string                  `json:"cpiSource"`
 		Offers    map[string]offerText    `json:"offers"`
+		Brokers   map[string]brokerText   `json:"brokers"`
+		Sources   map[string]string       `json:"sources"`
 		Partners  map[string]string       `json:"partners"`
 		Scenarios map[string]scenarioText `json:"scenarios"`
 	}
@@ -150,6 +162,13 @@ func init() {
 	var o struct{ Offers []rules.Offer }
 	load("seed/offers.json", &o)
 	offers = o.Offers
+
+	var b struct {
+		Assets  []string
+		Brokers []rules.Broker
+	}
+	load("seed/brokers.json", &b)
+	brokers, brokerAssets = b.Brokers, b.Assets
 
 	var p struct{ Partners []Partner }
 	load("seed/partners.json", &p)
@@ -179,26 +198,74 @@ func init() {
 	}
 }
 
-// Offers lists the savings offers, with provider, product and conditions in the given language.
+// sourceIn is a source with its label in the given language.
+func sourceIn(src *rules.Source, lang Lang) *rules.Source {
+	if src == nil {
+		return nil
+	}
+	out := *src
+	if t, ok := english.Sources[src.Label]; ok && lang == EN {
+		out.Label = t
+	}
+	return &out
+}
+
+func offerIn(o rules.Offer, lang Lang) rules.Offer {
+	if t, ok := english.Offers[o.ID]; ok && lang == EN {
+		o.Provider, o.Product, o.Conditions = t.Provider, t.Product, append([]string{}, t.Conditions...)
+	}
+	o.Source = sourceIn(o.Source, lang)
+	return o
+}
+
+// Offers lists the real savings offers, with provider, product and conditions in the given
+// language. The demo partner's offer is never listed.
 func Offers(lang Lang) []rules.Offer {
 	out := make([]rules.Offer, 0, len(offers))
 	for _, o := range offers {
-		if t, ok := english.Offers[o.ID]; ok && lang == EN {
-			o.Provider, o.Product, o.Conditions = t.Provider, t.Product, append([]string{}, t.Conditions...)
+		if !o.DemoOnly {
+			out = append(out, offerIn(o, lang))
 		}
-		out = append(out, o)
 	}
 	return out
 }
 
-func FindOffer(id string, lang Lang) (rules.Offer, bool) {
+// AssetOffers lists the real offers under one Acasă asset (cont_economii, depozit, titluri_stat).
+func AssetOffers(assetID string, lang Lang) []rules.Offer {
+	out := []rules.Offer{}
 	for _, o := range Offers(lang) {
+		if o.AssetID == assetID {
+			out = append(out, o)
+		}
+	}
+	return out
+}
+
+// FindOffer finds any offer by id, the demo partner's included, for referral clicks.
+func FindOffer(id string, lang Lang) (rules.Offer, bool) {
+	for _, o := range offers {
 		if o.ID == id {
-			return o, true
+			return offerIn(o, lang), true
 		}
 	}
 	return rules.Offer{}, false
 }
+
+// Brokers lists the brokers, with regulator, conditions and source in the given language.
+func Brokers(lang Lang) []rules.Broker {
+	out := make([]rules.Broker, 0, len(brokers))
+	for _, b := range brokers {
+		if t, ok := english.Brokers[b.ID]; ok && lang == EN {
+			b.Regulator, b.Conditions = t.Regulator, append([]string{}, t.Conditions...)
+		}
+		b.Source = sourceIn(b.Source, lang)
+		out = append(out, b)
+	}
+	return out
+}
+
+// IsBrokerAsset tells whether an Acasă asset is bought through a broker.
+func IsBrokerAsset(assetID string) bool { return slices.Contains(brokerAssets, assetID) }
 
 func Partners() []Partner { return append([]Partner(nil), partners...) }
 

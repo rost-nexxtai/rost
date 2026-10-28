@@ -2,68 +2,254 @@
   "note": "English text for the seed data. Only words live here; ids and numbers stay in the Romanian files.",
   "cpiSource": "INS, annual inflation for September 2026, via Wall-Street.ro",
   "offers": {
-    "fidelis-2y-lei": {
-      "provider": "Romanian state",
-      "product": "Fidelis, 2 years (lei)",
-      "conditions": [
-        "Bought through a bank or broker during the subscription period"
-      ]
-    },
     "tezaur-1y": {
       "provider": "Romanian state",
       "product": "Tezaur, 1 year",
       "conditions": [
-        "At the Treasury, the Post Office or online"
+        "Subscriptions 5 October – 6 November 2026, on Ghișeul.ro, in SPV, at the Treasury or the Post Office"
+      ]
+    },
+    "tezaur-3y": {
+      "provider": "Romanian state",
+      "product": "Tezaur, 3 years",
+      "conditions": [
+        "Subscriptions 5 October – 6 November 2026, on Ghișeul.ro, in SPV, at the Treasury or the Post Office"
+      ]
+    },
+    "tezaur-5y": {
+      "provider": "Romanian state",
+      "product": "Tezaur, 5 years",
+      "conditions": [
+        "Subscriptions 5 October – 6 November 2026, on Ghișeul.ro, in SPV, at the Treasury or the Post Office"
+      ]
+    },
+    "fidelis-2y-lei": {
+      "provider": "Romanian state",
+      "product": "Fidelis, 2 years (lei)",
+      "conditions": [
+        "The 2–9 October 2026 issue has closed; the next one is announced monthly",
+        "Through banks and brokers: BT, BCR, BRD, UniCredit, BT Capital Partners, Tradeville"
       ]
     },
     "fidelis-4y-lei": {
       "provider": "Romanian state",
       "product": "Fidelis, 4 years (lei)",
       "conditions": [
-        "Bought through a bank or broker during the subscription period"
+        "The 2–9 October 2026 issue has closed; the next one is announced monthly",
+        "Through banks and brokers: BT, BCR, BRD, UniCredit, BT Capital Partners, Tradeville"
       ]
     },
-    "bank-a-12m": {
-      "provider": "Bank A",
-      "product": "12-month deposit",
+    "fidelis-10y-lei": {
+      "provider": "Romanian state",
+      "product": "Fidelis, 10 years (lei)",
       "conditions": [
-        "New money only"
+        "The 2–9 October 2026 issue has closed; the next one is announced monthly",
+        "Through banks and brokers: BT, BCR, BRD, UniCredit, BT Capital Partners, Tradeville"
       ]
     },
-    "bank-b-12m": {
-      "provider": "Bank B",
+    "tbi-economii": {
+      "provider": "TBI Bank",
+      "product": "Savings account",
+      "conditions": [
+        "Fixed rate on balances up to 500,000 lei"
+      ]
+    },
+    "exim-cont-flexibil": {
+      "provider": "EXIM Banca Românească",
+      "product": "Flexible account",
+      "conditions": [
+        "3.50% up to 50,000 lei, 4.00% above"
+      ]
+    },
+    "unicredit-economii": {
+      "provider": "UniCredit Bank",
+      "product": "Savings account",
+      "conditions": [
+        "Variable rate"
+      ]
+    },
+    "cec-economiseste-smart": {
+      "provider": "CEC Bank",
+      "product": "Economisește smart",
+      "conditions": [
+        "2.00% to 3.50% by balance; 3.25% at 5,000–24,999 lei"
+      ]
+    },
+    "bt-economii": {
+      "provider": "Banca Transilvania",
+      "product": "BT savings account",
+      "conditions": [
+        "3.00% to 3.35% by balance; 3.10% at 10,000–99,999 lei"
+      ]
+    },
+    "brd-you-save": {
+      "provider": "BRD",
+      "product": "YOU Save",
+      "conditions": [
+        "2.50% up to 199,999 lei"
+      ]
+    },
+    "bcr-maxicont": {
+      "provider": "BCR",
+      "product": "MAXICONT",
+      "conditions": [
+        "2.00% to 2.50%, by your level in the George app"
+      ]
+    },
+    "ing-economii": {
+      "provider": "ING Bank",
+      "product": "ING Economii",
+      "conditions": []
+    },
+    "libra-economii": {
+      "provider": "Libra Internet Bank",
+      "product": "Savings account",
+      "conditions": []
+    },
+    "raiffeisen-super-acces-plus": {
+      "provider": "Raiffeisen Bank",
+      "product": "Super Acces Plus",
+      "conditions": [
+        "2.00% up to 50,000 lei; the 5% new-client offer ended on 31.08.2026"
+      ]
+    },
+    "procredit-12m": {
+      "provider": "ProCredit Bank",
       "product": "12-month deposit",
       "conditions": []
     },
-    "bank-c-12m": {
-      "provider": "Bank C",
+    "tbi-12m": {
+      "provider": "TBI Bank",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "unicredit-12m": {
+      "provider": "UniCredit Bank",
       "product": "12-month deposit",
       "conditions": [
-        "Salary account needed"
+        "For new money"
       ]
     },
-    "bank-a-36m": {
-      "provider": "Bank A",
+    "libra-12m": {
+      "provider": "Libra Internet Bank",
+      "product": "12-month deposit",
+      "conditions": [
+        "Opened online or with new money"
+      ]
+    },
+    "intesa-12m": {
+      "provider": "Intesa Sanpaolo Bank",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "salt-12m": {
+      "provider": "Salt Bank",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "bt-12m": {
+      "provider": "Banca Transilvania",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "cec-12m": {
+      "provider": "CEC Bank",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "raiffeisen-12m": {
+      "provider": "Raiffeisen Bank",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "brd-12m": {
+      "provider": "BRD",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "garanti-12m": {
+      "provider": "Garanti BBVA",
+      "product": "12-month deposit",
+      "conditions": [
+        "Opened online or with new money"
+      ]
+    },
+    "ing-12m": {
+      "provider": "ING Bank",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "bcr-12m": {
+      "provider": "BCR",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "raiffeisen-24m": {
+      "provider": "Raiffeisen Bank",
+      "product": "24-month deposit",
+      "conditions": [
+        "Opened online or with new money"
+      ]
+    },
+    "tbi-24m": {
+      "provider": "TBI Bank",
+      "product": "24-month deposit",
+      "conditions": []
+    },
+    "intesa-24m": {
+      "provider": "Intesa Sanpaolo Bank",
+      "product": "24-month deposit",
+      "conditions": []
+    },
+    "procredit-24m": {
+      "provider": "ProCredit Bank",
+      "product": "24-month deposit",
+      "conditions": []
+    },
+    "bt-24m": {
+      "provider": "Banca Transilvania",
+      "product": "24-month deposit",
+      "conditions": []
+    },
+    "cec-24m": {
+      "provider": "CEC Bank",
+      "product": "24-month deposit",
+      "conditions": []
+    },
+    "bt-36m": {
+      "provider": "Banca Transilvania",
       "product": "36-month deposit",
       "conditions": []
     },
-    "bank-b-savings": {
-      "provider": "Bank B",
-      "product": "Savings account",
+    "tbi-36m": {
+      "provider": "TBI Bank",
+      "product": "36-month deposit",
       "conditions": []
     },
-    "bank-d-savings": {
-      "provider": "Bank D",
-      "product": "Savings account",
+    "intesa-36m": {
+      "provider": "Intesa Sanpaolo Bank",
+      "product": "36-month deposit",
+      "conditions": []
+    },
+    "cec-36m": {
+      "provider": "CEC Bank",
+      "product": "36-month deposit",
+      "conditions": []
+    },
+    "libra-36m": {
+      "provider": "Libra Internet Bank",
+      "product": "36-month deposit",
+      "conditions": []
+    },
+    "demo-bank-12m": {
+      "provider": "[PARTNER BANK]",
+      "product": "12-month deposit (demo)",
       "conditions": [
-        "Only in the bank's app"
+        "Fictional bank for the demo"
       ]
     }
   },
-  "partners": {
-    "bank-b": "Bank B",
-    "bank-c": "Bank C"
-  },
+  "partners": {},
   "scenarios": {
     "energy-spike": {
       "title": "What if energy prices jump?",
@@ -77,5 +263,46 @@
       "title": "What if a drought pushes food prices up?",
       "context": "A poor harvest shows up in food prices over the following months."
     }
+  },
+  "brokers": {
+    "tradeville": {
+      "regulator": "ASF",
+      "conditions": [
+        "0.38% + EUR 0.30 per order, plus the 0.04% ASF fee on ETFs; ETFs on the BVB, in lei"
+      ]
+    },
+    "bt-capital-partners": {
+      "regulator": "ASF",
+      "conditions": [
+        "0.5% (5 lei minimum) plus the 0.04% ASF fee; fee from secondary sources, check the tariff"
+      ]
+    },
+    "xtb": {
+      "regulator": "KNF (Poland)",
+      "conditions": [
+        "0% commission up to EUR 100,000 traded a month; 0.5% currency conversion"
+      ]
+    },
+    "trading212": {
+      "regulator": "FSC (Bulgaria)",
+      "conditions": [
+        "0% commission; 0.15% currency conversion"
+      ]
+    },
+    "interactive-brokers": {
+      "regulator": "Central Bank of Ireland",
+      "conditions": [
+        "0.05% (EUR 1.25 minimum) on European exchanges, plus currency conversion"
+      ]
+    }
+  },
+  "sources": {
+    "financer.ro, tabel octombrie 2026": "financer.ro, October 2026 table",
+    "financer.ro, verificat iulie 2026": "financer.ro, checked July 2026",
+    "Ministerul Finanțelor, emisiunile din octombrie 2026, via Goldring": "Ministry of Finance, October 2026 issues, via Goldring",
+    "fricadebani.ro, ghid Tradeville 2026": "fricadebani.ro, Tradeville guide 2026",
+    "freenance.io, comparație brokeri 2026": "freenance.io, broker comparison 2026",
+    "folositor.ro, BT Capital Partners 2026": "folositor.ro, BT Capital Partners 2026",
+    "rankia.ro, XTB vs Trading 212": "rankia.ro, XTB vs Trading 212"
   }
 }

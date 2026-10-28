@@ -70,7 +70,7 @@ function screensFor(lang: Lang): Screen[] {
 }
 
 /**
- * Onboarding: eight screens, one tap each, no Continue button. Under a minute.
+ * Onboarding: ten screens, one tap each, no Continue button. Under a minute.
  * `retake` (from Profil) keeps the session, name and finished lessons; a new user starts fresh.
  */
 export function QuizFlow({ retake = false }: { retake?: boolean }) {

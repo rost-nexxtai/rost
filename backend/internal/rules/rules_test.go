@@ -113,14 +113,15 @@ func TestNetRate(t *testing.T) {
 func TestRanking(t *testing.T) {
 	offers := loadOffers(t)
 	r := RankOffers(offers, OneToTwoYears, 5000)
-	want := []string{"fidelis-2y-lei", "tezaur-1y", "bank-a-12m", "bank-b-12m", "bank-c-12m"}
-	if !reflect.DeepEqual(ids(r), want) {
-		t.Fatalf("order = %v, want %v", ids(r), want)
+	want := []string{"fidelis-2y-lei", "tezaur-1y", "procredit-12m", "tbi-12m", "unicredit-12m"}
+	if !reflect.DeepEqual(ids(r)[:5], want) {
+		t.Fatalf("order = %v, want %v first", ids(r), want)
 	}
-	if r[0].GainLei != 380 || r[2].GainLei != 237 {
-		t.Errorf("gains = %v, %v", r[0].GainLei, r[2].GainLei)
+	// Tax-free 6.60% beats a 7.00% deposit, which keeps 6.30% after the 10% tax.
+	if r[0].GainLei != 330 || r[2].NetRatePct != 6.3 || r[2].GainLei != 315 {
+		t.Errorf("fidelis gain = %v, procredit net = %v gain = %v", r[0].GainLei, r[2].NetRatePct, r[2].GainLei)
 	}
-	if got := ids(RankOffers(offers, AnyTime, 1000)); !reflect.DeepEqual(got, []string{"bank-d-savings", "bank-b-savings"}) {
+	if got := ids(RankOffers(offers, AnyTime, 1000)); got[0] != "tbi-economii" || len(got) != 10 {
 		t.Errorf("any_time = %v", got)
 	}
 	for _, id := range ids(RankOffers(offers, OneToTwoYears, 1000)) {
@@ -150,6 +151,50 @@ func TestRankingIgnoresPartners(t *testing.T) {
 	if !reflect.DeepEqual(ids(RankOffers(flipped, OneToTwoYears, 5000)), base) ||
 		!reflect.DeepEqual(ids(RankOffers(all, OneToTwoYears, 5000)), base) {
 		t.Error("partner status changed the order")
+	}
+}
+
+func TestRankByNetKeepsEveryOffer(t *testing.T) {
+	var bonds []Offer
+	for _, o := range loadOffers(t) {
+		if o.AssetID == "titluri_stat" {
+			bonds = append(bonds, o)
+		}
+	}
+	got := ids(RankByNet(bonds, 1000))
+	want := []string{"fidelis-10y-lei", "tezaur-5y", "fidelis-4y-lei", "tezaur-3y", "fidelis-2y-lei", "tezaur-1y"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("bonds = %v, want %v (no minimum or horizon filter)", got, want)
+	}
+}
+
+func TestRankBrokers(t *testing.T) {
+	raw, err := os.ReadFile("../reference/data/seed/brokers.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seed struct{ Brokers []Broker }
+	if err := json.Unmarshal(raw, &seed); err != nil {
+		t.Fatal(err)
+	}
+	r := RankBrokers(seed.Brokers)
+	got := map[string]float64{}
+	order := []string{}
+	for _, b := range r {
+		got[b.ID] = b.CostLei
+		order = append(order, b.ID)
+	}
+	// Hand-checked for a 1,000 lei order.
+	want := map[string]float64{"trading212": 1.5, "xtb": 5, "bt-capital-partners": 5.4, "tradeville": 5.73, "interactive-brokers": 6.36}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("costs = %v, want %v", got, want)
+	}
+	if !reflect.DeepEqual(order, []string{"trading212", "xtb", "bt-capital-partners", "tradeville", "interactive-brokers"}) || r[0].Rank != 1 {
+		t.Errorf("order = %v", order)
+	}
+	// The minimum applies to small orders: 0.05% of 1,000 lei is 0.50 lei, the minimum is 6.36 lei.
+	if BrokerCostLei(Broker{CommissionPct: 0.05, MinCommissionLei: 6.36}, 1000) != 6.36 {
+		t.Error("minimum commission")
 	}
 }
 
