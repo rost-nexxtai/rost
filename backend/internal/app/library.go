@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"slices"
 
 	"rost/backend/internal/clock"
@@ -355,7 +356,8 @@ func upgradedDoc(have, want domain.ContentItem) ([]byte, bool, error) {
 	}
 	current, seeded := ms[0], ms[1]
 	if have.UpdatedBy == "seed" {
-		if string(have.Doc) == string(want.Doc) {
+		// Postgres stores JSON in its own key order, so compare the content, not the text.
+		if sameJSON(have.Doc, want.Doc) {
 			return nil, false, nil
 		}
 		return want.Doc, true, nil
@@ -370,6 +372,11 @@ func upgradedDoc(have, want domain.ContentItem) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 	return doc, true, nil
+}
+
+func sameJSON(a, b []byte) bool {
+	var x, y any
+	return json.Unmarshal(a, &x) == nil && json.Unmarshal(b, &y) == nil && reflect.DeepEqual(x, y)
 }
 
 func mustJSON(v any) []byte {

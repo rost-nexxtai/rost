@@ -201,4 +201,15 @@ func TestUpgradeSeededLessons(t *testing.T) {
 	if n, _ := s.UpgradeSeededLessons(ctx, seed); n != 0 {
 		t.Errorf("second run changed %d lessons", n)
 	}
+	// Postgres hands JSON back with its own key order and spacing; that alone isn't a change.
+	c, _ := st.GetContent(ctx, domain.KindMoment, "dobanda_compusa")
+	var doc map[string]any
+	_ = json.Unmarshal(c.Doc, &doc)
+	c.Doc, _ = json.MarshalIndent(doc, "", "    ")
+	if _, err := st.UpdateContent(ctx, c); err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := s.UpgradeSeededLessons(ctx, seed); n != 0 {
+		t.Errorf("reformatted JSON counted as %d changes", n)
+	}
 }
