@@ -40,14 +40,16 @@ export interface Profile {
   completedMomentIds: string[];
 }
 
-/** proposed: POST /api/quiz */
+/** proposed: POST /api/quiz. Onboarding asks only age, situation, buffer and three knowledge questions. */
 export interface QuizAnswers {
   knowledge: KnowledgeAnswer[];
   ageBand: AgeBand;
   situation: Situation;
   bufferMonths: number;
-  expensiveDebt: boolean;
-  horizon: MoneyHorizon;
+  /** Not asked at onboarding yet; defaults to false. */
+  expensiveDebt?: boolean;
+  /** Not asked at onboarding yet; defaults to 1–3 years, which never lifts the risk profile. */
+  horizon?: MoneyHorizon;
   grossMonthly?: number;
   fuelLei?: number;
   electricityLei?: number;
@@ -159,10 +161,19 @@ export interface AssetResponse {
   inflationPct: number;
 }
 
+/** Hands-on calculators a lesson can embed (components/lesson/widgets.tsx). */
+export type LessonWidget = 'fund_builder' | 'compound' | 'savings_vs_deposit' | 'diversify' | 'bonds_vs_deposit';
+
+/**
+ * One screen of a lesson, one idea each. choice, predict and sort are graded; explore, stat and
+ * asset_range are not. Keep text to a sentence or two: the interaction carries the lesson.
+ */
 export type LibraryStep =
   | { type: 'choice'; question: string; options: string[]; correct: number; explain: string }
-  | { type: 'predict'; question: string; answerValue: number; min: number; max: number; step: number; unit: string }
-  | { type: 'card'; title: string; body: string }
+  | { type: 'predict'; question: string; answerValue: number; min: number; max: number; step: number; unit: string; start?: number; explain?: string }
+  | { type: 'sort'; question: string; buckets: [string, string]; items: { label: string; bucket: 0 | 1 }[]; explain: string }
+  | { type: 'explore'; title: string; body?: string; widget: LessonWidget }
+  | { type: 'stat'; value: string; label: string; body?: string }
   | { type: 'asset_range'; assetId: AssetId }
   | { type: 'finish'; cta: { label: string; href: string } };
 
@@ -170,17 +181,23 @@ export type LibraryStep =
 export interface LibraryMoment {
   id: string;
   title: string;
+  /** One line that says why it's worth three minutes. */
+  hook: string;
   series: string;
   level: Level;
   core: boolean;
   minutes: number;
   assetIds: AssetId[];
   steps: LibraryStep[];
+  /** Shown on the finish screen. */
+  takeaways: string[];
 }
 
 export interface MomentSummary {
   id: string;
   title: string;
+  /** Library lessons: one line on why it's worth the minutes. */
+  hook?: string;
   series: string;
   /** null for event-triggered moments (payslip, inflation, what-if), which aren't tied to a level. */
   level: Level | null;

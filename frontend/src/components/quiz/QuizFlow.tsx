@@ -2,172 +2,126 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Icon } from '@/components/ui/Icon';
 import { saveQuiz } from '@/data/actions';
 import { QUIZ } from '@/data/fixtures/quiz';
-import type { AgeBand, KnowledgeAnswer, MoneyHorizon, Profile, QuizAnswers, Situation } from '@/data/types';
+import type { AgeBand, KnowledgeAnswer, Profile, QuizAnswers, Situation } from '@/data/types';
 import { QuizResult } from './QuizResult';
-import { QuizStep, type QuizOption } from './QuizStep';
 
-const NU_STIU = { value: 'nu_stiu' as const, label: 'Nu știu' };
+type Answer = string | number;
+interface Screen {
+  kicker: string;
+  question: string;
+  hint?: string;
+  options: { value: Answer; label: string }[];
+  row?: boolean;
+}
 
-type Draft = Partial<Omit<QuizAnswers, 'knowledge'>> & { knowledge: (KnowledgeAnswer | undefined)[] };
-type Money = { grossMonthly: string; fuelLei: string; electricityLei: string; savedLei: string };
+const NU_STIU = { value: 'nu_stiu', label: 'Nu știu' };
 
-const PROFILE_STEPS = [
-  { key: 'ageBand', question: 'Câți ani ai?', options: QUIZ.profile.ageBand },
-  { key: 'situation', question: 'Care e situația ta acum?', options: QUIZ.profile.situation },
+const SCREENS: Screen[] = [
+  { kicker: 'Despre tine', question: 'Câți ani ai?', options: QUIZ.profile.ageBand, row: true },
+  { kicker: 'Despre tine', question: 'Ce faci acum?', options: QUIZ.profile.situation },
   {
-    key: 'bufferMonths',
-    question: 'Dacă venitul s-ar opri mâine, câte luni ai trăi din economii?',
+    kicker: 'Despre tine',
+    question: 'Dacă venitul s-ar opri mâine, cât ai trăi din economii?',
     options: QUIZ.profile.bufferMonths,
   },
-  {
-    key: 'expensiveDebt',
-    question: 'Ai datorii scumpe?',
-    hint: 'Card de credit neachitat integral, credit de nevoi personale sau „cumpără acum, plătește mai târziu”.',
-    options: QUIZ.profile.expensiveDebt,
-  },
-  { key: 'horizon', question: 'Când s-ar putea să ai nevoie de banii pe care îi pui deoparte?', options: QUIZ.profile.horizon },
-] as const;
+  ...QUIZ.knowledge.map((q, n) => ({
+    kicker: `Întrebare rapidă ${n + 1} din ${QUIZ.knowledge.length}`,
+    question: q.question,
+    hint: n === 0 ? 'Ca să știm de unde pornim. Nu e examen.' : undefined,
+    options: [...q.options.map((label, value) => ({ value, label })), NU_STIU],
+  })),
+];
 
-const TOTAL = QUIZ.knowledge.length + PROFILE_STEPS.length + 1;
-
-/** The onboarding quiz: 6 knowledge questions, 5 about you, then optional numbers. About two minutes. */
+/** Onboarding: six screens, one tap each, no Continue button. Under a minute. */
 export function QuizFlow() {
   const [i, setI] = useState(0);
-  const [draft, setDraft] = useState<Draft>({ knowledge: [] });
-  const [money, setMoney] = useState<Money>({ grossMonthly: '', fuelLei: '', electricityLei: '', savedLei: '' });
+  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [tapped, setTapped] = useState<Answer>();
   const [result, setResult] = useState<{ profile: Profile; note?: string }>();
-  const [busy, setBusy] = useState(false);
 
   if (result) return <QuizResult profile={result.profile} note={result.note} />;
+  const screen = SCREENS[i];
 
-  const k = QUIZ.knowledge.length;
-  const isKnowledge = i < k;
-  const profileStep = !isKnowledge && i < k + PROFILE_STEPS.length ? PROFILE_STEPS[i - k] : undefined;
-  const current: unknown = isKnowledge ? draft.knowledge[i] : profileStep ? draft[profileStep.key] : true;
-  const canGoOn = current !== undefined;
-
-  async function finish(skipMoney = false) {
-    setBusy(true);
-    const num = (s: string) => (skipMoney || s.trim() === '' ? undefined : Math.max(0, Number(s)) || 0);
-    const answers: QuizAnswers = {
-      knowledge: draft.knowledge.map((a) => a ?? 'nu_stiu'),
-      ageBand: draft.ageBand as AgeBand,
-      situation: draft.situation as Situation,
-      bufferMonths: draft.bufferMonths as number,
-      expensiveDebt: draft.expensiveDebt as boolean,
-      horizon: draft.horizon as MoneyHorizon,
-      grossMonthly: num(money.grossMonthly),
-      fuelLei: num(money.fuelLei),
-      electricityLei: num(money.electricityLei),
-      savedLei: num(money.savedLei),
+  async function finish(all: Answer[]) {
+    const [ageBand, situation, bufferMonths, ...knowledge] = all;
+    const quiz: QuizAnswers = {
+      ageBand: ageBand as AgeBand,
+      situation: situation as Situation,
+      bufferMonths: bufferMonths as number,
+      knowledge: knowledge as KnowledgeAnswer[],
     };
     let note: string | undefined;
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ situations: [answers.situation], grossMonthly: answers.grossMonthly }),
+        body: JSON.stringify({ situations: [quiz.situation] }),
       });
       if (!res.ok) throw new Error(res.statusText);
     } catch {
-      note = 'Momentele declanșate vor apărea când serverul e disponibil.';
+      note = 'Momentele de la bancă și din calendar apar când serverul e disponibil.';
     }
-    const profile = await saveQuiz(answers);
-    setResult({ profile, note });
+    setResult({ profile: await saveQuiz(quiz), note });
   }
 
-  const next = () => (i === TOTAL - 1 ? finish() : setI(i + 1));
+  function pick(value: Answer) {
+    if (tapped !== undefined) return;
+    setTapped(value);
+    const all = [...answers.slice(0, i), value];
+    // A beat to see the tap land, then the next screen.
+    setTimeout(() => {
+      setAnswers(all);
+      setTapped(undefined);
+      if (i === SCREENS.length - 1) void finish(all);
+      else setI(i + 1);
+    }, 260);
+  }
+
+  const last = i === SCREENS.length - 1 && tapped !== undefined;
 
   return (
-    <div className="stack-lg">
-      <header className="stack" style={{ gap: 8 }}>
-        <div className="row">
-          {i === 0 ? (
-            <Link href="/" className="link-back">
-              <Icon name="back" size={18} /> Înapoi
-            </Link>
-          ) : (
-            <button type="button" className="link-back" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }} onClick={() => setI(i - 1)}>
-              <Icon name="back" size={18} /> Înapoi
-            </button>
-          )}
-          <span className="small muted">
-            Întrebarea {i + 1} din {TOTAL}
-          </span>
-        </div>
-        <ProgressBar value={i + 1} max={TOTAL} label={`Întrebarea ${i + 1} din ${TOTAL}`} />
-      </header>
-
-      {isKnowledge && (
-        <QuizStep<KnowledgeAnswer>
-          key={i}
-          eyebrow="Ce știi deja"
-          question={QUIZ.knowledge[i].question}
-          options={[...QUIZ.knowledge[i].options.map((label, value) => ({ value, label })), NU_STIU]}
-          value={draft.knowledge[i]}
-          onChange={(v) => setDraft((d) => ({ ...d, knowledge: Object.assign([...d.knowledge], { [i]: v }) }))}
-        />
-      )}
-
-      {profileStep && (
-        <QuizStep<unknown>
-          key={i}
-          eyebrow="Despre tine"
-          question={profileStep.question}
-          hint={'hint' in profileStep ? profileStep.hint : undefined}
-          options={profileStep.options as readonly QuizOption<unknown>[] as QuizOption<unknown>[]}
-          value={draft[profileStep.key]}
-          onChange={(v) => setDraft((d) => ({ ...d, [profileStep.key]: v }))}
-        />
-      )}
-
-      {i === TOTAL - 1 && (
-        <div className="stack-lg rise">
-          <span className="eyebrow">Opțional</span>
-          <h1 style={{ fontSize: 26 }}>Câteva cifre, ca lecțiile și știrile să fie despre tine</h1>
-          <p className="muted small">Completează doar ce vrei. Rămân la Rost și nu le dăm nimănui.</p>
-          <div className="card">
-            <MoneyField label="Salariul brut pe lună" value={money.grossMonthly} onChange={(v) => setMoney({ ...money, grossMonthly: v })} placeholder="ex. 6.000" />
-            <MoneyField label="Cât dai pe carburant pe lună" value={money.fuelLei} onChange={(v) => setMoney({ ...money, fuelLei: v })} placeholder="ex. 400" />
-            <MoneyField label="Cât dai pe curent pe lună" value={money.electricityLei} onChange={(v) => setMoney({ ...money, electricityLei: v })} placeholder="ex. 150" />
-            <MoneyField label="Cât ai pus deoparte" value={money.savedLei} onChange={(v) => setMoney({ ...money, savedLei: v })} placeholder="ex. 2.500" />
-          </div>
-        </div>
-      )}
-
-      <div className="stack">
-        <button type="button" className="btn btn-primary btn-block" disabled={!canGoOn || busy} onClick={next}>
-          {i === TOTAL - 1 ? (busy ? 'Calculăm…' : 'Vezi rezultatul') : 'Continuă'}
-        </button>
-        {i === TOTAL - 1 && (
-          <button
-            type="button"
-            className="btn btn-ghost btn-block"
-            disabled={busy}
-            onClick={() => finish(true)}
-          >
-            Sari peste
+    <main className="onboard">
+      <header className="lesson-top">
+        {i === 0 ? (
+          <Link href="/" className="lesson-close" aria-label="Înapoi">
+            <Icon name="back" size={22} />
+          </Link>
+        ) : (
+          <button type="button" className="lesson-close" aria-label="Întrebarea anterioară" onClick={() => setI(i - 1)}>
+            <Icon name="back" size={22} />
           </button>
         )}
-      </div>
-    </div>
-  );
-}
+        <div className="segments" role="progressbar" aria-label={`Ecranul ${i + 1} din ${SCREENS.length}`} aria-valuemin={1} aria-valuemax={SCREENS.length} aria-valuenow={i + 1}>
+          {SCREENS.map((_, n) => (
+            <i key={n} data-on={n < i ? 'done' : n === i ? 'now' : undefined} />
+          ))}
+        </div>
+      </header>
 
-function MoneyField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <label>
-      {label}
-      <span style={{ position: 'relative' }}>
-        <input type="number" inputMode="numeric" min={0} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} style={{ paddingRight: 48 }} />
-        <span className="muted small" style={{ position: 'absolute', right: 14, top: 15 }}>
-          lei
-        </span>
-      </span>
-    </label>
+      <fieldset className="onboard-body" key={i}>
+        <legend className="sr-only">{screen.question}</legend>
+        <span className="lesson-kicker rise">{screen.kicker}</span>
+        <h1 className="lesson-q rise">{screen.question}</h1>
+        {screen.hint && <p className="onboard-hint">{screen.hint}</p>}
+        <div className={screen.row ? 'tiles-row' : 'tiles'} style={screen.row ? { gridTemplateColumns: `repeat(${screen.options.length}, 1fr)` } : undefined}>
+          {screen.options.map((o) => (
+            <button
+              key={String(o.value)}
+              type="button"
+              className="tile rise"
+              style={o.value === 'nu_stiu' ? { color: 'var(--muted)', fontWeight: 500 } : undefined}
+              aria-pressed={(tapped ?? answers[i]) === o.value}
+              onClick={() => pick(o.value)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        {last && <p className="play-hint">Îți pregătim prima lecție…</p>}
+      </fieldset>
+    </main>
   );
 }

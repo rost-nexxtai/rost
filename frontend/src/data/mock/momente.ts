@@ -2,13 +2,14 @@
 import type { TodayResponse } from '@/contract';
 import { LIBRARY } from '../fixtures/moments';
 import type { LibraryMoment, Level, MomenteResponse, MomentSummary, Profile } from '../types';
-import { CORE_MOMENTS } from './scoring';
+import { CORE_MOMENTS, foundationFor } from './scoring';
 
 function summary(m: LibraryMoment, done: boolean): MomentSummary {
   const status = done ? 'done' : m.steps.length === 0 ? 'soon' : 'todo';
   return {
     id: m.id,
     title: m.title,
+    hook: m.hook,
     series: m.series,
     level: m.level,
     core: m.core,
@@ -77,4 +78,14 @@ export function buildMomente(p: Profile, today: TodayResponse | undefined): Mome
     dueFollowUps: today?.dueFollowUps ?? [],
     realApiDown: today === undefined,
   };
+}
+
+/**
+ * The one lesson to do next: the emergency fund while there isn't one, else the first playable lesson
+ * at your level. The quiz result and Momente both use it, so they never disagree.
+ */
+export function firstLesson(p: Profile): LibraryMoment | undefined {
+  const playable = LIBRARY.filter((m) => m.steps.length > 0 && !p.completedMomentIds.includes(m.id));
+  if (foundationFor(p) === 'fond_urgenta') return playable.find((m) => m.id === 'fondul_urgenta') ?? playable[0];
+  return playable.find((m) => m.level === p.level) ?? playable.find((m) => m.level <= p.level) ?? playable[0];
 }

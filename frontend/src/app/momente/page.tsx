@@ -8,6 +8,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
 import { getMomente, getProfile } from '@/data';
+import { firstLesson } from '@/data/mock/momente';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,10 @@ export default async function Momente() {
   const [data, profile] = await Promise.all([getMomente(), getProfile()]);
   if (!data || !profile) redirect('/quiz');
   const { triggered, forYourLevel, rest, progress, realApiDown, dueFollowUps } = data;
+  // One obvious next step: a moment the backend opened wins; otherwise the next lesson at your level.
+  const first = firstLesson(profile);
+  const nextUp = triggered.length === 0 ? [...forYourLevel, ...rest].find((m) => m.id === first?.id && m.status === 'todo') : undefined;
+  const listed = forYourLevel.filter((m) => m !== nextUp);
 
   return (
     <main className="shell">
@@ -52,7 +57,7 @@ export default async function Momente() {
       ) : (
         triggered.map((m) => (
           <section key={m.href} className="card card-dark rise">
-            <span className="eyebrow">Acum, pentru tine · {m.minutes} min</span>
+            <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>Acum, pe cifrele tale · {m.minutes} min</span>
             <h2 style={{ fontSize: 24 }}>{m.title}</h2>
             <Link href={m.href!} className="btn btn-light" style={{ alignSelf: 'flex-start' }}>
               Începe
@@ -61,12 +66,27 @@ export default async function Momente() {
         ))
       )}
 
+      {nextUp && (
+        <section className="stat rise" aria-label="Următoarea ta lecție">
+          <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>
+            Următoarea ta lecție · {nextUp.minutes} min
+          </span>
+          <div className="display-md" style={{ color: '#fff' }}>
+            {nextUp.title}
+          </div>
+          {nextUp.hook && <span className="stat-label">{nextUp.hook}</span>}
+          <Link href={nextUp.href!} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 6 }}>
+            Începe
+          </Link>
+        </section>
+      )}
+
       <section className="section" aria-labelledby="nivel">
         <h2 id="nivel" className="section-title">
           Pentru nivelul tău
         </h2>
         <Card style={{ gap: 0 }}>
-          {forYourLevel.length ? forYourLevel.map((m) => <MomentRow key={m.id} m={m} />) : <p className="small muted">Le-ai terminat pe toate. Bravo!</p>}
+          {listed.length ? listed.map((m) => <MomentRow key={m.id} m={m} />) : <p className="small muted">{nextUp ? 'Începe cu lecția de mai sus.' : 'Le-ai terminat pe toate. Bravo!'}</p>}
         </Card>
       </section>
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { InflationReveal } from '@/components/moments/InflationReveal';
-import { PredictStep } from '@/components/moments/steps/PredictStep';
+import { PredictStep } from '@/components/lesson/steps/PredictStep';
 import type { ScenarioSliderProps } from '@/components/moments/ScenarioSlider';
 import type { InflationView } from '@/contract';
 import { lei, pct } from '@/lib/format';
@@ -24,10 +24,10 @@ export function EmbedMoment({ iv, scenario, bankName }: { iv: InflationView; sce
         step={0.5}
         unit="%"
         start={iv.headlinePct > 5 ? 3 : 8}
-        onLock={async (v) => {
-          setGuess(v);
-          setStep('reveal');
-        }}
+        answer={iv.personal.personalPct}
+        explain="Inflația ta ține de pe ce cheltui: serviciile s-au scumpit mai mult decât mâncarea."
+        onCheck={async (v) => setGuess(v)}
+        onDone={() => setStep('reveal')}
       />
     );
   }

@@ -39,3 +39,10 @@ export async function completeLibraryMoment(momentId: string): Promise<Profile |
 export async function resetProfile(): Promise<void> {
   (await cookies()).delete(PROFILE_COOKIE);
 }
+
+/** Saves one money line the user picked inline (Știri), instead of asking for numbers at onboarding. */
+export async function saveMoneyLine(line: 'fuelLei' | 'electricityLei' | 'savedLei', lei: number): Promise<Profile | undefined> {
+  const p = await current();
+  if (!p || !Number.isFinite(lei) || lei < 0) return undefined;
+  return write({ ...p, money: { ...p.money, [line]: Math.round(lei) } });
+}

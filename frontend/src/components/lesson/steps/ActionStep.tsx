@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { lei } from '@/lib/format';
+import { LessonBar } from '../LessonBar';
 
 /**
  * The one action at the end of a moment. Rost never moves money: the user does it in their own bank,
@@ -26,22 +27,23 @@ export function ActionStep({
   const [busy, setBusy] = useState(false);
 
   return (
-    <div className="stack-lg rise">
-      <span className="eyebrow">Un singur pas</span>
-      <h1>{title}</h1>
-      <p className="muted">{body}</p>
+    <>
+      <span className="lesson-kicker">Un singur pas</span>
+      <h1 className="lesson-q">{title}</h1>
+      <p className="lesson-text">{body}</p>
       {options.length > 0 && (
-        <div className="grid3" role="group" aria-label="Suma">
+        <div className="tiles-row" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }} role="group" aria-label="Suma">
           {options.map((o) => (
-            <button key={o} className="chip" aria-pressed={choice === o} onClick={() => setChoice(o)}>
+            <button key={o} type="button" className="tile" aria-pressed={choice === o} onClick={() => setChoice(o)}>
               {lei(o)}
             </button>
           ))}
         </div>
       )}
-      <button
-        className="btn btn-primary btn-block"
+      <LessonBar
+        label={busy ? 'Salvăm…' : confirmLabel}
         disabled={busy || (options.length > 0 && choice === null)}
+        hint="Alege o sumă"
         onClick={async () => {
           setBusy(true);
           try {
@@ -50,9 +52,7 @@ export function ActionStep({
             setBusy(false);
           }
         }}
-      >
-        {confirmLabel}
-      </button>
-    </div>
+      />
+    </>
   );
 }

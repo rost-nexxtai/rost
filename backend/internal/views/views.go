@@ -4,6 +4,7 @@ package views
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"rost/backend/internal/domain"
 	"rost/backend/internal/reference"
@@ -68,11 +69,11 @@ const savingsAmount = 10_000
 
 func savingsComparison(v *InflationView, inflationPct float64) {
 	v.Savings.AmountLei = savingsAmount
-	v.Savings.Rows = []SavingsRow{{"Current account", 0, rules.RealChange(savingsAmount, 0, inflationPct)}}
+	v.Savings.Rows = []SavingsRow{{"Cont curent", 0, rules.RealChange(savingsAmount, 0, inflationPct)}}
 	for _, b := range []struct {
 		h     rules.Horizon
 		label string
-	}{{rules.AnyTime, "Best instant-access savings"}, {rules.OneToTwoYears, "Best 1–2 year option"}} {
+	}{{rules.AnyTime, "Cel mai bun cont de economii"}, {rules.OneToTwoYears, "Cea mai bună opțiune pe 1–2 ani"}} {
 		if ranked := rules.RankOffers(reference.Offers(), b.h, savingsAmount); len(ranked) > 0 {
 			top := ranked[0]
 			v.Savings.Rows = append(v.Savings.Rows, SavingsRow{b.label, top.NetRatePct, rules.RealChange(savingsAmount, top.NetRatePct, inflationPct)})
@@ -119,8 +120,8 @@ func Inflation(in InflationInput) (*InflationView, error) {
 	return v, nil
 }
 
-// FormatEN formats a number like JavaScript's toLocaleString('en-US'): 6000 -> "6,000".
-func FormatEN(n float64) string {
+// FormatRO formats a number the Romanian way: 6000 -> "6.000", 8.5 -> "8,5".
+func FormatRO(n float64) string {
 	s := strconv.FormatFloat(rules.RoundTo(n, 3), 'f', -1, 64)
 	neg := strings.HasPrefix(s, "-")
 	s = strings.TrimPrefix(s, "-")
@@ -128,13 +129,13 @@ func FormatEN(n float64) string {
 	var b strings.Builder
 	for i, c := range whole {
 		if i > 0 && (len(whole)-i)%3 == 0 {
-			b.WriteByte(',')
+			b.WriteByte('.')
 		}
 		b.WriteRune(c)
 	}
 	out := b.String()
 	if frac != "" {
-		out += "." + frac
+		out += "," + frac
 	}
 	if neg {
 		out = "-" + out
@@ -158,12 +159,12 @@ func Build(u domain.User, payload map[string]any) (MomentView, error) {
 		if u.HireDate != nil {
 			deadline := rules.Pillar2Deadline(*u.HireDate)
 			pv.Pillar2Deadline = &deadline
-			v.Vars["pillar2Line"] = "You were hired on " + *u.HireDate + ", so you can choose your own fund until " + deadline + "."
+			v.Vars["pillar2Line"] = "Te-ai angajat pe " + DateRO(*u.HireDate) + ", așa că îți poți alege singur fondul până pe " + DateRO(deadline) + "."
 		}
 		v.Payslip = pv
 		v.Answers["pension"] = p.Pension
-		v.Vars["gross"] = FormatEN(p.Gross)
-		v.Vars["pillar2"] = FormatEN(p.Pillar2)
+		v.Vars["gross"] = FormatRO(p.Gross)
+		v.Vars["pillar2"] = FormatRO(p.Pillar2)
 	}
 
 	if u.Spending != nil {
@@ -174,7 +175,7 @@ func Build(u domain.User, payload map[string]any) (MomentView, error) {
 		v.Inflation = iv
 		v.Answers["personalPct"] = iv.Personal.PersonalPct
 		if iv.BufferTarget != nil {
-			v.Vars["bufferTarget"] = FormatEN(*iv.BufferTarget)
+			v.Vars["bufferTarget"] = FormatRO(*iv.BufferTarget)
 		}
 		s, ok := reference.GetScenario(payload["scenarioId"])
 		if !ok {
@@ -185,4 +186,15 @@ func Build(u domain.User, payload map[string]any) (MomentView, error) {
 		}
 	}
 	return v, nil
+}
+
+var monthsRO = [...]string{"ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"}
+
+// DateRO writes an ISO date the Romanian way: "2026-12-31" -> "31 decembrie 2026".
+func DateRO(iso string) string {
+	t, err := time.Parse(time.DateOnly, iso)
+	if err != nil {
+		return iso
+	}
+	return strconv.Itoa(t.Day()) + " " + monthsRO[t.Month()-1] + " " + strconv.Itoa(t.Year())
 }

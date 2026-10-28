@@ -1,6 +1,10 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { LessonBar } from '@/components/lesson/LessonBar';
 import { LevelBadge } from '@/components/ui/LevelBadge';
-import { foundationFor } from '@/data/mock/scoring';
+import { firstLesson } from '@/data/mock/momente';
 import type { Level, Profile, RiskProfile } from '@/data/types';
 
 export const LEVEL_NAME: Record<Level, string> = { 0: 'Începător', 1: 'Mediu', 2: 'Avansat' };
@@ -10,37 +14,41 @@ export const RISK_LINE: Record<RiskProfile, string> = {
   dinamic: 'Accepți scăderi pe termen scurt',
 };
 
+/** Where you start, said in one screen, and straight into the first lesson. */
 export function QuizResult({ profile, note }: { profile: Profile; note?: string }) {
+  const router = useRouter();
+  const lesson = firstLesson(profile);
   return (
-    <div className="stack-lg rise">
-      <span className="eyebrow">Rezultatul tău</span>
-      <section className="card card-dark" style={{ gap: 16 }}>
-        <div className="row-start">
+    <main className="onboard">
+      <div className="onboard-body" style={{ paddingTop: 48 }}>
+        <span className="lesson-kicker rise">Gata, te-am cunoscut</span>
+        <h1 className="lesson-q rise">
+          Pornești de la nivelul <span style={{ whiteSpace: 'nowrap' }}>{LEVEL_NAME[profile.level].toLowerCase()}</span>
+        </h1>
+        <div className="row-start rise">
           <LevelBadge level={profile.level} />
-          <span className="muted small">{profile.quizScore} din 6 răspunsuri corecte</span>
+          <span className="muted">
+            {profile.quizScore} din 3 corecte · profil {profile.riskProfile}: {RISK_LINE[profile.riskProfile].toLowerCase()}
+          </span>
         </div>
-        <div className="display-md">Nivel {LEVEL_NAME[profile.level].toLowerCase()}</div>
-        <hr className="divider" style={{ background: '#2b2f37' }} />
-        <div className="stack" style={{ gap: 2 }}>
-          <span className="eyebrow">Profil de risc</span>
-          <strong style={{ fontSize: 18, textTransform: 'capitalize' }}>{profile.riskProfile}</strong>
-          <span className="muted small">{RISK_LINE[profile.riskProfile]}</span>
-        </div>
-      </section>
-      {foundationFor(profile) && (
-        <div className="card card-accent">
-          <p className="small">
-            <strong>Întâi fundația:</strong> îți arătăm de unde să începi, înainte de orice investiție.
-          </p>
-        </div>
-      )}
-      {note && <p className="note">{note}</p>}
-      <p className="note">
-        Nivelul schimbă doar ordinea în care îți arătăm lucrurile. Vezi oricând toate opțiunile. Nu e o recomandare de investiții.
-      </p>
-      <Link href="/acasa" className="btn btn-primary btn-block">
-        Mergi la Acasă
-      </Link>
-    </div>
+        {lesson && (
+          <div className="stat rise" style={{ gap: 6 }}>
+            <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>
+              Prima ta lecție · {lesson.minutes} minute
+            </span>
+            <div className="display-md" style={{ color: '#fff' }}>
+              {lesson.title}
+            </div>
+            <span className="stat-label">{lesson.hook}</span>
+          </div>
+        )}
+        <Link href="/acasa" className="small" style={{ alignSelf: 'center' }}>
+          Mai întâi vreau să mă uit prin aplicație
+        </Link>
+        {note && <p className="note">{note}</p>}
+        <p className="note">Nivelul schimbă doar ordinea în care îți arătăm lucrurile. Nu e o recomandare de investiții.</p>
+      </div>
+      <LessonBar label="Începe lecția" onClick={() => router.push(lesson ? `/moment/lib/${lesson.id}` : '/acasa')} />
+    </main>
   );
 }

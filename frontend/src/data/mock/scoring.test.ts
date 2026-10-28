@@ -3,22 +3,22 @@ import { QUIZ } from '../fixtures/quiz';
 import type { KnowledgeAnswer } from '../types';
 import { CORE_MOMENTS, entryRoute, foundationFor, levelFromScore, levelWithMoments, riskProfile, scoreKnowledge } from './scoring';
 
-const all = (v: KnowledgeAnswer): KnowledgeAnswer[] => Array(6).fill(v);
+const all = (v: KnowledgeAnswer): KnowledgeAnswer[] => Array(3).fill(v);
 const correct = QUIZ.knowledge.map((q) => q.correct);
 const wrongAt = (n: number) => correct.map((c, i) => (i < n ? c : (c + 1) % QUIZ.knowledge[i].options.length));
 
 describe('quiz level', () => {
-  it('scores 1 as L0 and 6 as L2', () => {
+  it('scores 1 as L0 and 3 as L2', () => {
     expect(levelFromScore(scoreKnowledge(wrongAt(1)))).toBe(0);
     expect(levelFromScore(scoreKnowledge(correct))).toBe(2);
   });
 
-  it('scores six "Nu știu" answers as 0', () => {
+  it('scores three "Nu știu" answers as 0', () => {
     expect(scoreKnowledge(all('nu_stiu'))).toBe(0);
   });
 
-  it('maps score bands 0–2, 3–4, 5–6 to L0, L1, L2', () => {
-    expect([2, 3, 4, 5].map(levelFromScore)).toEqual([0, 1, 1, 2]);
+  it('maps 0–1, 2 and 3 right answers to L0, L1, L2', () => {
+    expect([0, 1, 2, 3].map(levelFromScore)).toEqual([0, 0, 1, 2]);
   });
 });
 

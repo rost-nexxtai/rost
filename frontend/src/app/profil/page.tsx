@@ -43,7 +43,7 @@ export default async function Profil() {
         ) : (
           <p className="small muted">Ai ajuns la nivelul avansat.</p>
         )}
-        <p className="small muted">Testul: {profile.quizScore} din 6 răspunsuri corecte.</p>
+        <p className="small muted">Testul: {profile.quizScore} din 3 răspunsuri corecte.</p>
       </Card>
 
       <Card>

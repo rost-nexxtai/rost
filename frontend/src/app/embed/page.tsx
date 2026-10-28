@@ -32,7 +32,7 @@ export default async function Embed({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <div style={style}>
-      <main className="shell" style={{ paddingBottom: 40 }}>
+      <main className="shell" style={{ paddingBottom: 170 }}>
         <header className="row" style={{ minHeight: 44 }}>
           <strong style={{ color: 'var(--primary)' }}>{partner.displayName}</strong>
           <span className="small muted">

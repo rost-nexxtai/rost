@@ -1,15 +1,28 @@
 {
   "id": "payslip_explained",
   "series": "Prima dată",
-  "title": "Your payslip, explained",
+  "title": "Fluturașul tău, pe înțeles",
   "minutes": 3,
-  "triggers": ["salary_received", "payslip_uploaded", "pillar2_deadline_near"],
-  "repeatOn": ["raise"],
-  "conditions": { "situations": ["employed"], "requires": ["grossMonthly"] },
+  "triggers": [
+    "salary_received",
+    "payslip_uploaded",
+    "pillar2_deadline_near"
+  ],
+  "repeatOn": [
+    "raise"
+  ],
+  "conditions": {
+    "situations": [
+      "employed"
+    ],
+    "requires": [
+      "grossMonthly"
+    ]
+  },
   "steps": [
     {
       "type": "predict",
-      "question": "Out of your {{gross}} lei gross, how much goes to your pension each month?",
+      "question": "Din salariul brut de {{gross}} lei, cât merge lunar la pensia ta?",
       "answer": "pension",
       "min": 0,
       "max": 3000,
@@ -17,19 +30,29 @@
       "unit": "lei",
       "start": 500
     },
-    { "type": "reveal", "view": "payslip" },
+    {
+      "type": "reveal",
+      "view": "payslip"
+    },
     {
       "type": "card",
-      "title": "The fund nobody chose",
-      "body": "Under-35s who don't pick a Pillar II fund within 4 months are assigned one. {{pillar2Line}} The {{pillar2}} lei a month that goes there is yours, and it's inheritable.",
-      "link": { "label": "Check your contributions in MyCNPP", "href": "https://www.cnpp.ro" }
+      "title": "Fondul pe care nu l-a ales nimeni",
+      "body": "Dacă ai sub 35 de ani și nu alegi un fond de Pilon II în 4 luni, ți se repartizează unul. {{pillar2Line}} Cei {{pillar2}} lei pe lună care ajung acolo sunt ai tăi și se moștenesc.",
+      "link": {
+        "label": "Vezi-ți contribuțiile în MyCNPP",
+        "href": "https://www.cnpp.ro"
+      }
     },
     {
       "type": "action",
       "action": "payday_savings_rule",
-      "title": "Pay yourself first",
-      "body": "Move a fixed amount into savings every payday, in your own bank. Rost never moves your money.",
-      "options": [200, 400, 600],
+      "title": "Plătește-te întâi pe tine",
+      "body": "De fiecare zi de salariu, mută o sumă fixă în economii, din banca ta. Rost nu îți mută niciodată banii.",
+      "options": [
+        200,
+        400,
+        600
+      ],
       "defaultOption": 400
     }
   ],

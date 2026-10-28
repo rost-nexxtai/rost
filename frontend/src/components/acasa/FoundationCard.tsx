@@ -30,7 +30,7 @@ export function FoundationCard({ kind, bufferMonths }: { kind: NonNullable<Found
         Acum ai bani pentru {months}. Ținta: 3 luni de cheltuieli, într-un loc din care îi scoți oricând. Abia apoi are sens să investești.
       </p>
       <Link href="/moment/lib/fondul_urgenta" className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}>
-        Învață în 4 minute
+        Învață în 3 minute
       </Link>
     </section>
   );

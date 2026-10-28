@@ -8,11 +8,8 @@ export function MomentRow({ m }: { m: MomentSummary }) {
     <>
       <div className="stack" style={{ gap: 4, minWidth: 0 }}>
         <strong>{m.title}</strong>
-        <span className="row-start small muted" style={{ gap: 6, flexWrap: 'wrap' }}>
-          {m.series && <span>{m.series}</span>}
-          <span>· {m.minutes} min</span>
-          {m.core && <span className="tag tag-core">de bază</span>}
-          {m.level !== null && <span className="tag">L{m.level}</span>}
+        <span className="small muted">
+          {m.hook ?? m.series} · {m.minutes} min
         </span>
       </div>
       {m.status === 'done' ? (

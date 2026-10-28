@@ -1,10 +1,10 @@
 {
-  "note": "What-if shocks. Each one is written and approved by a person before it can be sent. They are scenarios, never forecasts.",
+  "note": "Scenarii de tip „ce-ar fi dacă”. Fiecare e scris și aprobat de un om înainte să ajungă la utilizatori. Sunt scenarii, nu prognoze.",
   "scenarios": [
     {
       "id": "energy-spike",
-      "title": "What if energy prices jump?",
-      "context": "Energy prices can spike after a war or a supply cut, as they did in 2022.",
+      "title": "Ce-ar fi dacă energia se scumpește brusc?",
+      "context": "Prețul energiei poate sări după un război sau o întrerupere a livrărilor, ca în 2022.",
       "spendLine": "utilities",
       "defaultShockPct": 30,
       "minShockPct": 0,
@@ -14,8 +14,8 @@
     },
     {
       "id": "fuel-shortage",
-      "title": "What if fuel rises?",
-      "context": "A shortage or a refinery outage can push pump prices up within weeks.",
+      "title": "Ce-ar fi dacă se scumpește carburantul?",
+      "context": "O criză de aprovizionare sau o rafinărie oprită pot urca prețul la pompă în câteva săptămâni.",
       "spendLine": "fuel",
       "defaultShockPct": 20,
       "minShockPct": 0,
@@ -25,8 +25,8 @@
     },
     {
       "id": "food-drought",
-      "title": "What if a drought pushes food prices up?",
-      "context": "A poor harvest shows up in food prices over the following months.",
+      "title": "Ce-ar fi dacă seceta scumpește mâncarea?",
+      "context": "O recoltă slabă se vede în prețul alimentelor în lunile următoare.",
       "spendLine": "food",
       "defaultShockPct": 10,
       "minShockPct": 0,

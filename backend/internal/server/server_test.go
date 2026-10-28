@@ -109,7 +109,7 @@ func TestDemoPathOverHTTP(t *testing.T) {
 		t.Fatalf("moment = %d %v", code, moment)
 	}
 	question := moment["def"].(map[string]any)["steps"].([]any)[0].(map[string]any)["question"]
-	if question != "Out of your 6,000 lei gross, how much goes to your pension each month?" {
+	if question != "Din salariul brut de 6.000 lei, cât merge lunar la pensia ta?" {
 		t.Errorf("question not filled: %v", question)
 	}
 	action := moment["def"].(map[string]any)["steps"].([]any)[3].(map[string]any)

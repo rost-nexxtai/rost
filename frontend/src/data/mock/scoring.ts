@@ -15,8 +15,9 @@ export function scoreKnowledge(answers: KnowledgeAnswer[]): number {
   return QUIZ.knowledge.reduce((n, q, i) => n + (answers[i] === q.correct ? 1 : 0), 0);
 }
 
+/** Three quick questions: 0–1 right → L0, 2 → L1, all 3 → L2. */
 export function levelFromScore(score: number): Level {
-  return score >= 5 ? 2 : score >= 3 ? 1 : 0;
+  return score >= 3 ? 2 : score === 2 ? 1 : 0;
 }
 
 /** Level + 1 if under 30 (0 prudent, 1–2 echilibrat, 3 dinamic), then the two caps. */
@@ -51,17 +52,19 @@ export function profileFromQuiz(a: QuizAnswers, name?: string): Profile {
   const quizScore = scoreKnowledge(a.knowledge);
   const quizLevel = levelFromScore(quizScore);
   const level = levelWithMoments(quizLevel, []);
+  const horizon = a.horizon ?? '1_3_ani';
+  const expensiveDebt = a.expensiveDebt ?? false;
   return {
     name,
     quizScore,
     quizLevel,
     level,
-    riskProfile: riskProfile({ level, ageBand: a.ageBand, horizon: a.horizon, bufferMonths: a.bufferMonths, expensiveDebt: a.expensiveDebt }),
+    riskProfile: riskProfile({ level, ageBand: a.ageBand, horizon, bufferMonths: a.bufferMonths, expensiveDebt }),
     ageBand: a.ageBand,
     situation: a.situation,
     bufferMonths: a.bufferMonths,
-    expensiveDebt: a.expensiveDebt,
-    horizon: a.horizon,
+    expensiveDebt,
+    horizon,
     money: {
       fuelLei: a.fuelLei ?? 0,
       electricityLei: a.electricityLei ?? 0,

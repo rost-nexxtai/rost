@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Money } from '@/components/ui/Money';
 import { Slider } from '@/components/ui/Slider';
 import { SourceLink } from '@/components/ui/SourceLink';
+import { saveMoneyLine } from '@/data/actions';
 import { savingsLossLei, spendImpactLei } from '@/data/mock/stiri';
 import type { MoneyLines, NewsItem } from '@/data/types';
 import { lei, pct } from '@/lib/format';
@@ -52,7 +54,7 @@ function SpendImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { 
   const spend = money[impact.line];
   const line = LINE[impact.line];
   if (spend <= 0) {
-    return <p className="small">Nu ne-ai spus cât dai pe {line.what}. Refă testul ca să vezi suma pentru tine.</p>;
+    return <AskAmount line={impact.line} question={`Cam cât dai pe ${line.what} pe lună?`} amounts={impact.line === 'fuelLei' ? [200, 400, 600] : [100, 150, 250]} />;
   }
   return (
     <>
@@ -70,7 +72,7 @@ function SpendImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { 
 
 function SavingsImpact({ impact, money }: { impact: Extract<NewsItem['impact'], { kind: 'savings' }>; money: MoneyLines }) {
   if (money.savedLei <= 0) {
-    return <p className="small">Nu ne-ai spus cât ai pus deoparte. Refă testul ca să vezi suma pentru tine.</p>;
+    return <AskAmount line="savedLei" question="Cam cât ai pus deoparte?" amounts={[1000, 5000, 10000]} />;
   }
   const cash = savingsLossLei(money.savedLei, money.inflationPct);
   const alt = savingsLossLei(money.savedLei, money.inflationPct, impact.alternative.ratePct);
@@ -90,5 +92,36 @@ function SavingsImpact({ impact, money }: { impact: Extract<NewsItem['impact'], 
         <Money lei={alt} signed tone={alt < 0 ? 'neg' : 'pos'} />
       </div>
     </>
+  );
+}
+
+/** One tap to make the card about you. Saved to the profile, then the card recomputes. */
+function AskAmount({ line, question, amounts }: { line: 'fuelLei' | 'electricityLei' | 'savedLei'; question: string; amounts: number[] }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="stack">
+      <p className="small">
+        <strong>{question}</strong> Îți arătăm suma pentru tine.
+      </p>
+      <div className="tiles-row" style={{ gridTemplateColumns: `repeat(${amounts.length}, 1fr)` }}>
+        {amounts.map((a) => (
+          <button
+            key={a}
+            type="button"
+            className="tile"
+            style={{ minHeight: 48, padding: 8, fontSize: 15 }}
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              await saveMoneyLine(line, a);
+              router.refresh();
+            }}
+          >
+            {lei(a)}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

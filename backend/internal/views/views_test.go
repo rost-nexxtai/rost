@@ -33,7 +33,7 @@ func TestMariaView(t *testing.T) {
 	if v.Scenario.MonthlySpend != 400 {
 		t.Errorf("scenario spend = %v", v.Scenario.MonthlySpend)
 	}
-	if v.Vars["gross"] != "6,000" || v.Vars["bufferTarget"] != "8,140" {
+	if v.Vars["gross"] != "6.000" || v.Vars["bufferTarget"] != "8.140" {
 		t.Errorf("vars = %v", v.Vars)
 	}
 }
@@ -55,10 +55,21 @@ func TestSavingsComparison(t *testing.T) {
 	}
 }
 
-func TestFormatEN(t *testing.T) {
-	for in, want := range map[float64]string{6000: "6,000", 285: "285", 1234567: "1,234,567", 8.5: "8.5", -2500: "-2,500"} {
-		if got := FormatEN(in); got != want {
-			t.Errorf("FormatEN(%v) = %q, want %q", in, got, want)
+func TestFormatRO(t *testing.T) {
+	for in, want := range map[float64]string{6000: "6.000", 285: "285", 1234567: "1.234.567", 8.5: "8,5", -2500: "-2.500"} {
+		if got := FormatRO(in); got != want {
+			t.Errorf("FormatRO(%v) = %q, want %q", in, got, want)
 		}
+	}
+	if got := DateRO("2026-12-31"); got != "31 decembrie 2026" {
+		t.Errorf("DateRO = %q", got)
+	}
+}
+
+func TestPillar2LineInRomanian(t *testing.T) {
+	v, _ := Build(maria(t), nil)
+	want := "Te-ai angajat pe 1 septembrie 2026, așa că îți poți alege singur fondul până pe 31 decembrie 2026."
+	if v.Vars["pillar2Line"] != want {
+		t.Errorf("pillar2Line = %q", v.Vars["pillar2Line"])
 	}
 }

@@ -35,9 +35,5 @@ export default async function LibraryMomentPage({ params }: { params: Promise<{ 
   const done = new Set([...(profile?.completedMomentIds ?? []), moment.id]);
   const coreLeftAfter = CORE_MOMENTS[level].filter((id) => !done.has(id)).length;
 
-  return (
-    <main className="shell shell-bare">
-      <LibraryMomentPlayer moment={moment} assets={assets} levelBefore={level} coreLeftAfter={coreLeftAfter} />
-    </main>
-  );
+  return <LibraryMomentPlayer moment={moment} assets={assets} levelBefore={level} coreLeftAfter={coreLeftAfter} />;
 }

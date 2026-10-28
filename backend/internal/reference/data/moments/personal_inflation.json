@@ -1,15 +1,23 @@
 {
   "id": "personal_inflation",
-  "series": "News",
-  "title": "Your inflation this month",
+  "series": "Știri",
+  "title": "Inflația ta, luna asta",
   "minutes": 2,
-  "triggers": ["inflation_published"],
-  "repeatOn": ["inflation_published"],
-  "conditions": { "requires": ["spending"] },
+  "triggers": [
+    "inflation_published"
+  ],
+  "repeatOn": [
+    "inflation_published"
+  ],
+  "conditions": {
+    "requires": [
+      "spending"
+    ]
+  },
   "steps": [
     {
       "type": "predict",
-      "question": "National inflation is {{headline}}%. What's yours?",
+      "question": "Inflația la nivel național e {{headline}}%. Cât crezi că e a ta?",
       "answer": "personalPct",
       "min": 0,
       "max": 15,
@@ -17,12 +25,15 @@
       "unit": "%",
       "start": 3
     },
-    { "type": "reveal", "view": "personal_inflation" },
+    {
+      "type": "reveal",
+      "view": "personal_inflation"
+    },
     {
       "type": "action",
       "action": "update_buffer_target",
-      "title": "Keep your buffer worth the same",
-      "body": "Raise your emergency-buffer target to match your inflation: {{bufferTarget}} lei.",
+      "title": "Ține-ți fondul de urgență la valoare",
+      "body": "Crește ținta fondului de urgență cu inflația ta: {{bufferTarget}} lei.",
       "options": [],
       "defaultOption": null
     }
