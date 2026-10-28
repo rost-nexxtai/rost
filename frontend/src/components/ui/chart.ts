@@ -6,12 +6,13 @@ export function scaleY(value: number, max: number, height: number): number {
   return height - Math.min(1, Math.max(0, value / max)) * height;
 }
 
-const oneDecimal = new Intl.NumberFormat('ro-RO', { maximumFractionDigits: 1 });
+import type { Lang } from '@/i18n/lang';
 
-/** Gridline labels: 850, 10 mii, 1,2 mil. */
-export function compactLei(n: number): string {
-  if (n >= 1_000_000) return `${oneDecimal.format(n / 1_000_000)} mil.`;
-  if (n >= 1_000) return `${Math.round(n / 1000)} mii`;
+/** Gridline labels: 850, 10 mii, 1,2 mil. in Romanian; 850, 10k, 1.2m in English. */
+export function compactLei(n: number, lang: Lang = 'ro'): string {
+  const oneDecimal = new Intl.NumberFormat(lang === 'ro' ? 'ro-RO' : 'en-GB', { maximumFractionDigits: 1 });
+  if (n >= 1_000_000) return lang === 'ro' ? `${oneDecimal.format(n / 1_000_000)} mil.` : `${oneDecimal.format(n / 1_000_000)}m`;
+  if (n >= 1_000) return lang === 'ro' ? `${Math.round(n / 1000)} mii` : `${Math.round(n / 1000)}k`;
   return String(Math.round(n));
 }
 

@@ -1,6 +1,7 @@
 // MOCK until backend ships GET /api/momente. Triggered moments are real (from GET /api/today).
 import type { TodayResponse } from '@/contract';
-import { LIBRARY } from '../fixtures/moments';
+import type { Lang } from '@/i18n/lang';
+import { libraryFor } from '../fixtures/moments';
 import type { LibraryMoment, Level, MomenteResponse, MomentSummary, Profile } from '../types';
 import { CORE_MOMENTS, foundationFor } from './scoring';
 
@@ -20,7 +21,8 @@ function summary(m: LibraryMoment, done: boolean): MomentSummary {
 }
 
 /** Triggered first, then the user's level (own level first, then lower levels not yet done), then the rest. */
-export function buildMomente(p: Profile, today: TodayResponse | undefined): MomenteResponse {
+export function buildMomente(p: Profile, today: TodayResponse | undefined, lang: Lang = 'ro'): MomenteResponse {
+  const LIBRARY = libraryFor(lang);
   const title = (id: string) => today?.moments.find((d) => d.id === id);
   const triggered: MomentSummary[] = (today?.open ?? []).map((run) => {
     const def = title(run.momentId);
@@ -39,7 +41,8 @@ export function buildMomente(p: Profile, today: TodayResponse | undefined): Mome
   const done = new Set(p.completedMomentIds);
   const forYourLevel = LIBRARY.filter((m) => m.level <= p.level && !done.has(m.id))
     .map((m, i) => ({ m, i }))
-    .sort((a, b) => b.m.level - a.m.level || a.i - b.i)
+    // Lessons you can play first; ones still being written ("în curând") last. Then own level first.
+    .sort((a, b) => Number(!a.m.steps.length) - Number(!b.m.steps.length) || b.m.level - a.m.level || a.i - b.i)
     .map(({ m }) => summary(m, false));
 
   const realRest: MomentSummary[] = (today?.moments ?? [])
@@ -84,8 +87,8 @@ export function buildMomente(p: Profile, today: TodayResponse | undefined): Mome
  * The one lesson to do next: the emergency fund while there isn't one, else the first playable lesson
  * at your level. The quiz result and Momente both use it, so they never disagree.
  */
-export function firstLesson(p: Profile): LibraryMoment | undefined {
-  const playable = LIBRARY.filter((m) => m.steps.length > 0 && !p.completedMomentIds.includes(m.id));
+export function firstLesson(p: Profile, lang: Lang = 'ro'): LibraryMoment | undefined {
+  const playable = libraryFor(lang).filter((m) => m.steps.length > 0 && !p.completedMomentIds.includes(m.id));
   if (foundationFor(p) === 'fond_urgenta') return playable.find((m) => m.id === 'fondul_urgenta') ?? playable[0];
   return playable.find((m) => m.level === p.level) ?? playable.find((m) => m.level <= p.level) ?? playable[0];
 }

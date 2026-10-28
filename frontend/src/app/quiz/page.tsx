@@ -1,7 +1,15 @@
 import { QuizFlow } from '@/components/quiz/QuizFlow';
 
-export const metadata = { title: 'Hai să ne cunoaștem · Rost' };
+import { copy } from '@/i18n/lang';
+import { getLang } from '@/i18n/server';
 
-export default function QuizPage() {
-  return <QuizFlow />;
+const TITLE = copy('Hai să ne cunoaștem · Rost', "Let's get to know you · Rost");
+
+export async function generateMetadata() {
+  return { title: TITLE[await getLang()] };
+}
+
+/** `/quiz?retake=1` comes from Profil and keeps your progress; plain `/quiz` is a new user. */
+export default async function QuizPage({ searchParams }: { searchParams: Promise<{ retake?: string }> }) {
+  return <QuizFlow retake={(await searchParams).retake === '1'} />;
 }

@@ -3,8 +3,8 @@
 import { cookies } from 'next/headers';
 import { PERSONAS } from './fixtures/personas';
 import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/profile';
-import { levelWithMoments, profileFromQuiz } from './mock/scoring';
-import type { Profile, QuizAnswers } from './types';
+import { levelWithMoments, quizProfile } from './mock/scoring';
+import type { MoneyLine, Profile, QuizAnswers } from './types';
 
 // MOCK until backend ships POST /api/quiz and profile progress on the server.
 
@@ -17,12 +17,8 @@ async function current() {
   return parseProfile((await cookies()).get(PROFILE_COOKIE)?.value);
 }
 
-export async function saveQuiz(a: QuizAnswers): Promise<Profile> {
-  const previous = await current();
-  const p = profileFromQuiz(a, previous?.name);
-  // Retaking the quiz keeps finished moments: the quiz level is a floor, not a reset.
-  const completedMomentIds = previous?.completedMomentIds ?? [];
-  return write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds) });
+export async function saveQuiz(a: QuizAnswers, opts: { retake: boolean } = { retake: false }): Promise<Profile> {
+  return write(quizProfile(a, await current(), opts));
 }
 
 export async function setDemoProfile(persona: 'maria'): Promise<void> {
@@ -41,8 +37,9 @@ export async function resetProfile(): Promise<void> {
 }
 
 /** Saves one money line the user picked inline (Știri), instead of asking for numbers at onboarding. */
-export async function saveMoneyLine(line: 'fuelLei' | 'electricityLei' | 'savedLei', lei: number): Promise<Profile | undefined> {
+export async function saveMoneyLine(line: MoneyLine, lei: number): Promise<Profile | undefined> {
   const p = await current();
   if (!p || !Number.isFinite(lei) || lei < 0) return undefined;
-  return write({ ...p, money: { ...p.money, [line]: Math.round(lei) } });
+  const known = Array.from(new Set([...(p.money.known ?? []), line]));
+  return write({ ...p, money: { ...p.money, [line]: Math.round(lei), known } });
 }

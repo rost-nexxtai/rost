@@ -15,9 +15,9 @@ export function scoreKnowledge(answers: KnowledgeAnswer[]): number {
   return QUIZ.knowledge.reduce((n, q, i) => n + (answers[i] === q.correct ? 1 : 0), 0);
 }
 
-/** Three quick questions: 0–1 right → L0, 2 → L1, all 3 → L2. */
+/** Four quick questions: 0–1 right → L0, 2–3 → L1, all 4 (including the bond question) → L2. */
 export function levelFromScore(score: number): Level {
-  return score >= 3 ? 2 : score === 2 ? 1 : 0;
+  return score >= 4 ? 2 : score >= 2 ? 1 : 0;
 }
 
 /** Level + 1 if under 30 (0 prudent, 1–2 echilibrat, 3 dinamic), then the two caps. */
@@ -70,9 +70,24 @@ export function profileFromQuiz(a: QuizAnswers, name?: string): Profile {
       electricityLei: a.electricityLei ?? 0,
       savedLei: a.savedLei ?? 0,
       inflationPct: NATIONAL_INFLATION_PCT,
+      // "Nothing put aside" already answers the savings question.
+      known: a.bufferMonths === 0 && a.savedLei === undefined ? ['savedLei'] : undefined,
     },
     completedMomentIds: [],
   };
+}
+
+/**
+ * The profile a finished quiz saves. A new user starts fresh; a retake from Profil keeps the
+ * name, finished lessons and money amounts, because the quiz level is a floor, not a reset.
+ */
+export function quizProfile(a: QuizAnswers, previous: Profile | undefined, opts: { retake: boolean }): Profile {
+  const keep = opts.retake ? previous : undefined;
+  const p = profileFromQuiz(a, keep?.name);
+  const completedMomentIds = keep?.completedMomentIds ?? [];
+  // Amounts given in Știri stay too; only the quiz answers change.
+  const money = keep?.money ?? p.money;
+  return { ...p, money, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds) };
 }
 
 /** Where someone lands: no session → landing, session but no profile → quiz, both → Acasă. */

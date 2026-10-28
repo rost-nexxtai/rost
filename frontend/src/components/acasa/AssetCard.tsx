@@ -1,9 +1,19 @@
+'use client';
+
 import Link from 'next/link';
+import { useLang } from '@/i18n/client';
+import { copy } from '@/i18n/lang';
 import { Icon } from '@/components/ui/Icon';
 import { RiskMeter } from '@/components/ui/RiskMeter';
 import type { AssetCard as AssetCardData } from '@/data/types';
 
+const T = copy(
+  { opensAt: (l: number) => `Lecția se deschide la L${l}`, aboveRisk: 'Risc peste profilul tău', see: 'Vezi opțiuni și simulare' },
+  { opensAt: (l) => `The lesson opens at L${l}`, aboveRisk: 'Above your risk profile', see: 'See options and a simulation' },
+);
+
 export function AssetCard({ asset, later = false }: { asset: AssetCardData; later?: boolean }) {
+  const t = T[useLang().lang];
   return (
     <Link href={`/active/${asset.id}`} className="card card-link" style={{ gap: 10 }}>
       <div className="row" style={{ alignItems: 'flex-start' }}>
@@ -21,11 +31,11 @@ export function AssetCard({ asset, later = false }: { asset: AssetCardData; late
       </div>
       {(later || asset.aboveRiskProfile) && (
         <div className="row-start" style={{ flexWrap: 'wrap', gap: 6 }}>
-          {later && <span className="tag">Lecția se deschide la L{asset.lessonLevel}</span>}
-          {asset.aboveRiskProfile && <span className="tag tag-risk">Risc peste profilul tău</span>}
+          {later && <span className="tag">{t.opensAt(asset.lessonLevel)}</span>}
+          {asset.aboveRiskProfile && <span className="tag tag-risk">{t.aboveRisk}</span>}
         </div>
       )}
-      <span className="sr-only">Vezi opțiuni și simulare</span>
+      <span className="sr-only">{t.see}</span>
     </Link>
   );
 }

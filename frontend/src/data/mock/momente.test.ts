@@ -24,6 +24,12 @@ describe('Momente order', () => {
     ]);
   });
 
+  it('puts lessons you can play above the ones still being written', () => {
+    const l2: Profile = { ...PERSONAS.maria, quizLevel: 2, level: 2 };
+    const statuses = buildMomente(l2, today).forYourLevel.map((x) => x.status);
+    expect(statuses.indexOf('soon')).toBeGreaterThan(statuses.lastIndexOf('todo'));
+  });
+
   it('keeps an L0 user to L0 moments for their level', () => {
     const l0: Profile = { ...PERSONAS.maria, quizLevel: 0, level: 0 };
     expect(buildMomente(l0, today).forYourLevel.every((x) => x.level === 0)).toBe(true);

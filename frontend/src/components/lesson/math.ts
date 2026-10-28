@@ -8,11 +8,12 @@ export const LESSON_RATES = { savingsPct: 3.8, deposit12Pct: 5.25, bondPct: 7.4,
 /** Emergency-fund target: monthly expenses × months. */
 export const fundTarget = (monthlyExpenses: number, months: number) => Math.max(0, monthlyExpenses) * months;
 
-/** Whole months to reach a target saving a fixed amount each month. */
-export function monthsToGoal(target: number, perMonth: number): number {
-  if (target <= 0) return 0;
+/** Whole months to reach a target saving a fixed amount each month, counting what's already saved. */
+export function monthsToGoal(target: number, perMonth: number, have = 0): number {
+  const left = target - Math.max(0, have);
+  if (left <= 0) return 0;
   if (perMonth <= 0) return Infinity;
-  return Math.ceil(target / perMonth);
+  return Math.ceil(left / perMonth);
 }
 
 /** Interest after the 10% tax on deposit interest. */

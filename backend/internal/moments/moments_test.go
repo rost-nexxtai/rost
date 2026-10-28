@@ -37,7 +37,7 @@ func run(momentID string, state domain.RunState, createdAt string) domain.Moment
 }
 
 func decide(u domain.User, e moments.Event, runs []domain.MomentRun, ignoreCap bool) moments.Decision {
-	return moments.Decide(reference.MomentDefs(), u, e, runs, now, ignoreCap)
+	return moments.Decide(reference.MomentDefs(reference.RO), u, e, runs, now, ignoreCap)
 }
 
 func TestOpensMoments(t *testing.T) {

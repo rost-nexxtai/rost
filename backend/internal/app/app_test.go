@@ -54,7 +54,7 @@ func TestDemoFlow(t *testing.T) {
 	}
 	runID := res.Runs[0].ID
 
-	loaded, err := s.RunWithView(ctx, runID, "maria")
+	loaded, err := s.RunWithView(ctx, runID, "maria", reference.RO)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestDemoFlow(t *testing.T) {
 	if loaded.Run.State != domain.RunStarted {
 		t.Errorf("state = %s", loaded.Run.State)
 	}
-	if _, err := s.RunWithView(ctx, runID, "someone-else"); err == nil {
+	if _, err := s.RunWithView(ctx, runID, "someone-else", reference.RO); err == nil {
 		t.Error("another user could load the run")
 	}
 

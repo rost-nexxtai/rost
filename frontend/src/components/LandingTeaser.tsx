@@ -1,20 +1,43 @@
 'use client';
 
 import { useState } from 'react';
+import { useLang } from '@/i18n/client';
+import { copy } from '@/i18n/lang';
 
-const OPTIONS = ['300 lei', '900 lei', '1.500 lei'];
+const T = copy(
+  {
+    guess: 'Ghicește',
+    question: 'Din 6.000 lei salariu brut, cât merge lunar la pensia ta?',
+    options: ['300 lei', '900 lei', '1.500 lei'],
+    right: 'Exact.',
+    wrong: 'Mai mult: 1.500 lei.',
+    after: 'Un sfert din brut. Din ei, 285 lei ajung în contul tău de Pilon II, care e al tău și se moștenește. Așa arată fiecare lecție: ghicești, apoi vezi cifrele.',
+    aria: 'Încearcă',
+  },
+  {
+    guess: 'Guess',
+    question: 'From a 6,000 lei gross salary, how much goes to your pension each month?',
+    options: ['300 lei', '900 lei', '1,500 lei'],
+    right: 'Exactly.',
+    wrong: 'More: 1,500 lei.',
+    after: "A quarter of gross. Of that, 285 lei lands in your own Pillar II account, which is yours and can be inherited. Every lesson works like this: guess, then see the numbers.",
+    aria: 'Try it',
+  },
+);
+
 const RIGHT = 2;
 
 /** A one-tap taste of a moment, right on the landing page: guess, then see. */
 export function LandingTeaser() {
   const [picked, setPicked] = useState<number>();
   const done = picked !== undefined;
+  const t = T[useLang().lang];
   return (
-    <section className="play" aria-label="Încearcă">
-      <span className="lesson-kicker">Ghicește</span>
-      <strong style={{ fontSize: 19, lineHeight: 1.3 }}>Din 6.000 lei salariu brut, cât merge lunar la pensia ta?</strong>
+    <section className="play" aria-label={t.aria}>
+      <span className="lesson-kicker">{t.guess}</span>
+      <strong style={{ fontSize: 19, lineHeight: 1.3 }}>{t.question}</strong>
       <div className="tiles-row" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        {OPTIONS.map((o, i) => (
+        {t.options.map((o, i) => (
           <button
             key={o}
             type="button"
@@ -30,8 +53,7 @@ export function LandingTeaser() {
       </div>
       {done && (
         <p className="small rise" role="status">
-          <strong>{picked === RIGHT ? 'Exact.' : 'Mai mult: 1.500 lei.'}</strong> Un sfert din brut. Din ei, 285 lei ajung în contul tău de Pilon II, care e
-          al tău și se moștenește. Așa arată fiecare lecție: ghicești, apoi vezi cifrele.
+          <strong>{picked === RIGHT ? t.right : t.wrong}</strong> {t.after}
         </p>
       )}
     </section>

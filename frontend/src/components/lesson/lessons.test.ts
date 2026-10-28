@@ -4,6 +4,7 @@ import { LIBRARY } from '@/data/fixtures/moments';
 import { PERSONAS } from '@/data/fixtures/personas';
 import { profileFromQuiz } from '@/data/mock/scoring';
 import { bondsVsDeposit, fundTarget, growth, lossIfOneFails, monthsToGoal, netDepositPct, savingsVsDeposit } from './math';
+import { libraryFor } from '@/data/fixtures/moments';
 import { isClose } from './steps/PredictStep';
 
 describe('lesson math', () => {
@@ -11,6 +12,8 @@ describe('lesson math', () => {
     expect(fundTarget(2500, 3)).toBe(7500);
     expect(monthsToGoal(7500, 400)).toBe(19);
     expect(monthsToGoal(7500, 0)).toBe(Infinity);
+    expect(monthsToGoal(7500, 300, 2500)).toBe(17); // a month already saved counts
+    expect(monthsToGoal(7500, 300, 9000)).toBe(0);
   });
 
   it('a deposit broken early pays nothing; kept a year it beats savings', () => {
@@ -36,6 +39,27 @@ describe('lesson math', () => {
   it('a guess counts as close within a step or a tenth of the scale', () => {
     expect(isClose(4, 3, 0, 12, 1)).toBe(true);
     expect(isClose(6, 3, 0, 12, 1)).toBe(false);
+  });
+
+  it('counts any guess inside an accepted range as right', () => {
+    expect(isClose(6, 3, 0, 12, 1, [3, 6])).toBe(true);
+    expect(isClose(3, 3, 0, 12, 1, [3, 6])).toBe(true);
+    expect(isClose(8, 3, 0, 12, 1, [3, 6])).toBe(false);
+  });
+
+  it('gives every sorting card a reason, in both languages, so a wrong tap can explain itself', () => {
+    for (const lang of ['ro', 'en'] as const) {
+      const items = libraryFor(lang).flatMap((m) => m.steps.flatMap((s) => (s.type === 'sort' ? s.items : [])));
+      expect(items.length).toBeGreaterThan(0);
+      expect(items.filter((i) => !i.why?.trim()).map((i) => i.label)).toEqual([]);
+    }
+  });
+
+  it('accepts 3 to 6 months in the emergency-fund lesson, in both languages', () => {
+    for (const lang of ['ro', 'en'] as const) {
+      const step = libraryFor(lang).find((m) => m.id === 'fondul_urgenta')!.steps.find((s) => s.type === 'predict');
+      expect(step && 'acceptRange' in step ? step.acceptRange : undefined).toEqual([3, 6]);
+    }
   });
 });
 
@@ -72,10 +96,10 @@ describe('first lesson after onboarding', () => {
   });
 
   it('starts at your level when the foundation is there', () => {
-    const p = profileFromQuiz({ knowledge: [2, 1, 0], ageBand: '25_29', situation: 'employed', bufferMonths: 3 });
+    const p = profileFromQuiz({ knowledge: [2, 1, 0, 1], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
     expect(p.level).toBe(2);
     expect(firstLesson(p)?.level).toBeLessThanOrEqual(2);
-    const l1 = profileFromQuiz({ knowledge: [2, 1, 'nu_stiu'], ageBand: '25_29', situation: 'employed', bufferMonths: 3 });
+    const l1 = profileFromQuiz({ knowledge: [2, 1, 'nu_stiu', 'nu_stiu'], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
     expect(firstLesson(l1)?.id).toBe('titluri_stat');
   });
 });

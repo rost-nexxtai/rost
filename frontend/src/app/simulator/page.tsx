@@ -5,19 +5,85 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
+import { useLang } from '@/i18n/client';
+import { copy } from '@/i18n/lang';
 
-const EVENTS = [
-  { type: 'salary_received', label: 'A intrat salariul', hint: 'ce ar trimite banca printr-un webhook' },
-  { type: 'payslip_uploaded', label: 'Fluturaș încărcat', hint: 'poză cu fluturașul, de la utilizator' },
-  { type: 'inflation_published', label: 'INS publică inflația', hint: 'lunar, în jur de 13' },
-  { type: 'raise', label: 'Mărire de salariu', hint: 'repetă momentul fluturașului' },
-] as const;
+const EVENT_TYPES = ['salary_received', 'payslip_uploaded', 'inflation_published', 'raise'] as const;
+const SCENARIO_IDS = ['fuel-shortage', 'energy-spike', 'food-drought'] as const;
 
-const SCENARIOS = [
-  { id: 'fuel-shortage', label: 'Criză de carburant' },
-  { id: 'energy-spike', label: 'Scumpirea energiei' },
-  { id: 'food-drought', label: 'Secetă, prețuri la mâncare' },
-];
+const T = copy(
+  {
+    events: {
+      salary_received: { label: 'A intrat salariul', hint: 'ce ar trimite banca printr-un webhook' },
+      payslip_uploaded: { label: 'Fluturaș încărcat', hint: 'poză cu fluturașul, de la utilizator' },
+      inflation_published: { label: 'INS publică inflația', hint: 'lunar, în jur de 13' },
+      raise: { label: 'Mărire de salariu', hint: 'repetă momentul fluturașului' },
+    } as Record<(typeof EVENT_TYPES)[number], { label: string; hint: string }>,
+    scenarios: { 'fuel-shortage': 'Criză de carburant', 'energy-spike': 'Scumpirea energiei', 'food-drought': 'Secetă, prețuri la mâncare' } as Record<
+      (typeof SCENARIO_IDS)[number],
+      string
+    >,
+    opened: (ids: string) => `a deschis ${ids}`,
+    nothing: 'nu s-a deschis nimic',
+    skipped: (list: string) => ` · sărite: ${list}`,
+    calendarEmpty: (day: string) => `calendar ${day}: nimic programat azi`,
+    clock: (day: string, offset: number) => `ceas: ${day} (decalaj ${offset} zile)`,
+    partnerView: 'vedere partener',
+    resetDone: 'resetat: Maria de la zero, ceasul pe azi',
+    title: 'Simulator (demo)',
+    sub: 'Pentru demo și teste. În producție, evenimentele vin de la bănci, din calendar și de la redacție.',
+    clockTitle: 'Ceas',
+    plusDays: (n: number) => `+${n} zile`,
+    today: 'Azi',
+    runCalendar: 'Rulează calendarul de azi',
+    calendarNote: 'Ziua salariului, termenul pentru Pilonul II (din data angajării) și data publicării INS sunt calculate, nu apăsate.',
+    eventsTitle: 'Evenimente',
+    ignoreCap: 'Ignoră limita de un moment pe săptămână (doar pe scenă)',
+    scenario: 'Scenariu',
+    publish: 'Publică scenariul',
+    openNew: 'Deschide momentul nou',
+    bankTitle: 'În aplicația băncii',
+    bankSub: 'Același moment în aplicația unei bănci, dintr-un token semnat care conține doar ponderile cheltuielilor.',
+    openAs: 'Deschide ca [PARTNER BANK]',
+    log: 'Jurnal',
+    reset: 'Resetează demo-ul',
+    nothingYet: 'Nimic încă.',
+  },
+  {
+    events: {
+      salary_received: { label: 'Salary arrived', hint: 'what a bank would send through a webhook' },
+      payslip_uploaded: { label: 'Payslip uploaded', hint: 'a photo of the payslip, from the user' },
+      inflation_published: { label: 'INS publishes inflation', hint: 'monthly, around the 13th' },
+      raise: { label: 'Pay rise', hint: 'repeats the payslip moment' },
+    },
+    scenarios: { 'fuel-shortage': 'Fuel shortage', 'energy-spike': 'Energy price jump', 'food-drought': 'Drought, food prices' },
+    opened: (ids) => `opened ${ids}`,
+    nothing: 'nothing opened',
+    skipped: (list) => ` · skipped ${list}`,
+    calendarEmpty: (day) => `calendar ${day}: nothing scheduled today`,
+    clock: (day, offset) => `clock: ${day} (offset ${offset} days)`,
+    partnerView: 'partner view',
+    resetDone: 'reset: Maria from scratch, clock back to today',
+    title: 'Simulator (demo)',
+    sub: 'For demos and tests. In production, events come from banks, the calendar and the news desk.',
+    clockTitle: 'Clock',
+    plusDays: (n) => `+${n} days`,
+    today: 'Today',
+    runCalendar: "Run today's calendar",
+    calendarNote: 'Payday, the Pillar II deadline (from the hire date) and the INS release date are computed, not pressed.',
+    eventsTitle: 'Events',
+    ignoreCap: 'Ignore the one-moment-a-week limit (stage only)',
+    scenario: 'Scenario',
+    publish: 'Publish the scenario',
+    openNew: 'Open the new moment',
+    bankTitle: "In the bank's app",
+    bankSub: "The same moment inside a bank's app, from a signed token that carries only spending shares.",
+    openAs: 'Open as [PARTNER BANK]',
+    log: 'Log',
+    reset: 'Reset the demo',
+    nothingYet: 'Nothing yet.',
+  },
+);
 
 interface Outcome {
   runs?: { id: string; momentId: string }[];
@@ -36,6 +102,7 @@ async function call(url: string, init?: RequestInit) {
  */
 export default function Simulator() {
   const router = useRouter();
+  const t = T[useLang().lang];
   const [now, setNow] = useState<{ offsetDays: number; now: string }>();
   const [log, setLog] = useState<string[]>([]);
   const [ignoreCap, setIgnoreCap] = useState(true);
@@ -53,8 +120,8 @@ export default function Simulator() {
     const opened = out.decision?.open ?? [];
     const skipped = (out.decision?.skipped ?? []).filter((s) => s.reason !== 'not_triggered');
     say(
-      `${label}: ${opened.length ? `opened ${opened.join(', ')}` : 'nothing opened'}${
-        skipped.length ? ` · skipped ${skipped.map((s) => `${s.momentId} (${s.reason})`).join(', ')}` : ''
+      `${label}: ${opened.length ? t.opened(opened.join(', ')) : t.nothing}${
+        skipped.length ? t.skipped(skipped.map((s) => `${s.momentId} (${s.reason})`).join(', ')) : ''
       }`,
     );
     if (out.runs?.[0]) setLastRun(out.runs[0].id);
@@ -69,7 +136,7 @@ export default function Simulator() {
   async function runCalendar() {
     const out = await call('/api/calendar', { method: 'POST' });
     if (out.error) return say(`calendar: ${out.error}`);
-    if (!out.results.length) say(`calendar ${out.today}: nimic programat azi`);
+    if (!out.results.length) say(t.calendarEmpty(out.today));
     for (const r of out.results) report(`calendar ${out.today} → ${r.event.type}`, r);
   }
 
@@ -77,12 +144,12 @@ export default function Simulator() {
     const out = await call('/api/clock', { method: 'POST', body: JSON.stringify({ days }) });
     if (out.error) return say(`clock: ${out.error}`);
     setNow(out);
-    say(`clock: ${out.now.slice(0, 10)} (decalaj ${out.offsetDays} zile)`);
+    say(t.clock(out.now.slice(0, 10), out.offsetDays));
   }
 
   async function openPartnerView() {
     const out = await call('/api/partner/demo-token');
-    if (out.error) return say(`partner view: ${out.error}`);
+    if (out.error) return say(`${t.partnerView}: ${out.error}`);
     window.open(out.url, '_blank');
   }
 
@@ -90,7 +157,7 @@ export default function Simulator() {
     const out = await call('/api/demo/reset', { method: 'POST' });
     if (out.error) return say(`reset: ${out.error}`);
     await call('/api/users', { method: 'POST', body: JSON.stringify({ demo: 'maria' }) });
-    setLog(['resetat: Maria de la zero, ceasul pe azi']);
+    setLog([t.resetDone]);
     setLastRun(undefined);
     refreshClock();
     router.refresh();
@@ -99,37 +166,37 @@ export default function Simulator() {
   return (
     <main className="shell">
       <TopBar />
-      <h1>Simulator (demo)</h1>
-      <p className="muted small">Pentru demo și teste. În producție, evenimentele vin de la bănci, din calendar și de la redacție.</p>
+      <h1>{t.title}</h1>
+      <p className="muted small">{t.sub}</p>
 
       <section className="card">
         <div className="row">
-          <h2>Ceas</h2>
+          <h2>{t.clockTitle}</h2>
           <span className="small muted">{now ? now.now.slice(0, 10) : '…'}</span>
         </div>
         <div className="grid3">
           <button className="chip" onClick={() => moveClock((now?.offsetDays ?? 0) + 7)}>
-            +7 zile
+            {t.plusDays(7)}
           </button>
           <button className="chip" onClick={() => moveClock((now?.offsetDays ?? 0) + 30)}>
-            +30 zile
+            {t.plusDays(30)}
           </button>
           <button className="chip" onClick={() => moveClock(0)}>
-            Azi
+            {t.today}
           </button>
         </div>
         <button className="btn btn-primary" onClick={runCalendar}>
-          Rulează calendarul de azi
+          {t.runCalendar}
         </button>
-        <p className="note">Ziua salariului, termenul pentru Pilonul II (din data angajării) și data publicării INS sunt calculate, nu apăsate.</p>
+        <p className="note">{t.calendarNote}</p>
       </section>
 
       <section className="card">
-        <h2>Evenimente</h2>
+        <h2>{t.eventsTitle}</h2>
         <label className="check">
-          <input type="checkbox" checked={ignoreCap} onChange={(e) => setIgnoreCap(e.target.checked)} /> Ignoră limita de un moment pe săptămână (doar pe scenă)
+          <input type="checkbox" checked={ignoreCap} onChange={(e) => setIgnoreCap(e.target.checked)} /> {t.ignoreCap}
         </label>
-        {EVENTS.map((e) => (
+        {EVENT_TYPES.map((type) => ({ type, ...t.events[type] })).map((e) => (
           <button
             key={e.type}
             className="btn btn-ghost"
@@ -146,43 +213,43 @@ export default function Simulator() {
           <select
             value={scenarioId}
             onChange={(e) => setScenarioId(e.target.value)}
-            aria-label="Scenariu"
+            aria-label={t.scenario}
             style={{ flex: 1 }}
           >
-            {SCENARIOS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
+            {SCENARIO_IDS.map((id) => (
+              <option key={id} value={id}>
+                {t.scenarios[id]}
               </option>
             ))}
           </select>
           <button className="btn btn-primary" onClick={() => fire('shock_scenario', { scenarioId })}>
-            Publică scenariul
+            {t.publish}
           </button>
         </div>
         {lastRun && (
           <Link href={`/moment/${lastRun}`} className="btn btn-primary">
-            Deschide momentul nou
+            {t.openNew}
           </Link>
         )}
       </section>
 
       <section className="card card-dark">
-        <h2>În aplicația băncii</h2>
-        <p className="muted small">Același moment în aplicația unei bănci, dintr-un token semnat care conține doar ponderile cheltuielilor.</p>
+        <h2>{t.bankTitle}</h2>
+        <p className="muted small">{t.bankSub}</p>
         <button className="btn btn-light" onClick={openPartnerView}>
-          Deschide ca [PARTNER BANK]
+          {t.openAs}
         </button>
       </section>
 
       <section className="card">
         <div className="row">
-          <h2>Jurnal</h2>
+          <h2>{t.log}</h2>
           <button className="btn btn-ghost" style={{ minHeight: 36 }} onClick={reset}>
-            Resetează demo-ul
+            {t.reset}
           </button>
         </div>
         {log.length === 0 ? (
-          <p className="small muted">Nimic încă.</p>
+          <p className="small muted">{t.nothingYet}</p>
         ) : (
           log.map((l, i) => (
             <p key={i} className="small" style={{ fontFamily: 'ui-monospace, monospace' }}>

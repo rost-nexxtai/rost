@@ -9,91 +9,134 @@ import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
 import { getMomente, getProfile } from '@/data';
 import { firstLesson } from '@/data/mock/momente';
+import { copy } from '@/i18n/lang';
+import { getLang } from '@/i18n/server';
 
 export const dynamic = 'force-dynamic';
 
-const ACTION_TEXT: Record<string, string> = {
-  payday_savings_rule: 'Ți-ai setat transferul automat de economii de ziua salariului?',
-  update_buffer_target: 'Ți-ai actualizat ținta pentru fondul de urgență?',
-};
+const T = copy(
+  {
+    action: {
+      payday_savings_rule: 'Ți-ai setat transferul automat de economii de ziua salariului?',
+      update_buffer_target: 'Ți-ai actualizat ținta pentru fondul de urgență?',
+    } as Record<string, string>,
+    didIt: 'Ai făcut pasul?',
+    title: 'Momente',
+    level: (l: number) => `Nivelul L${l}`,
+    core: (done: number, of: number) => `${done} din ${of} lecții de bază`,
+    finish: (next: number) => `Termină-le ca să treci la L${next}.`,
+    advanced: 'Ai ajuns la nivelul avansat.',
+    apiDown: 'Momentele declanșate de salariu, inflație sau știri apar aici când revine conexiunea. Lecțiile de mai jos merg oricum.',
+    now: (min: number) => `Acum, pe cifrele tale · ${min} min`,
+    start: 'Începe',
+    next: (min: number) => `Următoarea ta lecție · ${min} min`,
+    forLevel: 'Pentru nivelul tău',
+    startAbove: 'Începe cu lecția de mai sus.',
+    allDone: 'Le-ai terminat pe toate. Bravo!',
+    rest: 'Restul',
+    nextAria: 'Următoarea ta lecție',
+  },
+  {
+    action: {
+      payday_savings_rule: 'Did you set up the automatic payday transfer to savings?',
+      update_buffer_target: 'Did you update your emergency fund target?',
+    },
+    didIt: 'Did you take the step?',
+    title: 'Moments',
+    level: (l) => `Level L${l}`,
+    core: (done, of) => `${done} of ${of} core lessons`,
+    finish: (next) => `Finish them to move up to L${next}.`,
+    advanced: "You've reached the advanced level.",
+    apiDown: 'Moments triggered by your salary, inflation or the news show up here once the connection is back. The lessons below work anyway.',
+    now: (min) => `Now, on your numbers · ${min} min`,
+    start: 'Start',
+    next: (min) => `Your next lesson · ${min} min`,
+    forLevel: 'For your level',
+    startAbove: 'Start with the lesson above.',
+    allDone: "You've done them all. Well done!",
+    rest: 'Everything else',
+    nextAria: 'Your next lesson',
+  },
+);
 
 export default async function Momente() {
-  const [data, profile] = await Promise.all([getMomente(), getProfile()]);
+  const [data, profile, lang] = await Promise.all([getMomente(), getProfile(), getLang()]);
+  const t = T[lang];
   if (!data || !profile) redirect('/quiz');
   const { triggered, forYourLevel, rest, progress, realApiDown, dueFollowUps } = data;
   // One obvious next step: a moment the backend opened wins; otherwise the next lesson at your level.
-  const first = firstLesson(profile);
+  const first = firstLesson(profile, lang);
   const nextUp = triggered.length === 0 ? [...forYourLevel, ...rest].find((m) => m.id === first?.id && m.status === 'todo') : undefined;
   const listed = forYourLevel.filter((m) => m !== nextUp);
 
   return (
     <main className="shell">
       <TopBar profile={profile} />
-      <h1>Momente</h1>
+      <h1>{t.title}</h1>
 
       <Card>
         <div className="row">
-          <span className="eyebrow">Nivelul L{progress.level}</span>
+          <span className="eyebrow">{t.level(progress.level)}</span>
           {progress.nextLevel !== null && (
             <span className="small muted">
-              {progress.coreDone} din {progress.coreTotal} lecții de bază
+              {t.core(progress.coreDone, progress.coreTotal)}
             </span>
           )}
         </div>
         {progress.nextLevel !== null ? (
           <>
-            <ProgressBar value={progress.coreDone} max={progress.coreTotal} label={`${progress.coreDone} din ${progress.coreTotal} lecții de bază`} />
-            <p className="small">Termină-le ca să treci la L{progress.nextLevel}.</p>
+            <ProgressBar value={progress.coreDone} max={progress.coreTotal} label={t.core(progress.coreDone, progress.coreTotal)} />
+            <p className="small">{t.finish(progress.nextLevel)}</p>
           </>
         ) : (
-          <p className="small">Ai ajuns la nivelul avansat.</p>
+          <p className="small">{t.advanced}</p>
         )}
       </Card>
 
-      {dueFollowUps.map((a) => <FollowUp key={a.id} actionId={a.id} text={ACTION_TEXT[a.type] ?? 'Ai făcut pasul?'} />)}
+      {dueFollowUps.map((a) => <FollowUp key={a.id} actionId={a.id} text={t.action[a.type] ?? t.didIt} />)}
 
       {realApiDown ? (
-        <ApiDown what="Momentele declanșate de salariu, inflație sau știri apar aici când revine conexiunea. Lecțiile de mai jos merg oricum." />
+        <ApiDown what={t.apiDown} />
       ) : (
         triggered.map((m) => (
           <section key={m.href} className="card card-dark rise">
-            <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>Acum, pe cifrele tale · {m.minutes} min</span>
+            <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>{t.now(m.minutes)}</span>
             <h2 style={{ fontSize: 24 }}>{m.title}</h2>
             <Link href={m.href!} className="btn btn-light" style={{ alignSelf: 'flex-start' }}>
-              Începe
+              {t.start}
             </Link>
           </section>
         ))
       )}
 
       {nextUp && (
-        <section className="stat rise" aria-label="Următoarea ta lecție">
+        <section className="stat rise" aria-label={t.nextAria}>
           <span className="stat-label" style={{ fontSize: 14, fontWeight: 700 }}>
-            Următoarea ta lecție · {nextUp.minutes} min
+            {t.next(nextUp.minutes)}
           </span>
           <div className="display-md" style={{ color: '#fff' }}>
             {nextUp.title}
           </div>
           {nextUp.hook && <span className="stat-label">{nextUp.hook}</span>}
           <Link href={nextUp.href!} className="btn btn-light" style={{ alignSelf: 'flex-start', marginTop: 6 }}>
-            Începe
+            {t.start}
           </Link>
         </section>
       )}
 
       <section className="section" aria-labelledby="nivel">
         <h2 id="nivel" className="section-title">
-          Pentru nivelul tău
+          {t.forLevel}
         </h2>
         <Card style={{ gap: 0 }}>
-          {listed.length ? listed.map((m) => <MomentRow key={m.id} m={m} />) : <p className="small muted">{nextUp ? 'Începe cu lecția de mai sus.' : 'Le-ai terminat pe toate. Bravo!'}</p>}
+          {listed.length ? listed.map((m) => <MomentRow key={m.id} m={m} />) : <p className="small muted">{nextUp ? t.startAbove : t.allDone}</p>}
         </Card>
       </section>
 
       {rest.length > 0 && (
         <section className="section" aria-labelledby="restul">
           <h2 id="restul" className="section-title">
-            Restul
+            {t.rest}
           </h2>
           <Card style={{ gap: 0 }}>
             {rest.map((m) => (

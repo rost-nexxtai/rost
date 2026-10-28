@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useLang } from '@/i18n/client';
+import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 
 const KEYS = 'ABCDE';
@@ -24,6 +26,7 @@ export function ChoiceStep({
   const [picked, setPicked] = useState<number>();
   const [checked, setChecked] = useState(false);
   const right = picked === correct;
+  const t = LESSON[useLang().lang];
 
   return (
     <>
@@ -43,9 +46,9 @@ export function ChoiceStep({
         })}
       </div>
       {checked ? (
-        <LessonBar tone={right ? 'correct' : 'wrong'} title={right ? 'Corect!' : 'Nu chiar'} body={explain} label="Continuă" onClick={() => onDone(right)} />
+        <LessonBar tone={right ? 'correct' : 'wrong'} title={right ? t.correct : t.notQuite} body={explain} label={t.continue} onClick={() => onDone(right)} />
       ) : (
-        <LessonBar label="Verifică" disabled={picked === undefined} hint="Alege un răspuns" onClick={() => setChecked(true)} />
+        <LessonBar label={t.check} disabled={picked === undefined} hint={t.pickAnswer} onClick={() => setChecked(true)} />
       )}
     </>
   );

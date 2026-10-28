@@ -1,4 +1,6 @@
-import { lei, leiSigned } from '@/lib/format';
+'use client';
+
+import { useLang } from '@/i18n/client';
 
 const SIZE = { sm: '', md: ' display-md', xl: ' display-xl' } as const;
 
@@ -17,5 +19,6 @@ export function Money({
   size?: 'sm' | 'md' | 'xl';
   tone?: 'pos' | 'neg';
 }) {
-  return <span className={`money${tone ? ` ${tone}` : ''}${SIZE[size]}`}>{signed ? leiSigned(amount) : lei(amount)}</span>;
+  const { f } = useLang();
+  return <span className={`money${tone ? ` ${tone}` : ''}${SIZE[size]}`}>{signed ? f.leiSigned(amount) : f.lei(amount)}</span>;
 }

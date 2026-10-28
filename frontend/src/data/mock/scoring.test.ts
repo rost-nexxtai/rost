@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { QUIZ } from '../fixtures/quiz';
 import type { KnowledgeAnswer } from '../types';
-import { CORE_MOMENTS, entryRoute, foundationFor, levelFromScore, levelWithMoments, riskProfile, scoreKnowledge } from './scoring';
+import { PERSONAS } from '../fixtures/personas';
+import { CORE_MOMENTS, entryRoute, foundationFor, levelFromScore, levelWithMoments, profileFromQuiz, quizProfile, riskProfile, scoreKnowledge } from './scoring';
 
 const all = (v: KnowledgeAnswer): KnowledgeAnswer[] => Array(3).fill(v);
 const correct = QUIZ.knowledge.map((q) => q.correct);
@@ -17,8 +18,13 @@ describe('quiz level', () => {
     expect(scoreKnowledge(all('nu_stiu'))).toBe(0);
   });
 
-  it('maps 0–1, 2 and 3 right answers to L0, L1, L2', () => {
-    expect([0, 1, 2, 3].map(levelFromScore)).toEqual([0, 0, 1, 2]);
+  it('maps 0–1, 2–3 and 4 right answers to L0, L1, L2', () => {
+    expect([0, 1, 2, 3, 4].map(levelFromScore)).toEqual([0, 0, 1, 1, 2]);
+  });
+
+  it('does not call the three basics "advanced": L2 needs the bond question too', () => {
+    const basicsOnly = correct.map((c, i) => (i < 3 ? c : 'nu_stiu' as const));
+    expect(levelFromScore(scoreKnowledge(basicsOnly))).toBe(1);
   });
 });
 
@@ -66,5 +72,47 @@ describe('entry route', () => {
     expect(entryRoute(false, false)).toBe('/');
     expect(entryRoute(true, false)).toBe('/quiz');
     expect(entryRoute(true, true)).toBe('/acasa');
+  });
+});
+
+describe('onboarding answers that cap risk', () => {
+  const base = { knowledge: correct, ageBand: 'sub_25', situation: 'employed', bufferMonths: 3 } as const;
+
+  it('caps an advanced user with expensive debt at echilibrat and shows the debt card', () => {
+    const p = profileFromQuiz({ ...base, expensiveDebt: true });
+    expect(p.level).toBe(2);
+    expect(p.riskProfile).toBe('echilibrat');
+    expect(foundationFor(p)).toBe('datorii_scumpe');
+  });
+
+  it('lets the same user be dinamic without debt', () => {
+    expect(profileFromQuiz({ ...base, expensiveDebt: false }).riskProfile).toBe('dinamic');
+  });
+});
+
+describe('saving a quiz', () => {
+  const answers = { knowledge: correct, ageBand: 'sub_25', situation: 'student', bufferMonths: 0, expensiveDebt: false } as const;
+  const maria = { ...PERSONAS.maria, completedMomentIds: ['fondul_urgenta'] };
+
+  it("starts a new user fresh, without the previous profile's name or progress", () => {
+    const p = quizProfile(answers, maria, { retake: false });
+    expect(p.name).toBeUndefined();
+    expect(p.completedMomentIds).toEqual([]);
+  });
+
+  it('keeps the name, finished lessons and Știri amounts on a retake from Profil', () => {
+    const p = quizProfile(answers, maria, { retake: true });
+    expect(p.name).toBe('Maria');
+    expect(p.completedMomentIds).toEqual(['fondul_urgenta']);
+    expect(p.money).toEqual(maria.money);
+  });
+});
+
+describe('what onboarding already told us', () => {
+  it('counts "nothing put aside" as a known 0 in savings, so Știri does not ask again', () => {
+    const p = profileFromQuiz({ knowledge: [], ageBand: 'sub_25', situation: 'student', bufferMonths: 0, expensiveDebt: false });
+    expect(p.money.known).toContain('savedLei');
+    const q = profileFromQuiz({ knowledge: [], ageBand: 'sub_25', situation: 'student', bufferMonths: 2, expensiveDebt: false });
+    expect(q.money.known ?? []).not.toContain('savedLei');
   });
 });

@@ -67,19 +67,26 @@ type MomentView struct {
 
 const savingsAmount = 10_000
 
-func savingsComparison(v *InflationView, inflationPct float64) {
+// savingsLabels are the three rows of the savings comparison, in each language.
+var savingsLabels = map[reference.Lang][3]string{
+	reference.RO: {"Cont curent", "Cel mai bun cont de economii", "Cea mai bună opțiune pe 1–2 ani"},
+	reference.EN: {"Current account", "Best savings account", "Best 1–2 year option"},
+}
+
+func savingsComparison(v *InflationView, inflationPct float64, lang reference.Lang) {
+	labels := savingsLabels[reference.ParseLang(string(lang))]
 	v.Savings.AmountLei = savingsAmount
-	v.Savings.Rows = []SavingsRow{{"Cont curent", 0, rules.RealChange(savingsAmount, 0, inflationPct)}}
+	v.Savings.Rows = []SavingsRow{{labels[0], 0, rules.RealChange(savingsAmount, 0, inflationPct)}}
 	for _, b := range []struct {
 		h     rules.Horizon
 		label string
-	}{{rules.AnyTime, "Cel mai bun cont de economii"}, {rules.OneToTwoYears, "Cea mai bună opțiune pe 1–2 ani"}} {
-		if ranked := rules.RankOffers(reference.Offers(), b.h, savingsAmount); len(ranked) > 0 {
+	}{{rules.AnyTime, labels[1]}, {rules.OneToTwoYears, labels[2]}} {
+		if ranked := rules.RankOffers(reference.Offers(lang), b.h, savingsAmount); len(ranked) > 0 {
 			top := ranked[0]
 			v.Savings.Rows = append(v.Savings.Rows, SavingsRow{b.label, top.NetRatePct, rules.RealChange(savingsAmount, top.NetRatePct, inflationPct)})
 		}
 	}
-	for _, o := range reference.Offers() {
+	for _, o := range reference.Offers(lang) {
 		if o.Example != nil && *o.Example {
 			v.Savings.ExampleRates = true
 		}
@@ -94,8 +101,8 @@ type InflationInput struct {
 	MonthlyExpenses *float64
 }
 
-func Inflation(in InflationInput) (*InflationView, error) {
-	cpi := reference.LatestCPI()
+func Inflation(in InflationInput, lang reference.Lang) (*InflationView, error) {
+	cpi := reference.LatestCPI(lang)
 	personal, err := rules.PersonalInflationFor(in.Spending.Shares, cpi.GroupsPct)
 	if err != nil {
 		return nil, err
@@ -116,12 +123,22 @@ func Inflation(in InflationInput) (*InflationView, error) {
 		t := rules.BufferTarget(*in.MonthlyExpenses, personal.PersonalPct, 3)
 		v.BufferTarget = &t
 	}
-	savingsComparison(v, personal.PersonalPct)
+	savingsComparison(v, personal.PersonalPct, lang)
 	return v, nil
 }
 
+// Format writes a number the way the language does: 6000 -> "6.000" in Romanian, "6,000" in English.
+func Format(n float64, lang reference.Lang) string {
+	if lang == reference.EN {
+		return formatWith(n, ',', '.')
+	}
+	return formatWith(n, '.', ',')
+}
+
 // FormatRO formats a number the Romanian way: 6000 -> "6.000", 8.5 -> "8,5".
-func FormatRO(n float64) string {
+func FormatRO(n float64) string { return formatWith(n, '.', ',') }
+
+func formatWith(n float64, group, decimal byte) string {
 	s := strconv.FormatFloat(rules.RoundTo(n, 3), 'f', -1, 64)
 	neg := strings.HasPrefix(s, "-")
 	s = strings.TrimPrefix(s, "-")
@@ -129,13 +146,13 @@ func FormatRO(n float64) string {
 	var b strings.Builder
 	for i, c := range whole {
 		if i > 0 && (len(whole)-i)%3 == 0 {
-			b.WriteByte('.')
+			b.WriteByte(group)
 		}
 		b.WriteRune(c)
 	}
 	out := b.String()
 	if frac != "" {
-		out += "," + frac
+		out += string(decimal) + frac
 	}
 	if neg {
 		out = "-" + out
@@ -144,9 +161,10 @@ func FormatRO(n float64) string {
 }
 
 // Build is the view for one user, given the payload of the event that opened the moment.
-func Build(u domain.User, payload map[string]any) (MomentView, error) {
+// Text and number formats follow lang; the numbers themselves don't depend on it.
+func Build(u domain.User, payload map[string]any, lang reference.Lang) (MomentView, error) {
 	v := MomentView{Answers: map[string]float64{}, Vars: map[string]any{}}
-	cpi := reference.LatestCPI()
+	cpi := reference.LatestCPI(lang)
 	v.Vars["headline"] = cpi.HeadlinePct
 
 	if u.GrossMonthly != nil {
@@ -159,27 +177,27 @@ func Build(u domain.User, payload map[string]any) (MomentView, error) {
 		if u.HireDate != nil {
 			deadline := rules.Pillar2Deadline(*u.HireDate)
 			pv.Pillar2Deadline = &deadline
-			v.Vars["pillar2Line"] = "Te-ai angajat pe " + DateRO(*u.HireDate) + ", așa că îți poți alege singur fondul până pe " + DateRO(deadline) + "."
+			v.Vars["pillar2Line"] = pillar2Line(*u.HireDate, deadline, lang)
 		}
 		v.Payslip = pv
 		v.Answers["pension"] = p.Pension
-		v.Vars["gross"] = FormatRO(p.Gross)
-		v.Vars["pillar2"] = FormatRO(p.Pillar2)
+		v.Vars["gross"] = Format(p.Gross, lang)
+		v.Vars["pillar2"] = Format(p.Pillar2, lang)
 	}
 
 	if u.Spending != nil {
-		iv, err := Inflation(InflationInput{*u.Spending, u.GrossMonthly, u.LastRaiseDate, u.MonthlyExpenses})
+		iv, err := Inflation(InflationInput{*u.Spending, u.GrossMonthly, u.LastRaiseDate, u.MonthlyExpenses}, lang)
 		if err != nil {
 			return v, err
 		}
 		v.Inflation = iv
 		v.Answers["personalPct"] = iv.Personal.PersonalPct
 		if iv.BufferTarget != nil {
-			v.Vars["bufferTarget"] = FormatRO(*iv.BufferTarget)
+			v.Vars["bufferTarget"] = Format(*iv.BufferTarget, lang)
 		}
-		s, ok := reference.GetScenario(payload["scenarioId"])
+		s, ok := reference.GetScenario(payload["scenarioId"], lang)
 		if !ok {
-			s, ok = reference.GetScenario("fuel-shortage")
+			s, ok = reference.GetScenario("fuel-shortage", lang)
 		}
 		if ok {
 			v.Scenario = &ScenarioView{s, u.Spending.Monthly.Line(s.SpendLine)}
@@ -191,10 +209,25 @@ func Build(u domain.User, payload map[string]any) (MomentView, error) {
 var monthsRO = [...]string{"ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"}
 
 // DateRO writes an ISO date the Romanian way: "2026-12-31" -> "31 decembrie 2026".
-func DateRO(iso string) string {
+func DateRO(iso string) string { return Date(iso, reference.RO) }
+
+// Date writes an ISO date in the language: "31 decembrie 2026" or "31 December 2026".
+func Date(iso string, lang reference.Lang) string {
 	t, err := time.Parse(time.DateOnly, iso)
 	if err != nil {
 		return iso
 	}
-	return strconv.Itoa(t.Day()) + " " + monthsRO[t.Month()-1] + " " + strconv.Itoa(t.Year())
+	month := monthsRO[t.Month()-1]
+	if lang == reference.EN {
+		month = t.Month().String()
+	}
+	return strconv.Itoa(t.Day()) + " " + month + " " + strconv.Itoa(t.Year())
+}
+
+// pillar2Line tells someone how long they have to pick their own Pillar II fund.
+func pillar2Line(hire, deadline string, lang reference.Lang) string {
+	if lang == reference.EN {
+		return "You started on " + Date(hire, lang) + ", so you can choose your own fund until " + Date(deadline, lang) + "."
+	}
+	return "Te-ai angajat pe " + Date(hire, lang) + ", așa că îți poți alege singur fondul până pe " + Date(deadline, lang) + "."
 }

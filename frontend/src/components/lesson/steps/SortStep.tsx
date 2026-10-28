@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLang } from '@/i18n/client';
+import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 
 /**
- * Sorting, one card at a time: tap the bucket it belongs in, see right or wrong at once, next card.
- * Short and rhythmic on purpose; the reason comes once, at the end.
+ * Sorting, one card at a time: tap the bucket it belongs in, see right or wrong at once.
+ * A right tap moves on by itself; a wrong one stays, says why, and waits for Continuă.
  */
 export function SortStep({
   question,
@@ -16,7 +18,7 @@ export function SortStep({
 }: {
   question: string;
   buckets: [string, string];
-  items: { label: string; bucket: 0 | 1 }[];
+  items: { label: string; bucket: 0 | 1; why?: string }[];
   explain: string;
   onDone: (correct: boolean) => void;
 }) {
@@ -26,14 +28,17 @@ export function SortStep({
   const finished = answers.length === items.length;
   const item = items[Math.min(i, items.length - 1)];
   const right = answers.filter(Boolean).length;
+  const t = LESSON[useLang().lang];
+
+  const next = () => {
+    setFlash(undefined);
+    setI((n) => n + 1);
+  };
 
   useEffect(() => {
-    if (!flash) return;
-    const t = setTimeout(() => {
-      setFlash(undefined);
-      setI((n) => n + 1);
-    }, flash === 'correct' ? 450 : 900);
-    return () => clearTimeout(t);
+    if (flash !== 'correct') return;
+    const timer = setTimeout(next, 450);
+    return () => clearTimeout(timer);
   }, [flash]);
 
   function pick(bucket: 0 | 1) {
@@ -45,7 +50,7 @@ export function SortStep({
 
   return (
     <>
-      <span className="lesson-kicker">Sortează</span>
+      <span className="lesson-kicker">{t.sort}</span>
       <h1 className="lesson-q">{question}</h1>
       <div className="sort-dots" aria-hidden="true">
         {items.map((_, n) => (
@@ -57,29 +62,35 @@ export function SortStep({
           <div className="sort-card" key={i} data-state={flash} aria-live="polite">
             {item.label}
           </div>
-          <p className="sort-count">{flash === 'wrong' ? `Merge la „${buckets[item.bucket]}”` : `${Math.min(i + 1, items.length)} din ${items.length}`}</p>
-          <div className="tiles-row">
-            {buckets.map((b, n) => (
-              <button key={b} type="button" className="tile" disabled={!!flash} onClick={() => pick(n as 0 | 1)}>
-                {b}
-              </button>
-            ))}
-          </div>
+          {flash === 'wrong' ? (
+            <LessonBar tone="wrong" title={t.goesTo(buckets[item.bucket])} body={item.why} label={t.continue} onClick={next} />
+          ) : (
+            <>
+              <p className="sort-count">{t.nOfM(Math.min(i + 1, items.length), items.length)}</p>
+              <div className="tiles-row">
+                {buckets.map((b, n) => (
+                  <button key={b} type="button" className="tile" disabled={!!flash} onClick={() => pick(n as 0 | 1)}>
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </>
       ) : (
         <div className="play" style={{ alignItems: 'center', textAlign: 'center' }}>
           <div className="play-big">
-            {right} din {items.length}
+            {t.nOfM(right, items.length)}
           </div>
-          <p className="play-caption">la locul lor din prima</p>
+          <p className="play-caption">{t.firstTime}</p>
         </div>
       )}
       {finished && !flash && (
         <LessonBar
           tone={right === items.length ? 'correct' : 'wrong'}
-          title={right === items.length ? 'Toate corect!' : 'Aproape'}
+          title={right === items.length ? t.allRight : t.almost}
           body={explain}
-          label="Continuă"
+          label={t.continue}
           onClick={() => onDone(right === items.length)}
         />
       )}

@@ -248,7 +248,7 @@ func (s *server) today(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	defs := reference.MomentDefs()
+	defs := reference.MomentDefs(langOf(r))
 	catchUp := []string{}
 	for _, d := range defs {
 		if !done[d.ID] && !openIDs[d.ID] && d.Triggers[0] != domain.ShockScenario {
@@ -271,7 +271,7 @@ func (s *server) getMoment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	data, err := s.svc.RunWithView(r.Context(), r.PathValue("runId"), userID)
+	data, err := s.svc.RunWithView(r.Context(), r.PathValue("runId"), userID, langOf(r))
 	if isNotFound(err) {
 		fail(w, http.StatusNotFound, "not found")
 		return
@@ -299,7 +299,7 @@ func (s *server) postMoment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runID := r.PathValue("runId")
-	loaded, err := s.svc.RunWithView(r.Context(), runID, userID)
+	loaded, err := s.svc.RunWithView(r.Context(), runID, userID, langOf(r))
 	if isNotFound(err) {
 		fail(w, http.StatusNotFound, "not found")
 		return
@@ -412,7 +412,7 @@ func (s *server) options(w http.ResponseWriter, r *http.Request) {
 	if !(amount > 0) {
 		amount = 10000
 	}
-	cpi := reference.LatestCPI()
+	cpi := reference.LatestCPI(langOf(r))
 	inflationPct, personal := cpi.HeadlinePct, false
 	if id, ok := currentUserID(r); ok {
 		if u, err := s.Store.GetUser(r.Context(), id); err == nil && u.Spending != nil {
@@ -422,7 +422,7 @@ func (s *server) options(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	offers := []rankedWithReal{}
-	for _, o := range rules.RankOffers(reference.Offers(), horizon, amount) {
+	for _, o := range rules.RankOffers(reference.Offers(langOf(r)), horizon, amount) {
 		offers = append(offers, rankedWithReal{o, rules.RealChange(amount, o.NetRatePct, inflationPct)})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -493,14 +493,14 @@ func (s *server) referral(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, r, err)
 		return
 	}
-	offer, ok := reference.FindOffer(ref.OfferID)
+	offer, ok := reference.FindOffer(ref.OfferID, langOf(r))
 	if err != nil || !ok {
 		fail(w, http.StatusNotFound, "not found")
 		return
 	}
 	out := map[string]any{"referral": ref, "offer": offer}
 	if p, ok := reference.GetPartner(offer.PartnerID); ok {
-		out["partner"] = p.Public()
+		out["partner"] = p.Public(langOf(r))
 	}
 	writeJSON(w, http.StatusOK, out)
 }
@@ -552,13 +552,13 @@ func (s *server) embed(w http.ResponseWriter, r *http.Request) {
 		Spending:        domain.SpendingProfile{Shares: claims.Shares, Monthly: monthly, Source: "bank"},
 		GrossMonthly:    claims.GrossMonthly,
 		MonthlyExpenses: claims.MonthlyExpenses,
-	})
+	}, langOf(r))
 	if err != nil {
 		fail(w, http.StatusUnauthorized, "expired")
 		return
 	}
-	out := map[string]any{"partner": p.Public(), "inflation": iv}
-	if sc, ok := reference.GetScenario("fuel-shortage"); ok {
+	out := map[string]any{"partner": p.Public(langOf(r)), "inflation": iv}
+	if sc, ok := reference.GetScenario("fuel-shortage", langOf(r)); ok {
 		out["scenario"] = views.ScenarioView{Scenario: sc, MonthlySpend: monthly.Line(sc.SpendLine)}
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -572,7 +572,7 @@ func (s *server) metrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	titles := map[string]string{}
-	for _, d := range reference.MomentDefs() {
+	for _, d := range reference.MomentDefs(langOf(r)) {
 		titles[d.ID] = d.Title
 	}
 	writeJSON(w, http.StatusOK, struct {

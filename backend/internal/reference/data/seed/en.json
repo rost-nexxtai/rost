@@ -1,0 +1,81 @@
+{
+  "note": "English text for the seed data. Only words live here; ids and numbers stay in the Romanian files.",
+  "cpiSource": "INS, annual inflation for September 2026, via Wall-Street.ro",
+  "offers": {
+    "fidelis-2y-lei": {
+      "provider": "Romanian state",
+      "product": "Fidelis, 2 years (lei)",
+      "conditions": [
+        "Bought through a bank or broker during the subscription period"
+      ]
+    },
+    "tezaur-1y": {
+      "provider": "Romanian state",
+      "product": "Tezaur, 1 year",
+      "conditions": [
+        "At the Treasury, the Post Office or online"
+      ]
+    },
+    "fidelis-4y-lei": {
+      "provider": "Romanian state",
+      "product": "Fidelis, 4 years (lei)",
+      "conditions": [
+        "Bought through a bank or broker during the subscription period"
+      ]
+    },
+    "bank-a-12m": {
+      "provider": "Bank A",
+      "product": "12-month deposit",
+      "conditions": [
+        "New money only"
+      ]
+    },
+    "bank-b-12m": {
+      "provider": "Bank B",
+      "product": "12-month deposit",
+      "conditions": []
+    },
+    "bank-c-12m": {
+      "provider": "Bank C",
+      "product": "12-month deposit",
+      "conditions": [
+        "Salary account needed"
+      ]
+    },
+    "bank-a-36m": {
+      "provider": "Bank A",
+      "product": "36-month deposit",
+      "conditions": []
+    },
+    "bank-b-savings": {
+      "provider": "Bank B",
+      "product": "Savings account",
+      "conditions": []
+    },
+    "bank-d-savings": {
+      "provider": "Bank D",
+      "product": "Savings account",
+      "conditions": [
+        "Only in the bank's app"
+      ]
+    }
+  },
+  "partners": {
+    "bank-b": "Bank B",
+    "bank-c": "Bank C"
+  },
+  "scenarios": {
+    "energy-spike": {
+      "title": "What if energy prices jump?",
+      "context": "Energy prices can spike after a war or a supply cut, as they did in 2022."
+    },
+    "fuel-shortage": {
+      "title": "What if fuel goes up?",
+      "context": "A supply crunch or a refinery outage can push pump prices up within weeks."
+    },
+    "food-drought": {
+      "title": "What if a drought pushes food prices up?",
+      "context": "A poor harvest shows up in food prices over the following months."
+    }
+  }
+}

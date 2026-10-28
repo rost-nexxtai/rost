@@ -19,7 +19,7 @@ func maria(t *testing.T) reference.DemoUser {
 }
 
 func TestMariaView(t *testing.T) {
-	v, err := Build(maria(t), nil)
+	v, err := Build(maria(t), nil, reference.RO)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestMariaView(t *testing.T) {
 
 // 10,000 lei of savings against her own inflation (8.48%).
 func TestSavingsComparison(t *testing.T) {
-	v, _ := Build(maria(t), nil)
+	v, _ := Build(maria(t), nil, reference.RO)
 	var got [][2]float64
 	for _, r := range v.Inflation.Savings.Rows {
 		got = append(got, [2]float64{r.NetRatePct, r.RealChangeLei})
@@ -67,9 +67,30 @@ func TestFormatRO(t *testing.T) {
 }
 
 func TestPillar2LineInRomanian(t *testing.T) {
-	v, _ := Build(maria(t), nil)
+	v, _ := Build(maria(t), nil, reference.RO)
 	want := "Te-ai angajat pe 1 septembrie 2026, așa că îți poți alege singur fondul până pe 31 decembrie 2026."
 	if v.Vars["pillar2Line"] != want {
 		t.Errorf("pillar2Line = %q", v.Vars["pillar2Line"])
+	}
+}
+
+func TestMariaViewInEnglish(t *testing.T) {
+	v, err := Build(maria(t), nil, reference.EN)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Vars["gross"] != "6,000" || v.Vars["bufferTarget"] != "8,140" {
+		t.Errorf("vars = %v", v.Vars)
+	}
+	want := "You started on 1 September 2026, so you can choose your own fund until 31 December 2026."
+	if v.Vars["pillar2Line"] != want {
+		t.Errorf("pillar2Line = %q", v.Vars["pillar2Line"])
+	}
+	if v.Inflation.Savings.Rows[0].Label != "Current account" || v.Scenario.Title != "What if fuel goes up?" {
+		t.Errorf("labels = %q, %q", v.Inflation.Savings.Rows[0].Label, v.Scenario.Title)
+	}
+	ro, _ := Build(maria(t), nil, reference.RO)
+	if ro.Payslip.Pension != v.Payslip.Pension || ro.Inflation.Personal.PersonalPct != v.Inflation.Personal.PersonalPct {
+		t.Error("numbers changed with the language")
 	}
 }
