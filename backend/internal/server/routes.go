@@ -25,6 +25,7 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/users", s.createUser)
 	mux.HandleFunc("DELETE /api/users", s.signOut)
 	mux.HandleFunc("GET /api/me", s.me)
+	mux.HandleFunc("PATCH /api/me", s.updateMe)
 
 	mux.HandleFunc("POST /api/events", s.fireEvent)
 	mux.HandleFunc("POST /api/calendar", s.runCalendar)
@@ -136,7 +137,7 @@ func (s *server) me(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, r, err)
 		return
 	}
-	out := map[string]any{"user": u}
+	out := map[string]any{"user": u, "inflation": inflationOf(u, langOf(r))}
 	if p != nil {
 		out["profile"] = p
 	}

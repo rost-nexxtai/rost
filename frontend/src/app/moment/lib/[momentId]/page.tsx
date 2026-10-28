@@ -5,6 +5,7 @@ import { ApiDown } from '@/components/ui/ApiDown';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
 import { firstLesson, resumable } from '@/data/mock/momente';
+import { fundStart } from '@/data/mock/money';
 import { CORE_MOMENTS } from '@/data/mock/scoring';
 import type { Asset } from '@/data/types';
 
@@ -65,7 +66,7 @@ export default async function LibraryMomentPage({ params }: { params: Promise<{ 
       assets={assets}
       levelBefore={level}
       coreLeftAfter={coreLeftAfter}
-      bufferMonths={profile?.bufferMonths}
+      you={fundStart(profile)}
       resume={profile && resumable(moment, profile)}
       upNext={upNext}
     />

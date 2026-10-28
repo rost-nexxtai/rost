@@ -12,6 +12,7 @@ import { RangeStep } from '@/components/lesson/steps/RangeStep';
 import { SortStep } from '@/components/lesson/steps/SortStep';
 import { StatStep } from '@/components/lesson/steps/StatStep';
 import { completeLibraryMoment, saveLessonProgress } from '@/data/actions';
+import type { FundStart } from '@/data/mock/money';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 import type { Asset, LessonProgress, Level, LibraryMoment } from '@/data/types';
@@ -39,7 +40,7 @@ export function LibraryMomentPlayer({
   assets,
   levelBefore,
   coreLeftAfter,
-  bufferMonths,
+  you,
   resume,
   upNext,
 }: {
@@ -48,8 +49,8 @@ export function LibraryMomentPlayer({
   levelBefore: Level;
   /** Core lessons left at the current level once this one counts, computed on the server. */
   coreLeftAfter: number;
-  /** Months of spending already saved (onboarding), so calculators start from there. */
-  bufferMonths?: number;
+  /** The user's spending and savings (or labelled defaults), so calculators start from there. */
+  you?: FundStart;
   /** Where the user left this lesson last time; it picks up there. */
   resume?: LessonProgress;
   /** The lesson to offer once this one is done. */
@@ -102,7 +103,7 @@ export function LibraryMomentPlayer({
       {step.type === 'predict' && <PredictStep {...step} answer={step.answerValue} onDone={graded} />}
       {step.type === 'sort' && <SortStep {...step} onDone={graded} />}
       {step.type === 'order' && <OrderStep {...step} onDone={graded} />}
-      {step.type === 'explore' && <ExploreStep {...step} haveMonths={bufferMonths} onDone={next} />}
+      {step.type === 'explore' && <ExploreStep {...step} you={you} onDone={next} />}
       {step.type === 'stat' && <StatStep {...step} onDone={next} />}
       {step.type === 'asset_range' && assets[step.assetId] && <RangeStep asset={assets[step.assetId]!} onDone={next} />}
       {step.type === 'finish' && (

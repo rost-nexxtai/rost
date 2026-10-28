@@ -1,7 +1,10 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import type { UpdateMeResponse } from '@/contract';
+import { api } from '@/lib/api';
 import { PERSONAS } from './fixtures/personas';
+import { updateMeBody, withMyMoney, type MyMoney } from './mock/money';
 import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/profile';
 import { getLibrary } from '.';
 import { firstLesson } from './mock/momente';
@@ -75,6 +78,28 @@ export async function saveLessonProgress(momentId: string, progress: LessonProgr
 
 export async function resetProfile(): Promise<void> {
   (await cookies()).delete(PROFILE_COOKIE);
+}
+
+/**
+ * Profil → "Banii tăi": the backend gets what drives triggers and personal inflation, the cookie the
+ * lines the screens read. A new salary goes through PUT /api/me/salary, so a raise reopens the payslip.
+ * Without a session (or with the backend down) only the cookie changes, and the answer says so.
+ */
+export async function saveMyMoney(m: MyMoney, grossBefore?: number): Promise<{ saved: boolean; synced: boolean; inflationPct?: number; personal?: boolean }> {
+  const p = await current();
+  if (!p) return { saved: false, synced: false };
+  let inflation: { pct: number; personal: boolean } | undefined;
+  try {
+    const out = await api<UpdateMeResponse>('/api/me', { method: 'PATCH', body: JSON.stringify(updateMeBody(m)) });
+    inflation = { pct: out.inflation.personalPct ?? out.inflation.headlinePct, personal: out.inflation.personalPct !== null };
+    if (m.situation === 'employed' && m.grossMonthly && m.grossMonthly !== grossBefore) {
+      await api('/api/me/salary', { method: 'PUT', body: JSON.stringify({ grossMonthly: m.grossMonthly }) });
+    }
+  } catch {
+    // no session or backend down: keep the numbers on this device
+  }
+  await write(withMyMoney(p, m, inflation));
+  return { saved: true, synced: !!inflation, inflationPct: inflation?.pct, personal: inflation?.personal };
 }
 
 /** Saves one money line the user picked inline (Știri), instead of asking for numbers at onboarding. */

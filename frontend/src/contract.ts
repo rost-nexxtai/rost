@@ -323,6 +323,30 @@ export interface SalaryChangeResponse {
 export interface MeResponse {
   user: User;
   profile?: Profile;
+  inflation: UserInflation;
+}
+
+/** The national 12-month inflation and, once the user gave a spending mix, theirs. */
+export interface UserInflation {
+  period: string;
+  headlinePct: number;
+  personalPct: number | null;
+}
+
+/** PATCH /api/me: only the fields given change; 0 or "" clears one. Salary changes go to PUT /api/me/salary. */
+export interface UpdateMeRequest {
+  situations?: Situation[];
+  /** The salary stopped: forget it. */
+  noSalary?: boolean;
+  payday?: number;
+  hireDate?: string;
+  monthlyExpenses?: number;
+  spendingShares?: CategoryShares;
+}
+
+export interface UpdateMeResponse {
+  user: User;
+  inflation: UserInflation;
 }
 
 // ---- Triggers ----

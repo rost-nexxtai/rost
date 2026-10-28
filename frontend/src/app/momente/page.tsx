@@ -116,6 +116,20 @@ export default async function Momente() {
         ))
       )}
 
+      {/* Your own money before the library: the payslip and the other life moments come first. */}
+      {life.length > 0 && (
+        <section className="section" aria-labelledby="life">
+          <h2 id="life" className="section-title">
+            {t.life}
+          </h2>
+          <Card style={{ gap: 0 }}>
+            {life.map((m) => (
+              <MomentRow key={m.id} m={m} />
+            ))}
+          </Card>
+        </section>
+      )}
+
       <h2 className="section-title">{t.roadmap}</h2>
       {roadmap.map((lvl) => (
         <section key={lvl.level} className="road-level" data-reached={lvl.reached || undefined} aria-labelledby={`lvl${lvl.level}`}>
@@ -132,19 +146,6 @@ export default async function Momente() {
           </ol>
         </section>
       ))}
-
-      {life.length > 0 && (
-        <section className="section" aria-labelledby="life">
-          <h2 id="life" className="section-title">
-            {t.life}
-          </h2>
-          <Card style={{ gap: 0 }}>
-            {life.map((m) => (
-              <MomentRow key={m.id} m={m} />
-            ))}
-          </Card>
-        </section>
-      )}
       <TabBar current="momente" />
     </main>
   );

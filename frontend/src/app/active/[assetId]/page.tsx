@@ -73,7 +73,7 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
     );
   }
 
-  const { asset, providers, providerKind, inflationPct, providersDown } = data;
+  const { asset, providers, providerKind, inflationPct, inflationPersonal, savedLei, providersDown } = data;
   // the list starts with the best-known providers; the simulation runs on the best rate in it
   const best = providers.reduce<(typeof providers)[number] | undefined>((b, p) => ((p.netRatePct ?? -Infinity) > (b?.netRatePct ?? -Infinity) ? p : b), undefined);
 
@@ -114,7 +114,7 @@ export default async function AssetPage({ params }: { params: Promise<{ assetId:
           {t.simulation}
         </h2>
         <Card>
-          <Simulation basis={asset.simulation} ratePct={best?.netRatePct} inflationPct={inflationPct} />
+          <Simulation basis={asset.simulation} ratePct={best?.netRatePct} inflationPct={inflationPct} inflationPersonal={inflationPersonal} savedLei={savedLei} />
         </Card>
       </section>
 

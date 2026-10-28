@@ -27,6 +27,8 @@ const T = copy(
     quiz: (reason: string) => `Testul de la început: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
     salary: 'Salariul tău',
     salaryLine: 'Unde merg banii din brut. Schimbă-l când primești o mărire.',
+    money: 'Banii tăi',
+    moneyLine: 'Jobul, salariul, cât cheltui și pe ce. Rost calculează cu cifrele tale.',
     salaryNow: (gross: string, net: string) => `${gross} brut · ${net} net pe lună`,
     salaryNone: 'Nu ne-ai spus încă salariul.',
     details: 'Vezi detaliile',
@@ -46,6 +48,8 @@ const T = copy(
     quiz: (reason) => `Starting quiz: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
     salary: 'Your salary',
     salaryLine: 'Where your gross pay goes. Change it when you get a raise.',
+    money: 'Your money',
+    moneyLine: 'Your job, salary, what you spend and on what. Rost works with your numbers.',
     salaryNow: (gross, net) => `${gross} gross · ${net} net a month`,
     salaryNone: "You haven't told us your salary yet.",
     details: 'See the details',
@@ -71,6 +75,18 @@ export default async function Profil() {
     <main className="shell">
       <TopBar profile={profile} />
       <h1>{t.title}</h1>
+
+      <Link href="/bani" className="card card-link">
+        <div className="row">
+          <div className="stack" style={{ gap: 2 }}>
+            <span className="eyebrow">{t.money}</span>
+            <span className="small muted">{t.moneyLine}</span>
+          </div>
+          <span style={{ color: 'var(--muted)' }}>
+            <Icon name="chevron" size={20} />
+          </span>
+        </div>
+      </Link>
 
       <Card>
         <div className="row">

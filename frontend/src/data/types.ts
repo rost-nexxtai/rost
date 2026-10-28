@@ -23,6 +23,10 @@ export interface MoneyLines {
   inflationPct: number;
   /** Lines the user has answered. An answered 0 ("I have no car") is real; an unanswered 0 means "ask". */
   known?: MoneyLine[];
+  /** Monthly spending, from Profil → "Banii tăi". Missing means we use a default and say so. */
+  expensesLei?: number;
+  /** True when inflationPct is the user's own (from their spending mix), not the national figure. */
+  inflationPersonal?: boolean;
 }
 
 export type MoneyLine = 'fuelLei' | 'electricityLei' | 'savedLei';
@@ -162,6 +166,10 @@ export interface AssetResponse {
   providerKind: 'savings' | 'brokers';
   /** The user's inflation (personal when known), for "in today's money". */
   inflationPct: number;
+  /** True when inflationPct comes from the user's own spending mix. */
+  inflationPersonal: boolean;
+  /** What the user said they have saved, so the simulation starts there. */
+  savedLei?: number;
   /** The backend couldn't be reached, so there are no providers to show. */
   providersDown?: boolean;
 }
