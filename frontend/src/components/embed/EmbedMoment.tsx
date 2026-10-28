@@ -5,7 +5,7 @@ import { InflationReveal } from '@/components/moments/InflationReveal';
 import { PredictStep } from '@/components/moments/steps/PredictStep';
 import type { ScenarioSliderProps } from '@/components/moments/ScenarioSlider';
 import type { InflationView } from '@backend/contract';
-import { lei } from '@/lib/format';
+import { lei, pct } from '@/lib/format';
 
 /**
  * The partner view: the same moment, inside a bank's app, in the bank's colours.
@@ -18,7 +18,7 @@ export function EmbedMoment({ iv, scenario, bankName }: { iv: InflationView; sce
   if (step === 'predict') {
     return (
       <PredictStep
-        question={`National inflation is ${iv.headlinePct}%. What's yours?`}
+        question={`Inflația la nivel național e ${pct(iv.headlinePct, 2)}. Cât crezi că e a ta?`}
         min={0}
         max={15}
         step={0.5}
@@ -34,15 +34,15 @@ export function EmbedMoment({ iv, scenario, bankName }: { iv: InflationView; sce
 
   if (step === 'reveal') {
     return (
-      <div className="stack" style={{ gap: 18 }}>
+      <div className="stack-lg">
         <InflationReveal iv={iv} guess={guess} scenario={scenario} showOptionsLink={false} />
         {iv.bufferTarget !== undefined && (
           <div className="card">
-            <span className="eyebrow">One thing to do</span>
-            <h2>Keep your buffer worth the same</h2>
-            <p className="muted">Set your savings goal to {lei(iv.bufferTarget)}: three months of spending, at your inflation.</p>
+            <span className="eyebrow">Un singur pas</span>
+            <h2>Păstrează-ți fondul de urgență la valoare</h2>
+            <p className="muted">Setează-ți ținta de economii la {lei(iv.bufferTarget)}: trei luni de cheltuieli, la inflația ta.</p>
             <button className="btn btn-primary btn-block" onClick={() => setStep('done')}>
-              Set goal in {bankName}
+              Setează ținta în {bankName}
             </button>
           </div>
         )}
@@ -52,8 +52,8 @@ export function EmbedMoment({ iv, scenario, bankName }: { iv: InflationView; sce
 
   return (
     <div className="stack" style={{ gap: 14 }}>
-      <h1>Goal set</h1>
-      <p className="muted">In a live integration, {bankName}&apos;s app opens its own savings-goal screen here. Rost never moves money.</p>
+      <h1>Ținta e setată</h1>
+      <p className="muted">Într-o integrare reală, aici se deschide ecranul de obiective de economii din aplicația {bankName}. Rost nu mută niciodată bani.</p>
     </div>
   );
 }

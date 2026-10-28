@@ -7,16 +7,16 @@ import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
 
 const EVENTS = [
-  { type: 'salary_received', label: 'Salary received', hint: 'what a bank webhook would send' },
-  { type: 'payslip_uploaded', label: 'Payslip uploaded', hint: 'user photo of a payslip' },
-  { type: 'inflation_published', label: 'INS publishes inflation', hint: 'monthly, ~13th' },
-  { type: 'raise', label: 'Got a raise', hint: 'repeats the payslip moment' },
+  { type: 'salary_received', label: 'A intrat salariul', hint: 'ce ar trimite banca printr-un webhook' },
+  { type: 'payslip_uploaded', label: 'Fluturaș încărcat', hint: 'poză cu fluturașul, de la utilizator' },
+  { type: 'inflation_published', label: 'INS publică inflația', hint: 'lunar, în jur de 13' },
+  { type: 'raise', label: 'Mărire de salariu', hint: 'repetă momentul fluturașului' },
 ] as const;
 
 const SCENARIOS = [
-  { id: 'fuel-shortage', label: 'Fuel shortage' },
-  { id: 'energy-spike', label: 'Energy price spike' },
-  { id: 'food-drought', label: 'Drought, food prices' },
+  { id: 'fuel-shortage', label: 'Criză de carburant' },
+  { id: 'energy-spike', label: 'Scumpirea energiei' },
+  { id: 'food-drought', label: 'Secetă, prețuri la mâncare' },
 ];
 
 interface Outcome {
@@ -69,7 +69,7 @@ export default function Simulator() {
   async function runCalendar() {
     const out = await call('/api/calendar', { method: 'POST' });
     if (out.error) return say(`calendar: ${out.error}`);
-    if (!out.results.length) say(`calendar ${out.today}: nothing due today`);
+    if (!out.results.length) say(`calendar ${out.today}: nimic programat azi`);
     for (const r of out.results) report(`calendar ${out.today} → ${r.event.type}`, r);
   }
 
@@ -77,7 +77,7 @@ export default function Simulator() {
     const out = await call('/api/clock', { method: 'POST', body: JSON.stringify({ days }) });
     if (out.error) return say(`clock: ${out.error}`);
     setNow(out);
-    say(`clock: ${out.now.slice(0, 10)} (offset ${out.offsetDays} days)`);
+    say(`clock: ${out.now.slice(0, 10)} (decalaj ${out.offsetDays} zile)`);
   }
 
   async function openPartnerView() {
@@ -90,7 +90,7 @@ export default function Simulator() {
     const out = await call('/api/demo/reset', { method: 'POST' });
     if (out.error) return say(`reset: ${out.error}`);
     await call('/api/users', { method: 'POST', body: JSON.stringify({ demo: 'maria' }) });
-    setLog(['reset: fresh Maria, clock back to today']);
+    setLog(['resetat: Maria de la zero, ceasul pe azi']);
     setLastRun(undefined);
     refreshClock();
     router.refresh();
@@ -99,35 +99,35 @@ export default function Simulator() {
   return (
     <main className="shell">
       <TopBar />
-      <h1>Simulator</h1>
-      <p className="muted small">For the demo and for testing. In production these come from banks, the calendar and the news desk.</p>
+      <h1>Simulator (demo)</h1>
+      <p className="muted small">Pentru demo și teste. În producție, evenimentele vin de la bănci, din calendar și de la redacție.</p>
 
       <section className="card">
         <div className="row">
-          <h2>Clock</h2>
+          <h2>Ceas</h2>
           <span className="small muted">{now ? now.now.slice(0, 10) : '…'}</span>
         </div>
         <div className="grid3">
           <button className="chip" onClick={() => moveClock((now?.offsetDays ?? 0) + 7)}>
-            +7 days
+            +7 zile
           </button>
           <button className="chip" onClick={() => moveClock((now?.offsetDays ?? 0) + 30)}>
-            +30 days
+            +30 zile
           </button>
           <button className="chip" onClick={() => moveClock(0)}>
-            Today
+            Azi
           </button>
         </div>
         <button className="btn btn-primary" onClick={runCalendar}>
-          Run today&apos;s calendar
+          Rulează calendarul de azi
         </button>
-        <p className="note">Payday, the Pillar II deadline (from the hire date) and the INS release date are computed, not pressed.</p>
+        <p className="note">Ziua salariului, termenul pentru Pilonul II (din data angajării) și data publicării INS sunt calculate, nu apăsate.</p>
       </section>
 
       <section className="card">
-        <h2>Events</h2>
+        <h2>Evenimente</h2>
         <label className="check">
-          <input type="checkbox" checked={ignoreCap} onChange={(e) => setIgnoreCap(e.target.checked)} /> Ignore the 1-a-week cap (stage only)
+          <input type="checkbox" checked={ignoreCap} onChange={(e) => setIgnoreCap(e.target.checked)} /> Ignoră limita de un moment pe săptămână (doar pe scenă)
         </label>
         {EVENTS.map((e) => (
           <button
@@ -146,8 +146,8 @@ export default function Simulator() {
           <select
             value={scenarioId}
             onChange={(e) => setScenarioId(e.target.value)}
-            aria-label="Scenario"
-            style={{ height: 46, borderRadius: 12, border: '1px solid #dcdfe5', padding: '0 10px', font: 'inherit', flex: 1 }}
+            aria-label="Scenariu"
+            style={{ flex: 1 }}
           >
             {SCENARIOS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -156,33 +156,33 @@ export default function Simulator() {
             ))}
           </select>
           <button className="btn btn-primary" onClick={() => fire('shock_scenario', { scenarioId })}>
-            Publish what-if
+            Publică scenariul
           </button>
         </div>
         {lastRun && (
           <Link href={`/moment/${lastRun}`} className="btn btn-primary">
-            Open the new moment
+            Deschide momentul nou
           </Link>
         )}
       </section>
 
       <section className="card card-dark">
-        <h2>Partner view</h2>
-        <p className="muted small">The same moment inside a bank&apos;s app, from a signed token with spending shares only.</p>
+        <h2>În aplicația băncii</h2>
+        <p className="muted small">Același moment în aplicația unei bănci, dintr-un token semnat care conține doar ponderile cheltuielilor.</p>
         <button className="btn btn-light" onClick={openPartnerView}>
-          Open as [PARTNER BANK]
+          Deschide ca [PARTNER BANK]
         </button>
       </section>
 
       <section className="card">
         <div className="row">
-          <h2>Log</h2>
+          <h2>Jurnal</h2>
           <button className="btn btn-ghost" style={{ minHeight: 36 }} onClick={reset}>
-            Reset demo
+            Resetează demo-ul
           </button>
         </div>
         {log.length === 0 ? (
-          <p className="small muted">Nothing yet.</p>
+          <p className="small muted">Nimic încă.</p>
         ) : (
           log.map((l, i) => (
             <p key={i} className="small" style={{ fontFamily: 'ui-monospace, monospace' }}>

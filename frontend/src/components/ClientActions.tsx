@@ -63,7 +63,7 @@ export function CatchUpButton({ momentId, label }: { momentId: string; label: st
   const [busy, setBusy] = useState(false);
   return (
     <button
-      className="btn btn-ghost"
+      className="btn btn-secondary btn-sm"
       disabled={busy}
       onClick={async () => {
         setBusy(true);
@@ -87,15 +87,15 @@ export function FollowUp({ actionId, text }: { actionId: string; text: string })
     router.refresh();
   };
   return (
-    <div className="card card-tint">
-      <span className="eyebrow">A week later</span>
+    <div className="card card-tint rise">
+      <span className="eyebrow">O săptămână mai târziu</span>
       <p>{text}</p>
       <div className="row">
         <button className="btn btn-primary" onClick={() => answer('confirmed')}>
-          Yes, done
+          Da, gata
         </button>
         <button className="btn btn-ghost" onClick={() => answer('skipped')}>
-          Not yet
+          Încă nu
         </button>
       </div>
     </div>

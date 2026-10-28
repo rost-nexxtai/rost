@@ -16,8 +16,8 @@ export default async function Embed({ searchParams }: { searchParams: Promise<{ 
   if (!data) {
     return (
       <main className="shell">
-        <h1>This link has expired</h1>
-        <p className="muted">Open it again from your bank&apos;s app.</p>
+        <h1>Linkul a expirat</h1>
+        <p className="muted">Deschide-l din nou din aplicația băncii tale.</p>
       </main>
     );
   }
@@ -27,7 +27,7 @@ export default async function Embed({ searchParams }: { searchParams: Promise<{ 
 
   const theme = partner.theme;
   const style = (theme
-    ? { '--primary': theme.primary, '--ground': theme.ground, '--ink': theme.ink, '--accent': theme.primary, '--accent-ink': theme.primary, '--accent-tint': '#e3edf3', background: theme.ground, minHeight: '100vh' }
+    ? { '--primary': theme.primary, '--ground': theme.ground, '--ink': theme.ink, '--accent': theme.primary, '--accent-ink': theme.primary, '--accent-tint': '#e3edf3', '--primary-tint': '#e3edf3', background: theme.ground, minHeight: '100vh' }
     : {}) as CSSProperties;
 
   return (
@@ -36,13 +36,13 @@ export default async function Embed({ searchParams }: { searchParams: Promise<{ 
         <header className="row" style={{ minHeight: 44 }}>
           <strong style={{ color: 'var(--primary)' }}>{partner.displayName}</strong>
           <span className="small muted">
-            with <span style={{ fontFamily: 'var(--display)', fontWeight: 800 }}>rost.</span>
+            cu <span style={{ fontFamily: 'var(--display)', fontWeight: 800 }}>rost.</span>
           </span>
         </header>
         <EmbedMoment iv={iv} scenario={scenario} bankName={partner.displayName} />
         <p className="note">
-          {partner.displayName} shared only your spending mix by category and an age band. No name, account or transactions. Nothing is
-          stored by Rost.
+          {partner.displayName} a trimis doar ponderile cheltuielilor pe categorii și o grupă de vârstă. Fără nume, cont sau tranzacții.
+          Rost nu salvează nimic.
         </p>
       </main>
     </div>
