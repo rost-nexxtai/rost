@@ -3,6 +3,11 @@
 .env.*.local
 .DS_Store
 
+# Frontend
+node_modules/
+dist/
+*.tsbuildinfo
+
 # Go
 backend/api
 *.test

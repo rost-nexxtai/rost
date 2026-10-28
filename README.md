@@ -17,10 +17,19 @@ curl localhost:8080/readyz
 
 This starts Postgres 16 (`db`, port 5432) and the Go API (`backend`, port 8080). See [backend/README.md](backend/README.md) for configuration and local development.
 
+The UI is a client-only React + TypeScript app (Vite) with example data. It doesn't call the backend yet:
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
+```
+
 ## Layout
 
 ```
 Architecture.md      target product: Home, Moments, News; levels L0–L2
 backend/             Go API (net/http, pgx), Dockerfile
+frontend/            React UI: onboarding quiz, Home, Momente, Știri (example data)
 docker-compose.yml   Postgres + backend
 ```

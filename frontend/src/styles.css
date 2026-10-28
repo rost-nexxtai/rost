@@ -1,0 +1,78 @@
+:root {
+  --ground: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #111418;
+  --muted: #5b6170;
+  --line: #e3e6eb;
+  --accent: #ff5a36;
+  --accent-ink: #c2370f;
+  --accent-tint: #ffede7;
+  --good: #1f7a4d;
+  --good-tint: #e3f4ea;
+  --bad-tint: #fde8e4;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--ground);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); }
+button { font: inherit; color: inherit; }
+
+.shell { max-width: 440px; margin: 0 auto; padding: 20px 16px 96px; display: flex; flex-direction: column; gap: 14px; }
+.wordmark { font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
+.wordmark span { color: var(--accent); }
+
+h1 { font-size: 26px; line-height: 30px; letter-spacing: -0.4px; margin: 0; }
+h2 { font-size: 18px; line-height: 22px; margin: 0; }
+p { margin: 0; line-height: 21px; }
+.big { font-size: 32px; font-weight: 800; letter-spacing: -0.8px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--accent-ink); }
+.muted { color: var(--muted); }
+.small { font-size: 14px; line-height: 19px; }
+.note { font-size: 12px; line-height: 16px; color: var(--muted); }
+.q { font-weight: 600; margin-bottom: 4px; padding: 0; }
+/* Floating the legend makes it a normal child, so it sits inside the card instead of on its border. */
+legend.q { float: left; width: 100%; }
+
+.card { background: var(--surface); border: 0; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.card-dark { background: var(--ink); color: #fff; }
+.card-dark .eyebrow { color: #ffb4a0; }
+.card-tint { background: var(--accent-tint); }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.row.tight { gap: 6px; }
+.right { text-align: right; }
+
+.reset { border: 0; text-align: left; cursor: pointer; width: 100%; background: var(--surface); }
+.card-dark.reset { background: var(--ink); }
+
+.btn { min-height: 48px; border-radius: 999px; border: 0; font-weight: 700; font-size: 16px; cursor: pointer; padding: 0 20px; }
+.btn-primary { background: var(--ink); color: #fff; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.link { background: none; border: 0; padding: 0; color: var(--accent-ink); font-weight: 600; cursor: pointer; text-align: left; }
+.link.center { align-self: center; font-size: 14px; color: var(--muted); }
+
+.chip { min-height: 48px; border-radius: 14px; border: 1px solid #dcdfe5; background: #fff; padding: 10px 14px; text-align: left; cursor: pointer; font-size: 15px; }
+.chip:disabled { cursor: default; }
+.chip.right { background: var(--good-tint); border-color: var(--good); color: var(--good); font-weight: 700; text-align: left; }
+.chip.wrong { background: var(--bad-tint); border-color: var(--accent); }
+
+.badge { font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent-tint); padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+.badge-grey { color: var(--muted); background: #eceef2; }
+
+input[type='number'] { height: 46px; border: 1px solid #dcdfe5; border-radius: 12px; padding: 0 12px; font-size: 16px; width: 100%; }
+.option { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 15px; cursor: pointer; }
+.option input { width: 18px; height: 18px; accent-color: var(--ink); flex-shrink: 0; }
+
+.sim { border-top: 1px solid var(--line); padding-top: 10px; }
+.sim svg { width: 100%; height: auto; }
+.sim .growth { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; }
+.sim .baseline { stroke: #c9ced6; stroke-width: 2; stroke-dasharray: 4 4; }
+.sim .dot { fill: var(--accent); }
+
+.impact { border-left: 3px solid var(--accent); padding-left: 10px; display: flex; flex-direction: column; gap: 4px; }
+
+.nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line); display: flex; justify-content: center; padding: 6px 16px 14px; }
+.nav button { flex: 1; max-width: 140px; min-height: 44px; background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; }
+.nav button[aria-current='page'] { color: var(--ink); font-weight: 700; }
