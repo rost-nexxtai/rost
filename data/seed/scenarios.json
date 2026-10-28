@@ -1,0 +1,38 @@
+{
+  "note": "What-if shocks. Each one is written and approved by a person before it can be sent. They are scenarios, never forecasts.",
+  "scenarios": [
+    {
+      "id": "energy-spike",
+      "title": "What if energy prices jump?",
+      "context": "Energy prices can spike after a war or a supply cut, as they did in 2022.",
+      "spendLine": "utilities",
+      "defaultShockPct": 30,
+      "minShockPct": 0,
+      "maxShockPct": 60,
+      "status": "approved",
+      "reviewedBy": "editor (demo)"
+    },
+    {
+      "id": "fuel-shortage",
+      "title": "What if fuel rises?",
+      "context": "A shortage or a refinery outage can push pump prices up within weeks.",
+      "spendLine": "fuel",
+      "defaultShockPct": 20,
+      "minShockPct": 0,
+      "maxShockPct": 50,
+      "status": "approved",
+      "reviewedBy": "editor (demo)"
+    },
+    {
+      "id": "food-drought",
+      "title": "What if a drought pushes food prices up?",
+      "context": "A poor harvest shows up in food prices over the following months.",
+      "spendLine": "food",
+      "defaultShockPct": 10,
+      "minShockPct": 0,
+      "maxShockPct": 30,
+      "status": "approved",
+      "reviewedBy": "editor (demo)"
+    }
+  ]
+}

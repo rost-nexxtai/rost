@@ -1,0 +1,14 @@
+{
+  "note": "EXAMPLE OFFERS for the demo. Rates and providers are illustrative, not live market data. Replace with a weekly-updated feed (bank sites, MFP for state bonds) before any real use.",
+  "offers": [
+    { "id": "fidelis-2y-lei", "provider": "Romanian state", "product": "Fidelis, 2 years (lei)", "kind": "state_bond", "grossRatePct": 7.6, "termMonths": 24, "accessRank": 3, "minAmountLei": 5000, "conditions": ["Bought through a bank or broker in the monthly window"], "partnerId": null, "example": true, "updatedAt": "2026-10-28" },
+    { "id": "tezaur-1y", "provider": "Romanian state", "product": "Tezaur, 1 year", "kind": "state_bond", "grossRatePct": 7.4, "termMonths": 12, "accessRank": 3, "minAmountLei": 1, "conditions": ["Treasury, post office or online"], "partnerId": null, "example": true, "updatedAt": "2026-10-28" },
+    { "id": "fidelis-4y-lei", "provider": "Romanian state", "product": "Fidelis, 4 years (lei)", "kind": "state_bond", "grossRatePct": 7.45, "termMonths": 48, "accessRank": 3, "minAmountLei": 5000, "conditions": ["Bought through a bank or broker in the monthly window"], "partnerId": null, "example": true, "updatedAt": "2026-10-28" },
+    { "id": "bank-a-12m", "provider": "Bank A", "product": "12-month deposit", "kind": "deposit", "grossRatePct": 5.25, "termMonths": 12, "accessRank": 2, "minAmountLei": 500, "conditions": ["New money only"], "partnerId": null, "example": true, "updatedAt": "2026-10-28" },
+    { "id": "bank-b-12m", "provider": "Bank B", "product": "12-month deposit", "kind": "deposit", "grossRatePct": 4.8, "termMonths": 12, "accessRank": 2, "minAmountLei": 500, "conditions": [], "partnerId": "bank-b", "example": true, "updatedAt": "2026-10-28" },
+    { "id": "bank-c-12m", "provider": "Bank C", "product": "12-month deposit", "kind": "deposit", "grossRatePct": 4.4, "termMonths": 12, "accessRank": 2, "minAmountLei": 500, "conditions": ["Salary account needed"], "partnerId": "bank-c", "example": true, "updatedAt": "2026-10-28" },
+    { "id": "bank-a-36m", "provider": "Bank A", "product": "36-month deposit", "kind": "deposit", "grossRatePct": 5.0, "termMonths": 36, "accessRank": 2, "minAmountLei": 500, "conditions": [], "partnerId": null, "example": true, "updatedAt": "2026-10-28" },
+    { "id": "bank-b-savings", "provider": "Bank B", "product": "Savings account", "kind": "deposit", "grossRatePct": 3.5, "termMonths": 0, "accessRank": 1, "minAmountLei": 0, "conditions": [], "partnerId": "bank-b", "example": true, "updatedAt": "2026-10-28" },
+    { "id": "bank-d-savings", "provider": "Bank D", "product": "Savings account", "kind": "deposit", "grossRatePct": 3.8, "termMonths": 0, "accessRank": 1, "minAmountLei": 0, "conditions": ["Needs the bank's app"], "partnerId": null, "example": true, "updatedAt": "2026-10-28" }
+  ]
+}
