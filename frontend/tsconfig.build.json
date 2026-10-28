@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "//": "Used by `next build` (next.config.mjs). Tests and test-only fixtures read backend seed files, which the Docker image (context ./frontend) doesn't have. `npm run typecheck` still checks them with tsconfig.json.",
+  "exclude": ["node_modules", "**/*.test.ts", "vitest.config.mts", "src/data/fixtures/seed-lessons.ts"]
+}
