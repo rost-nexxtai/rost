@@ -1,5 +1,5 @@
 {
-  "note": "Onboarding knowledge check. Same questions as frontend/src/data/fixtures/quiz.ts. \"Nu știu\" scores 0.",
+  "note": "Onboarding knowledge check, same questions as frontend/src/data/fixtures/quiz.ts. Each question tests one tier; a tier passes when all its questions are right, tiers pass in order, and the level is the number of tiers passed (see docs/level-assessment.md). \"Nu știu\" counts as not right.",
   "knowledge": [
     {
       "id": "inflatie",
@@ -9,7 +9,8 @@
         "La fel",
         "Mai puțin"
       ],
-      "correct": 2
+      "correct": 2,
+      "tier": 0
     },
     {
       "id": "dobanda_compusa",
@@ -19,7 +20,8 @@
         "Peste 1.200 lei",
         "Sub 1.200 lei"
       ],
-      "correct": 1
+      "correct": 1,
+      "tier": 0
     },
     {
       "id": "actiune_vs_etf",
@@ -29,7 +31,19 @@
         "Un ETF cu sute de companii",
         "La fel de riscante"
       ],
-      "correct": 0
+      "correct": 0,
+      "tier": 1
+    },
+    {
+      "id": "obligatiuni_dobanzi",
+      "question": "Dobânzile cresc. Ce se întâmplă de obicei cu prețul obligațiunilor deja emise?",
+      "options": [
+        "Crește",
+        "Scade",
+        "Rămâne la fel"
+      ],
+      "correct": 1,
+      "tier": 1
     }
   ]
 }

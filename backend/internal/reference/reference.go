@@ -112,6 +112,8 @@ type QuizQuestion struct {
 	Options  []string `json:"options"`
 	Correct  int      `json:"correct"`
 	Explain  string   `json:"explain,omitempty"`
+	// The knowledge tier it tests: 0 = the basics (passing skips the L0 lessons), 1 = L1 concepts.
+	Tier int `json:"tier"`
 }
 
 var (

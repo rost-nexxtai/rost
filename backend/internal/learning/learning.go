@@ -16,15 +16,45 @@ var (
 	Horizons = []string{"sub_1_an", "1_3_ani", "peste_3_ani"}
 )
 
-// 3 questions: 0-1 -> L0, 2 -> L1, 3 -> L2
-func LevelFromScore(score int) domain.Level {
-	switch {
-	case score >= 3:
-		return 2
-	case score == 2:
-		return 1
+// PlaceLevel is the starting level from the onboarding answers (docs/level-assessment.md).
+// tiers[i] is the tier question i tests and right[i] whether it was answered right ("Nu știu" and
+// questions never asked are not right). A tier passes when every one of its questions is right;
+// tiers pass in order, so a later tier only counts once every earlier one has passed. The level is
+// the number of tiers passed, at most L2.
+func PlaceLevel(tiers []int, right []bool) domain.Level {
+	maxTier := 0
+	for _, t := range tiers {
+		maxTier = max(maxTier, t)
 	}
-	return 0
+	level := domain.Level(0)
+	for tier := 0; tier <= maxTier && level < 2; tier++ {
+		asked := false
+		for i, t := range tiers {
+			if t != tier {
+				continue
+			}
+			asked = true
+			if i >= len(right) || !right[i] {
+				return level
+			}
+		}
+		if !asked {
+			return level
+		}
+		level++
+	}
+	return level
+}
+
+// AskTier says whether onboarding should still ask a question of this tier: only while every
+// earlier tier has passed, because otherwise the answer can't change the level.
+func AskTier(tier int, tiers []int, right []bool) bool {
+	for i, t := range tiers {
+		if t < tier && (i >= len(right) || !right[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 type RiskInput struct {

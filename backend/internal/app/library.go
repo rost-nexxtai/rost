@@ -160,11 +160,13 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 	questions := reference.Quiz()
 	out := QuizOutcome{Results: make([]QuizResult, 0, len(questions))}
 	score := 0
+	tiers, right := make([]int, len(questions)), make([]bool, len(questions))
 	for i, q := range questions {
 		ok := i < len(in.Knowledge) && in.Knowledge[i] != nil && *in.Knowledge[i] == q.Correct
 		if ok {
 			score++
 		}
+		tiers[i], right[i] = q.Tier, ok
 		out.Results = append(out.Results, QuizResult{ID: q.ID, Correct: ok, CorrectIndex: q.Correct, Explain: q.Explain})
 	}
 
@@ -189,7 +191,7 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 		return *p
 	}
 	u.Quiz = &domain.QuizProfile{
-		Score: score, Level: learning.LevelFromScore(score), AgeBand: in.AgeBand, Situation: string(in.Situation),
+		Score: score, Level: learning.PlaceLevel(tiers, right), AgeBand: in.AgeBand, Situation: string(in.Situation),
 		BufferMonths: in.BufferMonths, ExpensiveDebt: in.ExpensiveDebt, Horizon: in.Horizon,
 		FuelLei: orZero(in.FuelLei), ElectricityLei: orZero(in.ElectricityLei), SavedLei: orZero(in.SavedLei), TakenAt: clock.NowISO(),
 	}

@@ -1,11 +1,14 @@
 package learning
 
 import (
+	"encoding/json"
+	"os"
 	"reflect"
 	"testing"
 
 	"rost/backend/internal/content"
 	"rost/backend/internal/domain"
+	"rost/backend/internal/reference"
 )
 
 func seedLibrary(t *testing.T) ([]domain.LibraryMoment, []domain.NewsItem) {
@@ -35,9 +38,6 @@ func seedLibrary(t *testing.T) ([]domain.LibraryMoment, []domain.NewsItem) {
 
 // same cases as scoring.test.ts
 func TestLevelAndRisk(t *testing.T) {
-	if got := []domain.Level{LevelFromScore(0), LevelFromScore(1), LevelFromScore(2), LevelFromScore(3)}; !reflect.DeepEqual(got, []domain.Level{0, 0, 1, 2}) {
-		t.Errorf("levels = %v", got)
-	}
 	base := RiskInput{AgeBand: "sub_25", Horizon: "peste_3_ani", BufferMonths: 6}
 	with := func(f func(*RiskInput)) RiskInput { in := base; f(&in); return in }
 	cases := []struct {
@@ -204,5 +204,77 @@ func TestStiri(t *testing.T) {
 	money.FuelLei = 0
 	if s := Stiri(news, money); s.Items[2].ID != "motorina" {
 		t.Errorf("no car: fuel should be last, got %s", s.Items[2].ID)
+	}
+}
+
+// The same cases run in the frontend (scoring.test.ts), so both sides place people the same way.
+func TestPlacement(t *testing.T) {
+	raw, err := os.ReadFile("testdata/placement.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data struct {
+		Cases []struct {
+			Name    string            `json:"name"`
+			Answers []json.RawMessage `json:"answers"`
+			Level   domain.Level      `json:"level"`
+			Asked   int               `json:"asked"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &data); err != nil {
+		t.Fatal(err)
+	}
+	questions := reference.Quiz()
+	tiers := make([]int, len(questions))
+	for i, q := range questions {
+		tiers[i] = q.Tier
+	}
+	for _, c := range data.Cases {
+		if len(c.Answers) != len(questions) {
+			t.Fatalf("%s: %d answers for %d questions", c.Name, len(c.Answers), len(questions))
+		}
+		right := make([]bool, len(questions))
+		for i, a := range c.Answers {
+			var pick int
+			right[i] = json.Unmarshal(a, &pick) == nil && pick == questions[i].Correct
+		}
+		if got := PlaceLevel(tiers, right); got != c.Level {
+			t.Errorf("%s: level %d, want %d", c.Name, got, c.Level)
+		}
+		asked := 0
+		for i := range questions {
+			if AskTier(tiers[i], tiers, right) {
+				asked++
+			}
+		}
+		if asked != c.Asked {
+			t.Errorf("%s: asked %d questions, want %d", c.Name, asked, c.Asked)
+		}
+	}
+}
+
+func TestPlaceLevelEdges(t *testing.T) {
+	if got := PlaceLevel(nil, nil); got != 0 {
+		t.Errorf("no questions: %d", got)
+	}
+	// A third tier can't lift anyone past L2.
+	if got := PlaceLevel([]int{0, 1, 2}, []bool{true, true, true}); got != 2 {
+		t.Errorf("three tiers passed: %d", got)
+	}
+	// A tier with no questions stops the climb rather than counting as passed.
+	if got := PlaceLevel([]int{0, 2}, []bool{true, true}); got != 1 {
+		t.Errorf("gap in tiers: %d", got)
+	}
+}
+
+// The questions must cover tiers 0 and 1 with at least two questions each, so one lucky
+// guess can't pass a tier.
+func TestQuizTiers(t *testing.T) {
+	count := map[int]int{}
+	for _, q := range reference.Quiz() {
+		count[q.Tier]++
+	}
+	if count[0] < 2 || count[1] < 2 || len(count) != 2 {
+		t.Errorf("questions per tier: %v", count)
 	}
 }
