@@ -578,3 +578,5 @@ a.road-row:active { transform: scale(0.985); }
 .input[aria-invalid] { border-color: var(--danger); }
 .delta-up { color: var(--primary); font-weight: 700; }
 .delta-down { color: var(--accent-ink); font-weight: 700; }
+.list-row-stack { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; }
+.list-row-stack:not(:first-child) { border-top: 1px solid var(--line); padding-top: 12px; }

@@ -10,7 +10,7 @@ import { copy } from '@/i18n/lang';
 
 const T = copy(
   {
-    changed: 'Mi s-a schimbat salariul',
+    changed: 'Mi-am schimbat salariul',
     first: 'Adaugă salariul tău',
     gross: 'Salariul brut pe lună',
     exact: 'Suma exactă, în lei',
@@ -82,17 +82,21 @@ function usePayslip(gross: number) {
  * "My salary changed": a slider plus the exact amount, a live preview of the new take-home pay
  * next to the current one, then save. A raise reopens the payslip moment with the new numbers.
  */
-export function SalaryEditor({ current, now }: { current?: number; now?: PayslipBreakdown }) {
+export function SalaryEditor({ current, now: given, compact }: { current?: number; now?: PayslipBreakdown; compact?: boolean }) {
   const router = useRouter();
   const { lang, f } = useLang();
   const t = T[lang];
   const panel = useId();
-  const [open, setOpen] = useState(!current);
+  // on its own page the editor opens for a first salary; elsewhere it waits for the button
+  const [open, setOpen] = useState(!current && !compact);
   const [gross, setGross] = useState(current ?? 6000);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ text: string; runId?: string }>();
   const [error, setError] = useState('');
   const next = usePayslip(open ? gross : NaN);
+  // in Momente the current breakdown isn't on the page, so it's fetched like the preview
+  const fetched = usePayslip(open && !given && current ? current : NaN);
+  const now = given ?? fetched;
   const valid = gross >= MIN && gross <= MAX;
   const changed = gross !== current;
 
@@ -135,7 +139,8 @@ export function SalaryEditor({ current, now }: { current?: number; now?: Payslip
       {!open ? (
         <button
           type="button"
-          className="btn btn-secondary btn-block"
+          className={compact ? 'btn btn-secondary btn-sm' : 'btn btn-secondary btn-block'}
+          style={compact ? { alignSelf: 'flex-start' } : undefined}
           aria-expanded={false}
           aria-controls={panel}
           onClick={() => {
@@ -146,7 +151,7 @@ export function SalaryEditor({ current, now }: { current?: number; now?: Payslip
           {current ? t.changed : t.first}
         </button>
       ) : (
-        <div id={panel} className="card stack" style={{ gap: 14 }}>
+        <div id={panel} className={compact ? 'stack' : 'card stack'} style={{ gap: 14 }}>
           <Slider label={t.gross} min={3000} max={30000} step={100} value={Math.min(30000, Math.max(3000, gross))} onChange={setGross} format={() => f.lei(gross)} />
           <label className="stack" style={{ gap: 6 }}>
             <span className="small muted">{t.exact}</span>

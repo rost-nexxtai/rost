@@ -72,8 +72,9 @@ export function buildMomente(p: Profile, today: TodayResponse | undefined, libra
         minutes: d.minutes,
         status: isDone ? 'done' : 'todo',
         catchUpMomentId: isDone ? undefined : d.id,
-        // a payslip already seen stays one tap away, where the salary can be changed
+        // a payslip already seen stays one tap away, and the salary can be changed from the row
         href: isDone && d.id === 'payslip_explained' ? '/salariu' : undefined,
+        salary: isDone && d.id === 'payslip_explained' ? today?.user?.grossMonthly : undefined,
         catchUpNeedsSalary: !isDone && Boolean(today?.catchUpNeeds?.[d.id]?.includes('grossMonthly')),
       };
     });
