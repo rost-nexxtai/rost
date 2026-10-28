@@ -3,7 +3,7 @@
  * Each one notes the endpoint we're proposing. When the backend team agrees a shape,
  * it moves to backend/src/contract.ts and data/index.ts switches to the real call.
  */
-import type { Situation } from '@backend/contract';
+import type { Action, Situation } from '@backend/contract';
 
 export type { Situation };
 
@@ -157,4 +157,49 @@ export interface AssetResponse {
   providerKind: 'savings' | 'brokers';
   /** The user's inflation (personal when known), for "in today's money". */
   inflationPct: number;
+}
+
+export type LibraryStep =
+  | { type: 'choice'; question: string; options: string[]; correct: number; explain: string }
+  | { type: 'predict'; question: string; answerValue: number; min: number; max: number; step: number; unit: string }
+  | { type: 'card'; title: string; body: string }
+  | { type: 'asset_range'; assetId: AssetId }
+  | { type: 'finish'; cta: { label: string; href: string } };
+
+/** A lesson from the library. Empty steps means it isn't written yet ("în curând"). */
+export interface LibraryMoment {
+  id: string;
+  title: string;
+  series: string;
+  level: Level;
+  core: boolean;
+  minutes: number;
+  assetIds: AssetId[];
+  steps: LibraryStep[];
+}
+
+export interface MomentSummary {
+  id: string;
+  title: string;
+  series: string;
+  /** null for event-triggered moments (payslip, inflation, what-if), which aren't tied to a level. */
+  level: Level | null;
+  core: boolean;
+  minutes: number;
+  status: 'open' | 'done' | 'todo' | 'soon';
+  href?: string;
+  /** Set for a real backend moment the user can open now with a "catch up" tap. */
+  catchUpMomentId?: string;
+}
+
+/** proposed: GET /api/momente */
+export interface MomenteResponse {
+  triggered: MomentSummary[];
+  forYourLevel: MomentSummary[];
+  rest: MomentSummary[];
+  progress: { level: Level; coreDone: number; coreTotal: number; nextLevel: Level | null };
+  /** Real 7-day checks that are due (from GET /api/today). */
+  dueFollowUps: Action[];
+  /** True when the real API couldn't be reached: triggered moments are unknown, the library still shows. */
+  realApiDown: boolean;
 }

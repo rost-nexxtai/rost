@@ -1,13 +1,16 @@
 import 'server-only';
 import { cookies } from 'next/headers';
+import type { TodayResponse } from '@backend/contract';
+import { api } from '@/lib/api';
 import { parseProfile, PROFILE_COOKIE } from './mock/profile';
 import { ASSETS } from './fixtures/assets';
 import { BROKERS } from './fixtures/brokers';
 import { SAVINGS } from './fixtures/providers';
 import { buildAcasa } from './mock/acasa';
+import { buildMomente } from './mock/momente';
 import { rankBrokers, rankSavings } from './mock/ranking';
 import { NATIONAL_INFLATION_PCT } from './mock/scoring';
-import type { AcasaResponse, AssetResponse, Profile } from './types';
+import type { AcasaResponse, AssetResponse, MomenteResponse, Profile } from './types';
 
 /**
  * The only door screens use to get data. Each function returns a proposed response type
@@ -36,4 +39,17 @@ export async function getAsset(id: string): Promise<AssetResponse | undefined> {
     providerKind: savings ? 'savings' : 'brokers',
     inflationPct: (await getProfile())?.money.inflationPct ?? NATIONAL_INFLATION_PCT,
   };
+}
+
+/** Triggered moments are real (GET /api/today); the library is a fixture until GET /api/momente. */
+export async function getMomente(): Promise<MomenteResponse | undefined> {
+  const p = await getProfile();
+  if (!p) return undefined;
+  let today: TodayResponse | undefined;
+  try {
+    today = await api<TodayResponse>('/api/today');
+  } catch {
+    today = undefined; // no session or backend down: still show the library
+  }
+  return buildMomente(p, today);
 }
