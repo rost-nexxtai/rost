@@ -1,6 +1,5 @@
 'use client';
 
-import { QUIZ } from '@/data/fixtures/quiz';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LessonBar } from '@/components/lesson/LessonBar';
@@ -14,7 +13,7 @@ const T = copy(
   {
     kicker: 'Gata, te-am cunoscut',
     startAt: 'Pornești de la nivelul',
-    score: (n: number, of: number, risk: string, line: string) => `${n} din ${of} corecte · profil ${risk}: ${line}`,
+    score: (reason: string, risk: string, line: string) => `${reason} · profil ${risk}: ${line}`,
     first: (min: number) => `Prima ta lecție · ${min} minute`,
     browse: 'Mai întâi vreau să mă uit prin aplicație',
     note: 'Nivelul schimbă doar ordinea în care îți arătăm lucrurile. Nu e o recomandare de investiții.',
@@ -23,7 +22,7 @@ const T = copy(
   {
     kicker: 'Done, nice to meet you',
     startAt: "You're starting at",
-    score: (n, of, risk, line) => `${n} of ${of} right · ${risk} profile: ${line}`,
+    score: (reason, risk, line) => `${reason} · ${risk} profile: ${line}`,
     first: (min) => `Your first lesson · ${min} minutes`,
     browse: "I'd rather look around the app first",
     note: "Your level only changes the order we show things in. It's not investment advice.",
@@ -48,7 +47,7 @@ export function QuizResult({ profile, lesson }: { profile: Profile; lesson?: Pic
         <div className="row-start rise">
           <LevelBadge level={profile.level} />
           <span className="muted">
-            {t.score(profile.quizScore, QUIZ.knowledge.length, terms.risk[profile.riskProfile], terms.riskLine[profile.riskProfile].toLowerCase())}
+            {t.score(terms.placement[profile.quizLevel], terms.risk[profile.riskProfile], terms.riskLine[profile.riskProfile].toLowerCase())}
           </span>
         </div>
         {lesson && (

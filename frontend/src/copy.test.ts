@@ -60,13 +60,10 @@ describe('UI copy', () => {
 describe('English content mirrors Romanian', () => {
   // Lessons live in the backend now; its tests check that every English lesson mirrors the Romanian one.
 
-  it('quiz: same questions, levels, options and right answers', () => {
-    const shape = (k: typeof QUIZ.knowledge) => k.map((q) => [q.id, q.level, q.options.length, q.correct]);
+  it('quiz: same questions, tiers, options and right answers', () => {
+    // scoring.test.ts checks the Romanian quiz against the backend's
+    const shape = (k: typeof QUIZ.knowledge) => k.map((q) => [q.id, q.tier, q.options.length, q.correct]);
     expect(shape(QUIZ_EN.knowledge)).toEqual(shape(QUIZ.knowledge));
-    // the backend scores POST /api/quiz from its own copy; both must place a user the same way
-    const backend = JSON.parse(readFileSync(join(ROOT, '../../backend/internal/reference/data/seed/quiz.json'), 'utf8')) as { knowledge: typeof QUIZ.knowledge };
-    expect(shape(backend.knowledge)).toEqual(shape(QUIZ.knowledge));
-    expect(backend.knowledge.map((q) => [q.question, q.options])).toEqual(QUIZ.knowledge.map((q) => [q.question, q.options]));
     for (const key of ['ageBand', 'situation', 'bufferMonths', 'expensiveDebt'] as const) {
       expect(QUIZ_EN.profile[key].map((o) => o.value)).toEqual(QUIZ.profile[key].map((o) => o.value));
     }

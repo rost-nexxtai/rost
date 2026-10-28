@@ -1,11 +1,14 @@
 package learning
 
 import (
+	"encoding/json"
+	"os"
 	"reflect"
 	"testing"
 
 	"rost/backend/internal/content"
 	"rost/backend/internal/domain"
+	"rost/backend/internal/reference"
 )
 
 func seedLibrary(t *testing.T) ([]domain.LibraryMoment, []domain.NewsItem) {
@@ -35,24 +38,6 @@ func seedLibrary(t *testing.T) ([]domain.LibraryMoment, []domain.NewsItem) {
 
 // same cases as scoring.test.ts
 func TestLevelAndRisk(t *testing.T) {
-	levels := []domain.Level{0, 0, 1, 1, 2, 2}
-	for _, c := range []struct {
-		right []bool
-		want  domain.Level
-	}{
-		{[]bool{false, false, false, false, false, false}, 0},
-		{[]bool{true, true, false, false, false, false}, 0}, // the basics alone stay L0
-		{[]bool{true, true, true, false, false, false}, 1},  // basics + one L1 question
-		{[]bool{true, false, true, true, true, true}, 0},    // a gap in the basics can't be skipped
-		{[]bool{true, true, true, false, true, true}, 1},    // L2 needs both L1 questions
-		{[]bool{true, true, true, true, false, false}, 1},   // and one L2 question
-		{[]bool{true, true, true, true, false, true}, 2},
-		{[]bool{true, true, true, true, true, true}, 2},
-	} {
-		if got := Placement(levels, c.right); got != c.want {
-			t.Errorf("Placement(%v) = %d, want %d", c.right, got, c.want)
-		}
-	}
 	if !Passed(2, 3) || Passed(1, 3) || !Passed(0, 0) || Passed(1, 2) || !Passed(2, 2) {
 		t.Error("Passed: at least 2 of 3 graded screens")
 	}
@@ -223,5 +208,77 @@ func TestStiri(t *testing.T) {
 	money.FuelLei = 0
 	if s := Stiri(news, money); s.Items[2].ID != "motorina" {
 		t.Errorf("no car: fuel should be last, got %s", s.Items[2].ID)
+	}
+}
+
+// The same cases run in the frontend (scoring.test.ts), so both sides place people the same way.
+func TestPlacement(t *testing.T) {
+	raw, err := os.ReadFile("testdata/placement.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var data struct {
+		Cases []struct {
+			Name    string            `json:"name"`
+			Answers []json.RawMessage `json:"answers"`
+			Level   domain.Level      `json:"level"`
+			Asked   int               `json:"asked"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(raw, &data); err != nil {
+		t.Fatal(err)
+	}
+	questions := reference.Quiz()
+	tiers := make([]int, len(questions))
+	for i, q := range questions {
+		tiers[i] = q.Tier
+	}
+	for _, c := range data.Cases {
+		if len(c.Answers) != len(questions) {
+			t.Fatalf("%s: %d answers for %d questions", c.Name, len(c.Answers), len(questions))
+		}
+		right := make([]bool, len(questions))
+		for i, a := range c.Answers {
+			var pick int
+			right[i] = json.Unmarshal(a, &pick) == nil && pick == questions[i].Correct
+		}
+		if got := PlaceLevel(tiers, right); got != c.Level {
+			t.Errorf("%s: level %d, want %d", c.Name, got, c.Level)
+		}
+		asked := 0
+		for i := range questions {
+			if AskTier(tiers[i], tiers, right) {
+				asked++
+			}
+		}
+		if asked != c.Asked {
+			t.Errorf("%s: asked %d questions, want %d", c.Name, asked, c.Asked)
+		}
+	}
+}
+
+func TestPlaceLevelEdges(t *testing.T) {
+	if got := PlaceLevel(nil, nil); got != 0 {
+		t.Errorf("no questions: %d", got)
+	}
+	// A third tier can't lift anyone past L2.
+	if got := PlaceLevel([]int{0, 1, 2}, []bool{true, true, true}); got != 2 {
+		t.Errorf("three tiers passed: %d", got)
+	}
+	// A tier with no questions stops the climb rather than counting as passed.
+	if got := PlaceLevel([]int{0, 2}, []bool{true, true}); got != 1 {
+		t.Errorf("gap in tiers: %d", got)
+	}
+}
+
+// The questions must cover tiers 0 and 1 with at least two questions each, so one lucky
+// guess can't pass a tier.
+func TestQuizTiers(t *testing.T) {
+	count := map[int]int{}
+	for _, q := range reference.Quiz() {
+		count[q.Tier]++
+	}
+	if count[0] < 2 || count[1] < 2 || len(count) != 2 {
+		t.Errorf("questions per tier: %v", count)
 	}
 }

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { nextLesson, saveQuiz } from '@/data/actions';
 import { quizFor } from '@/data/fixtures/quiz';
+import { askQuestion } from '@/data/mock/scoring';
 import { useLang } from '@/i18n/client';
 import { copy, type Lang } from '@/i18n/lang';
 import type { AgeBand, KnowledgeAnswer, Profile, QuizAnswers, Situation } from '@/data/types';
@@ -27,7 +28,7 @@ const T = copy(
     buffer: 'Dacă venitul s-ar opri mâine, cât ai trăi din economii?',
     debt: 'Ai datorii scumpe?',
     debtHint: 'Card de credit neachitat integral, credit de nevoi personale sau „cumpără acum, plătește mai târziu”.',
-    quick: (n: number, of: number) => `Întrebare rapidă ${n} din ${of}`,
+    quick: (tier: number, n: number, of: number) => (tier === 0 ? `Întrebare rapidă · ${n} din ${of}` : `Încă două, ceva mai grele · ${n} din ${of}`),
     hint: 'Ca să știm de unde pornim. Nu e examen.',
     dontKnow: 'Nu știu',
     back: 'Înapoi',
@@ -42,7 +43,7 @@ const T = copy(
     buffer: 'If your income stopped tomorrow, how long could you live on your savings?',
     debt: 'Do you have expensive debt?',
     debtHint: "A credit card you don't pay off in full, a personal loan, or \"buy now, pay later\".",
-    quick: (n, of) => `Quick question ${n} of ${of}`,
+    quick: (tier, n, of) => (tier === 0 ? `Quick question · ${n} of ${of}` : `Two more, a bit harder · ${n} of ${of}`),
     hint: "So we know where to start. It's not a test.",
     dontKnow: "I don't know",
     back: 'Back',
@@ -51,6 +52,9 @@ const T = copy(
     preparing: 'Getting your first lesson ready…',
   },
 );
+
+/** Age, situation, savings cushion, expensive debt: the screens before the knowledge questions. */
+const PROFILE_SCREENS = 4;
 
 function screensFor(lang: Lang): Screen[] {
   const t = T[lang];
@@ -61,7 +65,8 @@ function screensFor(lang: Lang): Screen[] {
     { kicker: t.aboutYou, question: t.buffer, options: quiz.profile.bufferMonths },
     { kicker: t.aboutYou, question: t.debt, hint: t.debtHint, options: quiz.profile.expensiveDebt, row: true },
     ...quiz.knowledge.map((q, n) => ({
-      kicker: t.quick(n + 1, quiz.knowledge.length),
+      // Numbered within its tier, so a beginner who stops after the basics never sees "2 of 4".
+      kicker: t.quick(q.tier, quiz.knowledge.slice(0, n).filter((p) => p.tier === q.tier).length + 1, quiz.knowledge.filter((p) => p.tier === q.tier).length),
       question: q.question,
       hint: n === 0 ? t.hint : undefined,
       options: [...q.options.map((label, value) => ({ value, label })), { value: 'nu_stiu', label: t.dontKnow }],
@@ -70,13 +75,14 @@ function screensFor(lang: Lang): Screen[] {
 }
 
 /**
- * Onboarding: ten screens, one tap each, no Continue button. Under a minute.
+ * Onboarding: six to eight screens, one tap each, no Continue button. Under a minute.
  * `retake` (from Profil) keeps the session, name and finished lessons; a new user starts fresh.
  */
 export function QuizFlow({ retake = false }: { retake?: boolean }) {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [tapped, setTapped] = useState<Answer>();
+  const [finishing, setFinishing] = useState(false);
   const [result, setResult] = useState<{ profile: Profile; lesson: Awaited<ReturnType<typeof nextLesson>> }>();
   const { lang } = useLang();
   const t = T[lang];
@@ -111,16 +117,22 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
     if (tapped !== undefined) return;
     setTapped(value);
     const all = [...answers.slice(0, i), value];
+    // Skip the questions that can't change the level any more (a later tier when the basics
+    // weren't both right). They count as "Nu știu".
+    let next = i + 1;
+    while (next < SCREENS.length && next >= PROFILE_SCREENS && !askQuestion(next - PROFILE_SCREENS, all.slice(PROFILE_SCREENS) as KnowledgeAnswer[])) {
+      all.push('nu_stiu');
+      next++;
+    }
+    if (next >= SCREENS.length) setFinishing(true);
     // A beat to see the tap land, then the next screen.
     setTimeout(() => {
       setAnswers(all);
       setTapped(undefined);
-      if (i === SCREENS.length - 1) void finish(all);
-      else setI(i + 1);
+      if (next >= SCREENS.length) void finish(all);
+      else setI(next);
     }, 260);
   }
-
-  const last = i === SCREENS.length - 1 && tapped !== undefined;
 
   return (
     <main className="onboard">
@@ -160,7 +172,7 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
             </button>
           ))}
         </div>
-        {last && <p className="play-hint">{t.preparing}</p>}
+        {finishing && <p className="play-hint">{t.preparing}</p>}
       </fieldset>
     </main>
   );

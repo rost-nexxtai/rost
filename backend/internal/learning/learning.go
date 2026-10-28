@@ -16,28 +16,45 @@ var (
 	Horizons = []string{"sub_1_an", "1_3_ani", "peste_3_ani"}
 )
 
-// Placement is the quiz level. Questions come two per level; you place at a level only if you got
-// every question of the levels below it right and at least one of its own. Scoring by count let
-// 1 in 4 people guess their way to L1; this way a guess rarely skips a level (1 in 16 to L1).
-// right[i] is whether question i, at levels[i], was answered right ("nu știu" is wrong).
-func Placement(levels []domain.Level, right []bool) domain.Level {
-	placed := domain.Level(0)
-	for l := domain.Level(1); l <= 2; l++ {
-		below, own := true, false
-		for i, ql := range levels {
-			switch {
-			case ql < l && !right[i]:
-				below = false
-			case ql == l && right[i]:
-				own = true
+// PlaceLevel is the starting level from the onboarding answers (docs/level-assessment.md).
+// tiers[i] is the tier question i tests and right[i] whether it was answered right ("Nu știu" and
+// questions never asked are not right). A tier passes when every one of its questions is right;
+// tiers pass in order, so a later tier only counts once every earlier one has passed. The level is
+// the number of tiers passed, at most L2.
+func PlaceLevel(tiers []int, right []bool) domain.Level {
+	maxTier := 0
+	for _, t := range tiers {
+		maxTier = max(maxTier, t)
+	}
+	level := domain.Level(0)
+	for tier := 0; tier <= maxTier && level < 2; tier++ {
+		asked := false
+		for i, t := range tiers {
+			if t != tier {
+				continue
+			}
+			asked = true
+			if i >= len(right) || !right[i] {
+				return level
 			}
 		}
-		if !below || !own {
-			break
+		if !asked {
+			return level
 		}
-		placed = l
+		level++
 	}
-	return placed
+	return level
+}
+
+// AskTier says whether onboarding should still ask a question of this tier: only while every
+// earlier tier has passed, because otherwise the answer can't change the level.
+func AskTier(tier int, tiers []int, right []bool) bool {
+	for i, t := range tiers {
+		if t < tier && (i >= len(right) || !right[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // Passed: a lesson counts toward the next level only with at least 2 of 3 graded screens right.

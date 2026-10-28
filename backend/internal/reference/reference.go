@@ -111,14 +111,15 @@ type scenarioText struct {
 	Context string `json:"context"`
 }
 
-// Correct = index of the right option. Level is the level the question tells apart.
+// Correct = index of the right option
 type QuizQuestion struct {
-	ID       string       `json:"id"`
-	Level    domain.Level `json:"level"`
-	Question string       `json:"question"`
-	Options  []string     `json:"options"`
-	Correct  int          `json:"correct"`
-	Explain  string       `json:"explain,omitempty"`
+	ID       string   `json:"id"`
+	Question string   `json:"question"`
+	Options  []string `json:"options"`
+	Correct  int      `json:"correct"`
+	Explain  string   `json:"explain,omitempty"`
+	// The knowledge tier it tests: 0 = the basics (passing skips the L0 lessons), 1 = L1 concepts.
+	Tier int `json:"tier"`
 }
 
 var (

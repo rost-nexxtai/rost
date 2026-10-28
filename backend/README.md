@@ -88,7 +88,7 @@ Answers sent with a completion are graded like in the app: a choice by index, a 
 
 ### Levels
 
-The quiz has 6 questions, 2 per level. It places you at a level only if you got every question below it right and at least one of its own (`learning.Placement`), so a lucky guess on a hard question doesn't skip the basics. A lesson counts only when passed: at least 2 of 3 graded screens right (`learning.Passed`). The risk profile follows the level (L0 prudent, L1 echilibrat, L2 dinamic) with the horizon, buffer and debt caps; age adds nothing. The frontend mirrors these in `src/data/mock/scoring.ts`.
+The quiz has 4 questions in two tiers: the basics, then L1 concepts. A tier passes only when both its questions are right, tiers pass in order, and the level is the number of tiers passed (`learning.PlaceLevel`; onboarding skips the harder pair when the basics fail, `learning.AskTier`). The reasoning is in [docs/level-assessment.md](../docs/level-assessment.md). A lesson counts only when passed: at least 2 of 3 graded screens right (`learning.Passed`). The risk profile follows the level (L0 prudent, L1 echilibrat, L2 dinamic) with the horizon, buffer and debt caps; age adds nothing. The frontend mirrors these in `src/data/mock/scoring.ts`, and both test suites run the cases in `internal/learning/testdata/placement.json`.
 
 A user's level is the highest of: the quiz level, the level their passed core moments earn, and the highest level they reached before. Only core moments that have steps count, so a lesson that isn't written yet doesn't block anyone. Publishing a new core lesson never moves anyone down.
 

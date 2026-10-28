@@ -1,4 +1,3 @@
-import { QUIZ } from '@/data/fixtures/quiz';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ResetButton } from '@/components/ClientActions';
@@ -23,9 +22,9 @@ const T = copy(
     core: (done: number, of: number) => `${done} din ${of} lecții de bază`,
     finish: (next: number) => `Termină-le ca să treci la L${next}.`,
     advanced: 'Ai ajuns la nivelul avansat.',
-    quiz: (n: number, of: number) => `Testul: ${n} din ${of} răspunsuri corecte.`,
+    quiz: (reason: string) => `Testul de la început: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
     risk: 'Profil de risc',
-    riskNote: 'Pornește de la nivel și vârstă. Dacă ai nevoie de bani în mai puțin de un an, sau nu ai încă un fond de urgență de 3 luni, îl ținem mai prudent.',
+    riskNote: 'Pornește de la nivel: începător prudent, mediu echilibrat, avansat dinamic. Dacă ai nevoie de bani în mai puțin de un an, sau nu ai încă un fond de urgență de 3 luni, îl ținem mai prudent.',
     retake: 'Refă testul',
     demo: 'Demo',
     demoNote: 'Unelte pentru prezentare: evenimente simulate și cifrele instanței.',
@@ -37,9 +36,9 @@ const T = copy(
     core: (done, of) => `${done} of ${of} core lessons`,
     finish: (next) => `Finish them to move up to L${next}.`,
     advanced: "You've reached the advanced level.",
-    quiz: (n, of) => `Quiz: ${n} of ${of} answers right.`,
+    quiz: (reason) => `Starting quiz: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}.`,
     risk: 'Risk profile',
-    riskNote: "It starts from your level and age. If you need the money within a year, or don't have a 3-month emergency fund yet, we keep it more cautious.",
+    riskNote: "It starts from your level: beginner cautious, intermediate balanced, advanced adventurous. If you need the money within a year, or don't have a 3-month emergency fund yet, we keep it more cautious.",
     retake: 'Retake the quiz',
     demo: 'Demo',
     demoNote: 'Tools for the presentation: simulated events and this instance’s numbers.',
@@ -79,7 +78,7 @@ export default async function Profil() {
         ) : (
           <p className="small muted">{t.advanced}</p>
         )}
-        <p className="small muted">{t.quiz(profile.quizScore, QUIZ.knowledge.length)}</p>
+        <p className="small muted">{t.quiz(terms.placement[profile.quizLevel])}</p>
       </Card>
 
       <Card>

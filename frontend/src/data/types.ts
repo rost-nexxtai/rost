@@ -44,7 +44,7 @@ export interface Profile {
   completedMomentIds: string[];
 }
 
-/** proposed: POST /api/quiz. Onboarding asks age, situation, buffer, debt and six knowledge questions (two per level). */
+/** proposed: POST /api/quiz. Onboarding asks age, situation, buffer, debt and up to four knowledge questions (two per tier). */
 export interface QuizAnswers {
   knowledge: KnowledgeAnswer[];
   ageBand: AgeBand;

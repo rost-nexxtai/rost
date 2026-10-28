@@ -2,46 +2,51 @@ import { describe, expect, it } from 'vitest';
 import { QUIZ } from '../fixtures/quiz';
 import type { KnowledgeAnswer } from '../types';
 import { PERSONAS } from '../fixtures/personas';
-import { CORE_MOMENTS, entryRoute, foundationFor, levelWithMoments, passed, placement, profileFromQuiz, quizLevelOf, quizProfile, riskProfile, scoreKnowledge } from './scoring';
+import { askQuestion, CORE_MOMENTS, entryRoute, foundationFor, levelWithMoments, passed, placeLevel, profileFromQuiz, quizProfile, riskProfile, scoreKnowledge } from './scoring';
 
-const correct = QUIZ.knowledge.map((q) => q.correct);
-const wrong = (i: number) => (correct[i] + 1) % QUIZ.knowledge[i].options.length;
-/** Right on the listed question indexes, wrong everywhere else. */
-const rightOn = (...idx: number[]): KnowledgeAnswer[] => correct.map((c, i) => (idx.includes(i) ? c : wrong(i)));
+// The placement cases and the backend's questions: the same files the Go tests read.
+import placement from '../../../../backend/internal/learning/testdata/placement.json';
+import backendQuiz from '../../../../backend/internal/reference/data/seed/quiz.json';
 
-describe('quiz level', () => {
-  it('has two questions per level, in level order, like the backend', () => {
-    expect(QUIZ.knowledge.map((q) => q.level)).toEqual([0, 0, 1, 1, 2, 2]);
+/** Every question answered right. */
+const correct: KnowledgeAnswer[] = QUIZ.knowledge.map((q) => q.correct);
+
+const cases = placement.cases as { name: string; answers: KnowledgeAnswer[]; level: number; asked: number }[];
+
+/** How many knowledge questions onboarding shows for these answers (QuizFlow skips the rest). */
+function asked(answers: KnowledgeAnswer[]): number {
+  const given: KnowledgeAnswer[] = [];
+  let n = 0;
+  QUIZ.knowledge.forEach((_, i) => {
+    if (askQuestion(i, given)) {
+      n++;
+      given.push(answers[i]);
+    } else given.push('nu_stiu');
+  });
+  return n;
+}
+
+describe('quiz placement (shared cases with the backend)', () => {
+  it.each(cases.map((c) => [c.name, c] as const))('%s', (_, c) => {
+    expect(placeLevel(c.answers)).toBe(c.level);
+    expect(asked(c.answers)).toBe(c.asked);
+    expect(profileFromQuiz({ knowledge: c.answers, ageBand: '25_29', situation: 'employed', bufferMonths: 3 }).quizLevel).toBe(c.level);
   });
 
-  it('places at L2 with everything right and at L0 with nothing right', () => {
-    expect(quizLevelOf(correct)).toBe(2);
-    expect(quizLevelOf(Array(6).fill('nu_stiu'))).toBe(0);
-    expect(scoreKnowledge(Array(6).fill('nu_stiu'))).toBe(0);
+  it('asks the same questions, with the same right answers and tiers, as the backend', () => {
+    const shape = (qs: { id: string; correct: number; tier: number; options: string[] }[]) => qs.map((q) => [q.id, q.correct, q.tier, q.options.length]);
+    expect(shape(QUIZ.knowledge)).toEqual(shape(backendQuiz.knowledge));
+    expect(QUIZ.knowledge.map((q) => q.question)).toEqual(backendQuiz.knowledge.map((q) => q.question));
   });
 
-  it('needs both basics right before any higher level counts', () => {
-    // one basic wrong, every hard question right: still L0
-    expect(quizLevelOf(rightOn(0, 2, 3, 4, 5))).toBe(0);
-    expect(quizLevelOf(rightOn(0, 1))).toBe(0);
-    expect(quizLevelOf(rightOn(0, 1, 2))).toBe(1);
-  });
-
-  it('needs both L1 questions right before L2 counts', () => {
-    expect(quizLevelOf(rightOn(0, 1, 2, 4, 5))).toBe(1);
-    expect(quizLevelOf(rightOn(0, 1, 2, 3, 4))).toBe(2);
-  });
-
-  it('matches learning.Placement in Go', () => {
-    const lv = [0, 0, 1, 1, 2, 2] as const;
-    expect(placement([...lv], [true, true, true, true, false, false])).toBe(1);
-    expect(placement([...lv], [true, true, false, false, true, true])).toBe(0);
-    expect(placement([...lv], [true, true, false, true, false, true])).toBe(1);
+  it('still counts right answers for the score', () => {
+    expect(scoreKnowledge(cases[0].answers)).toBe(QUIZ.knowledge.length);
+    expect(scoreKnowledge(['nu_stiu', 'nu_stiu', 'nu_stiu', 'nu_stiu'])).toBe(0);
   });
 });
 
 describe('passing a lesson', () => {
-  it('needs two thirds of the graded screens right, or nothing graded', () => {
+  it('needs two thirds of the graded screens right, or nothing graded (learning.Passed)', () => {
     expect(passed(2, 3)).toBe(true);
     expect(passed(1, 3)).toBe(false);
     expect(passed(3, 4)).toBe(true);

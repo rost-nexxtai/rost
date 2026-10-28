@@ -1,53 +1,37 @@
 {
-  "note": "Onboarding knowledge check: two questions per level, in level order. You place at a level only if you got every question below it right and at least one of its own (learning.Placement). Same questions as frontend/src/data/fixtures/quiz.ts. \"Nu știu\" counts as wrong.",
+  "note": "Onboarding knowledge check, same questions as frontend/src/data/fixtures/quiz.ts. Each question tests one tier; a tier passes when all its questions are right, tiers pass in order, and the level is the number of tiers passed (learning.PlaceLevel, docs/level-assessment.md). \"Nu știu\" counts as not right.",
   "knowledge": [
     {
       "id": "inflatie",
-      "level": 0,
       "question": "Ții 1.000 lei sub saltea un an, cu inflație de 6%. Cu ei cumperi…",
       "options": ["Mai mult", "La fel", "Mai puțin"],
       "correct": 2,
-      "explain": "Prețurile cresc cu 6%, banii tăi rămân 1.000 lei: cumperi cam cât cu 943 de lei de anul trecut."
+      "explain": "Prețurile cresc cu 6%, banii tăi rămân 1.000 lei: cumperi cam cât cu 943 de lei de anul trecut.",
+      "tier": 0
     },
     {
       "id": "dobanda_compusa",
-      "level": 0,
       "question": "1.000 lei la 10% pe an, 2 ani, fără să scoți nimic. Ai…",
       "options": ["Exact 1.200 lei", "Peste 1.200 lei", "Sub 1.200 lei"],
       "correct": 1,
-      "explain": "În anul doi primești dobândă și la dobânda din anul unu: 1.000 → 1.100 → 1.210 lei."
+      "explain": "În anul doi primești dobândă și la dobânda din anul unu: 1.000 → 1.100 → 1.210 lei.",
+      "tier": 0
     },
     {
       "id": "actiune_vs_etf",
-      "level": 1,
       "question": "Ce e mai riscant?",
       "options": ["Acțiunile unei singure companii", "Un ETF cu sute de companii", "La fel de riscante"],
       "correct": 0,
-      "explain": "O singură companie poate da faliment. Într-un ETF, o companie care cade e una din sute."
-    },
-    {
-      "id": "titluri_impozit",
-      "level": 1,
-      "question": "Primești 700 lei dobândă la un titlu de stat Fidelis. Cât impozit plătești pe ea?",
-      "options": ["Nimic", "70 lei (10%)", "112 lei (16%)"],
-      "correct": 0,
-      "explain": "Dobânda la Tezaur și Fidelis e scutită de impozit. La un depozit, banca ar reține 10%."
+      "explain": "O singură companie poate da faliment. Într-un ETF, o companie care cade e una din sute.",
+      "tier": 1
     },
     {
       "id": "obligatiuni_dobanzi",
-      "level": 2,
       "question": "Dobânzile cresc. Ce se întâmplă de obicei cu prețul obligațiunilor deja emise?",
       "options": ["Crește", "Scade", "Rămâne la fel"],
       "correct": 1,
-      "explain": "Obligațiunile vechi plătesc dobânda mai mică de la emitere, deci valorează mai puțin lângă cele noi."
-    },
-    {
-      "id": "impozit_broker",
-      "level": 2,
-      "question": "Vinzi cu câștig un ETF ținut 2 ani, printr-un broker din România care reține impozitul. Cât impozit plătești pe câștig?",
-      "options": ["3%", "10%", "16%"],
-      "correct": 0,
-      "explain": "În 2026, prin broker român: 3% dacă l-ai ținut cel puțin un an, 6% sub un an. Prin broker străin: 16%, și îl declari tu în Declarația unică."
+      "explain": "Obligațiunile vechi plătesc dobânda mai mică de la emitere, deci valorează mai puțin lângă cele noi.",
+      "tier": 1
     }
   ]
 }

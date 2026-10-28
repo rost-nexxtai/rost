@@ -1,0 +1,14 @@
+{
+  "note": "Onboarding placement cases, run by both the Go tests (learning_test.go) and the frontend tests (scoring.test.ts). Answers follow the quiz order: inflatie, dobanda_compusa (tier 0), actiune_vs_etf, obligatiuni_dobanzi (tier 1). Right answers are 2, 1, 0, 1. 'asked' is how many knowledge questions onboarding shows.",
+  "cases": [
+    { "name": "everything right", "answers": [2, 1, 0, 1], "level": 2, "asked": 4 },
+    { "name": "nothing known", "answers": ["nu_stiu", "nu_stiu", "nu_stiu", "nu_stiu"], "level": 0, "asked": 2 },
+    { "name": "the basics, nothing more", "answers": [2, 1, "nu_stiu", "nu_stiu"], "level": 1, "asked": 4 },
+    { "name": "the basics and one tier-1 slip", "answers": [2, 1, 0, 0], "level": 1, "asked": 4 },
+    { "name": "the basics and only the bond question", "answers": [2, 1, 1, 1], "level": 1, "asked": 4 },
+    { "name": "one basic wrong, the hard ones right", "answers": [0, 1, 0, 1], "level": 0, "asked": 2 },
+    { "name": "one basic not known, the rest right", "answers": [2, "nu_stiu", 0, 1], "level": 0, "asked": 2 },
+    { "name": "two of four, the hard ones (L1 under the old rule)", "answers": [1, 0, 0, 1], "level": 0, "asked": 2 },
+    { "name": "two of four, mixed (L1 under the old rule)", "answers": [2, 0, 0, 2], "level": 0, "asked": 2 }
+  ]
+}

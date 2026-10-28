@@ -1,4 +1,5 @@
-// MOCK until backend ships POST /api/quiz and level/risk profile on GET /api/me.
+// Same rules as backend/internal/learning (PlaceLevel, Passed, Risk); the cases in
+// backend/internal/learning/testdata/placement.json run against both.
 import { QUIZ } from '../fixtures/quiz';
 import type { Foundation, KnowledgeAnswer, Level, MoneyHorizon, Profile, QuizAnswers, RiskProfile } from '../types';
 
@@ -15,27 +16,30 @@ export function scoreKnowledge(answers: KnowledgeAnswer[]): number {
   return QUIZ.knowledge.reduce((n, q, i) => n + (answers[i] === q.correct ? 1 : 0), 0);
 }
 
+const rightAnswers = (answers: KnowledgeAnswer[]) => QUIZ.knowledge.map((q, i) => answers[i] === q.correct);
+
 /**
- * Mirrors learning.Placement in Go: you place at a level only with every question below it right
- * and at least one of its own. Lucky guesses on the hard questions don't skip the basics.
+ * The starting level (docs/level-assessment.md). Each question tests a tier; a tier passes when all
+ * its questions are right, tiers pass in order, and the level is the number of tiers passed. So the
+ * basics wrong means L0 whatever else was guessed, and one lucky guess can't pass a tier.
+ * "Nu știu" and questions never asked count as not right.
  */
-export function placement(levels: Level[], right: boolean[]): Level {
-  let placed: Level = 0;
-  for (const l of [1, 2] as const) {
-    const below = levels.every((ql, i) => ql >= l || right[i]);
-    const own = levels.some((ql, i) => ql === l && right[i]);
-    if (!below || !own) break;
-    placed = l;
+export function placeLevel(answers: KnowledgeAnswer[]): Level {
+  const right = rightAnswers(answers);
+  let level = 0;
+  for (const tier of [0, 1] as const) {
+    const qs = QUIZ.knowledge.map((q, i) => ({ q, i })).filter(({ q }) => q.tier === tier);
+    if (qs.length === 0 || !qs.every(({ i }) => right[i])) break;
+    level++;
   }
-  return placed;
+  return Math.min(level, 2) as Level;
 }
 
-/** The starting level from the quiz answers ("Nu știu" counts as wrong). */
-export function quizLevelOf(answers: KnowledgeAnswer[]): Level {
-  return placement(
-    QUIZ.knowledge.map((q) => q.level),
-    QUIZ.knowledge.map((q, i) => answers[i] === q.correct),
-  );
+/** Onboarding only asks a question while every earlier tier has passed; otherwise it can't change the level. */
+export function askQuestion(index: number, answers: KnowledgeAnswer[]): boolean {
+  const right = rightAnswers(answers);
+  const tier = QUIZ.knowledge[index].tier;
+  return QUIZ.knowledge.every((q, i) => q.tier >= tier || right[i]);
 }
 
 /** Mirrors learning.Passed: a lesson counts toward the next level only with 2 of 3 graded screens right. */
@@ -71,7 +75,7 @@ export function foundationFor(p: Pick<Profile, 'bufferMonths' | 'expensiveDebt'>
 
 export function profileFromQuiz(a: QuizAnswers, name?: string): Profile {
   const quizScore = scoreKnowledge(a.knowledge);
-  const quizLevel = quizLevelOf(a.knowledge);
+  const quizLevel = placeLevel(a.knowledge);
   const level = levelWithMoments(quizLevel, []);
   const horizon = a.horizon ?? '1_3_ani';
   const expensiveDebt = a.expensiveDebt ?? false;

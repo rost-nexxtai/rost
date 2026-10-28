@@ -22,7 +22,7 @@ func get(m map[string]any, path ...string) any {
 }
 
 // no horizon / expensiveDebt, onboarding doesn't ask them anymore
-const quizAllNuStiu = `{"knowledge":["nu_stiu","nu_stiu","nu_stiu","nu_stiu","nu_stiu","nu_stiu"],
+const quizAllNuStiu = `{"knowledge":["nu_stiu","nu_stiu","nu_stiu","nu_stiu"],
 "ageBand":"30_plus","situation":"student","bufferMonths":0,"fuelLei":200}`
 
 // right answers to the three L0 core lessons; only passed lessons count toward a level
@@ -52,8 +52,8 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 	c := &client{t: t, h: h}
 
 	_, quiz := c.do("GET", "/api/quiz", "")
-	if qs := quiz["knowledge"].([]any); len(qs) != 6 || strings.Contains(jsonString(qs), "correct") {
-		t.Fatalf("quiz must list 6 questions without answers: %v", qs)
+	if qs := quiz["knowledge"].([]any); len(qs) != 4 || strings.Contains(jsonString(qs), "correct") {
+		t.Fatalf("quiz must list 4 questions without answers: %v", qs)
 	}
 	if code, _ := c.do("POST", "/api/track", `{"events":[{"name":"quiz_start","path":"/quiz"}]}`); code != 202 {
 		t.Errorf("track before onboarding = %d", code)
@@ -270,6 +270,26 @@ func TestLessonsInBothLanguages(t *testing.T) {
 		_, list := c.do("GET", "/api/library", "")
 		if first := list["moments"].([]any)[0].(map[string]any); first["title"] != want[0] {
 			t.Errorf("lang %q: library title = %v", lang, first["title"])
+		}
+	}
+}
+
+func TestQuizPlacementOverHTTP(t *testing.T) {
+	for _, c := range []struct {
+		name, knowledge string
+		level           float64
+	}{
+		{"basics and tier 1", `[2,1,0,1]`, 2},
+		{"basics only", `[2,1,"nu_stiu","nu_stiu"]`, 1},
+		{"hard ones right, a basic wrong", `[0,1,0,1]`, 0},
+	} {
+		cl := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+		code, out := cl.do("POST", "/api/quiz", `{"knowledge":`+c.knowledge+`,"ageBand":"25_29","situation":"employed","bufferMonths":3}`)
+		if code != 200 {
+			t.Fatalf("%s: %d %v", c.name, code, out)
+		}
+		if got := get(out, "profile", "quizLevel"); got != c.level {
+			t.Errorf("%s: quizLevel %v, want %v", c.name, got, c.level)
 		}
 	}
 }

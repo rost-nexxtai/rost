@@ -92,10 +92,10 @@ describe('first lesson after onboarding', () => {
   });
 
   it('starts at your level when the foundation is there', () => {
-    const p = profileFromQuiz({ knowledge: [2, 1, 0, 0, 1, 0], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
+    const p = profileFromQuiz({ knowledge: [2, 1, 0, 1], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
     expect(p.level).toBe(2);
     expect(firstLesson(p, SEED_LESSONS)?.level).toBeLessThanOrEqual(2);
-    const l1 = profileFromQuiz({ knowledge: [2, 1, 0, 'nu_stiu', 'nu_stiu', 'nu_stiu'], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
+    const l1 = profileFromQuiz({ knowledge: [2, 1, 'nu_stiu', 'nu_stiu'], ageBand: '25_29', situation: 'employed', bufferMonths: 3, expensiveDebt: false });
     expect(firstLesson(l1, SEED_LESSONS)?.id).toBe('titluri_stat');
   });
 });

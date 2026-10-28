@@ -17,9 +17,11 @@ financial education level:
 -L2: Advanced,
 and the users Risk Profile.
 
-Level: the quiz has 6 questions, 2 per level. You place at a level only if every question below
-it is right and at least one of its own is. Lessons move you up only when passed (at least 2 of 3
-graded screens right); a failed attempt can be retaken.
+Level: the quiz has 4 questions in two tiers, the basics (inflation, compound interest) and L1
+concepts (diversification, bond prices). A tier passes only when both its questions are right,
+tiers pass in order, and the level is the number of tiers passed; the harder pair is only asked
+once the basics are right. Details in docs/level-assessment.md. Lessons move you up only when
+passed (at least 2 of 3 graded screens right); a failed attempt can be retaken.
 
 Risk Profile: follows the level (L0 prudent, L1 echilibrat, L2 dinamic), then capped: money needed
 within a year → prudent; dinamic without a 3-month buffer or with expensive debt → echilibrat.
