@@ -53,3 +53,55 @@ export interface QuizAnswers {
   electricityLei?: number;
   savedLei?: number;
 }
+
+export interface SavingsProvider {
+  id: string;
+  assetId: 'cont_economii' | 'depozit' | 'titluri_stat';
+  name: string;
+  product: string;
+  kind: 'deposit' | 'state_bond';
+  grossRatePct: number;
+  termMonths: number;
+  /** 1 any time, 2 lose the interest if you break it, 3 locked until maturity */
+  accessRank: 1 | 2 | 3;
+  isPartner: boolean;
+  example: boolean;
+  /** Offer id in backend/data/seed/offers.json; set only when a real referral link exists. */
+  offerId?: string;
+}
+
+export interface Broker {
+  id: string;
+  name: string;
+  country: 'RO' | 'EU';
+  commissionPct: number;
+  minCommissionLei: number;
+  spreadPct: number;
+  isPartner: boolean;
+  example: true;
+}
+
+export interface RankedProvider {
+  id: string;
+  rank: number;
+  name: string;
+  product: string;
+  headline: string;
+  netRatePct?: number;
+  costLei?: number;
+  accessRank?: 1 | 2 | 3;
+  isPartner: boolean;
+  example: boolean;
+  offerId?: string;
+}
+
+export interface Point {
+  year: number;
+  valueLei: number;
+}
+
+export interface SimInput {
+  startLei: number;
+  monthlyLei: number;
+  years: number;
+}
