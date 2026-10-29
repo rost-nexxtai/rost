@@ -22,6 +22,7 @@ services:
     restart: unless-stopped
 
   backend:
+    # Health: the image's HEALTHCHECK calls GET /healthz.
     build: ./backend
     environment:
       HTTP_ADDR: ":8080"
@@ -47,6 +48,10 @@ services:
       context: ./frontend
       args:
         BACKEND_URL: http://backend:8080
+        # Browser security headers, fixed at build time. Partner origins allowed to frame the bank view
+        # (/embed), space-separated; and HSTS=true once the domain is served over HTTPS.
+        EMBED_FRAME_ANCESTORS: ${EMBED_FRAME_ANCESTORS:-}
+        HSTS: ${HSTS:-false}
     environment:
       # Server components call the backend directly; the /api rewrite was fixed at build time.
       BACKEND_URL: http://backend:8080
@@ -56,8 +61,10 @@ services:
     # Listed explicitly so the frontend keeps reaching the backend when Dokploy adds its own network for the domain.
     networks:
       - default
+    # Health: the image's HEALTHCHECK loads the landing page.
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
