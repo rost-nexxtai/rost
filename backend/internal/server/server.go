@@ -57,7 +57,16 @@ func New(d Deps) http.Handler {
 	})
 
 	s.routes(mux)
-	return logRequests(d.Logger, mux)
+	// Outermost first: request id, request log, panic recovery, headers, cross-site guard, rate limits.
+	var h http.Handler = mux
+	if !d.Config.RateLimitsOff {
+		h = limitRoutes(newLimiters(time.Now), d.Config.TrustProxy, h)
+	}
+	h = refuseCrossSite(h)
+	h = apiHeaders(h)
+	h = recoverPanics(d.Logger, h)
+	h = logRequests(d.Logger, h)
+	return withRequestID(h)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -77,7 +86,7 @@ func fail(w http.ResponseWriter, status int, msg string) {
 
 // internal logs the error and answers 500 without details.
 func (s *server) internal(w http.ResponseWriter, r *http.Request, err error) {
-	s.Logger.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
+	s.Logger.Error("request failed", "requestId", requestIDFrom(r.Context()), "method", r.Method, "path", r.URL.Path, "err", err)
 	fail(w, http.StatusInternalServerError, "internal error")
 }
 
@@ -107,6 +116,6 @@ func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		logger.Info("request", "method", r.Method, "path", r.URL.Path, "status", rec.status, "duration", time.Since(start))
+		logger.Info("request", "requestId", requestIDFrom(r.Context()), "method", r.Method, "path", r.URL.Path, "status", rec.status, "duration", time.Since(start))
 	})
 }

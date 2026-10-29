@@ -40,7 +40,7 @@ Click **Continuă ca Maria (demo)**. The browser only talks to the Next.js app; 
 3. In **Domains**, add your domain for service `frontend`, port `3000`, with HTTPS on. Point the domain's DNS `A` record at the server.
 4. Deploy. Use **Preview Compose** first to see the labels Dokploy adds.
 
-Only the frontend is public. It reaches the API over the stack's internal network, and neither the API nor Postgres publishes a port. The database lives in the named volume `rost-db`, which Dokploy's Volume Backups can back up. Demo tools stay off unless you set `ALLOW_DEMO_TOKEN=true`.
+Only the frontend is public. It reaches the API over the stack's internal network, and neither the API nor Postgres publishes a port. The database lives in the named volume `rost-db`, which Dokploy's Volume Backups can back up. Demo tools stay off unless you set `ALLOW_DEMO_TOKEN=true`. The API rate-limits each client by the address Dokploy's proxy puts in `X-Forwarded-For` (`TRUST_PROXY`, on in the compose file); if the whole audience of a stage demo shares one address, set `RATE_LIMITS=off`.
 
 ## Where the frontend gets its data
 
