@@ -40,10 +40,14 @@ DATABASE_URL='postgres://rost:rost@localhost:5432/rost?sslmode=disable' ALLOW_DE
 | `POSTBACK_SECRET` | empty | When set, referral postbacks must send it in `x-postback-secret`. Set it in production |
 | `ANTHROPIC_API_KEY`, `PAYSLIP_MODEL` | empty | Optional payslip photo reading. Without them `/api/payslip/read` answers 501 |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | empty | Both or neither. Create the first admin on start when that email has no account yet. Changing them later does nothing; add more admins with `POST /api/admin/admins` |
+| `TRUST_PROXY` | off (on in `docker-compose.yml`) | `true` when the API is only reachable through a proxy that writes the client's address into `X-Forwarded-For` (Dokploy's Traefik does). Rate limits then key on the right-most public address in it instead of the proxy's. Leave it off when clients can reach the API directly, or they can pick their own address |
+| `RATE_LIMITS` | on | `off` turns off the per-client limits on creating users and quizzes (20 a minute), reading payslip photos (5 per 10 minutes) and tracking and referral clicks (60 a minute). Over a limit the API answers 429 with `Retry-After` |
 
 ## Endpoints
 
 App routes are under `/api`; shapes are in `frontend/src/contract.ts`. The session is the `rost_uid` cookie.
+
+Every response carries an `X-Request-ID` (a sane incoming one is kept), which is also on its log lines, plus `X-Content-Type-Options: nosniff` and `Cache-Control: no-store`. A panic answers 500 and is logged with its stack. A `POST`, `PUT`, `PATCH` or `DELETE` that the browser marks `Sec-Fetch-Site: cross-site` is refused with 403, except the referral postback; requests without the header (servers, the Next.js server) pass.
 
 | Route | Purpose |
 | --- | --- |

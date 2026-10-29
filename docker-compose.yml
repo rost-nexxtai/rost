@@ -32,6 +32,9 @@ services:
       POSTBACK_SECRET: ${POSTBACK_SECRET:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       PAYSLIP_MODEL: ${PAYSLIP_MODEL:-}
+      # Only the frontend reaches the API, behind Dokploy's proxy, which sets X-Forwarded-For: rate limits key on it.
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      RATE_LIMITS: ${RATE_LIMITS:-on}
       # First admin, created on start (both or neither).
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}

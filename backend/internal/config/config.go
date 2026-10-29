@@ -25,6 +25,13 @@ type Config struct {
 	// first admin, created on start (both or none)
 	AdminEmail    string
 	AdminPassword string
+
+	// Hardening.
+	// TrustProxy: the API sits behind our own proxy, which writes the client's address into
+	// X-Forwarded-For. Rate limits then key on that address instead of the proxy's.
+	TrustProxy bool
+	// RateLimitsOff turns the per-client rate limits off, e.g. for a stage demo behind one address.
+	RateLimitsOff bool
 }
 
 func Load() (Config, error) {
@@ -38,6 +45,9 @@ func Load() (Config, error) {
 		PayslipModel:    os.Getenv("PAYSLIP_MODEL"),
 		AdminEmail:      os.Getenv("ADMIN_EMAIL"),
 		AdminPassword:   os.Getenv("ADMIN_PASSWORD"),
+
+		TrustProxy:    os.Getenv("TRUST_PROXY") == "true",
+		RateLimitsOff: os.Getenv("RATE_LIMITS") == "off",
 	}
 	if cfg.DatabaseURL == "" {
 		return Config{}, errors.New("DATABASE_URL is not set")
