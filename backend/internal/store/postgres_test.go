@@ -166,6 +166,33 @@ func TestPostgresContentAdminsTracking(t *testing.T) {
 	if _, err := s.GetContent(ctx, domain.KindMoment, id); err != store.ErrNotFound {
 		t.Errorf("seed ran twice: %v", err)
 	}
+	// A new seed version refreshes items nobody edited since the seed, and leaves edited ones alone.
+	seeded := item
+	seeded.ID, seeded.UpdatedBy, seeded.Doc = id+"_s", "seed", []byte(`{"id":"`+id+`_s","title":"old"}`)
+	edited := seeded
+	edited.ID, edited.Doc = id+"_e", []byte(`{"id":"`+id+`_e","title":"old"}`)
+	if err := s.SeedContent(ctx, seedName+"-a", []domain.ContentItem{seeded, edited}); err != nil {
+		t.Fatal(err)
+	}
+	edited.Doc, edited.UpdatedBy = []byte(`{"id":"`+id+`_e","title":"admin"}`), "admin@rost"
+	if _, err := s.UpdateContent(ctx, edited); err != nil {
+		t.Fatal(err)
+	}
+	seeded.Doc = []byte(`{"id":"` + id + `_s","title":"new"}`)
+	edited.Doc, edited.UpdatedBy = []byte(`{"id":"`+id+`_e","title":"new"}`), "seed"
+	if err := s.SeedContent(ctx, seedName+"-b", []domain.ContentItem{seeded, edited}); err != nil {
+		t.Fatal(err)
+	}
+	if c, _ := s.GetContent(ctx, domain.KindMoment, id+"_s"); !strings.Contains(string(c.Doc), `"new"`) {
+		t.Errorf("unedited seed item not refreshed: %s", c.Doc)
+	}
+	if c, _ := s.GetContent(ctx, domain.KindMoment, id+"_e"); !strings.Contains(string(c.Doc), `"admin"`) || c.UpdatedBy != "admin@rost" {
+		t.Errorf("admin edit overwritten: %s by %s", c.Doc, c.UpdatedBy)
+	}
+	for _, x := range []string{id + "_s", id + "_e"} {
+		_ = s.DeleteContent(ctx, domain.KindMoment, x)
+	}
+
 	if _, err := s.CreateContent(ctx, item); err != nil {
 		t.Fatal(err)
 	}

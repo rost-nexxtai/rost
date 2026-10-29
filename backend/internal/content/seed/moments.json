@@ -462,14 +462,14 @@
       },
       {
         "type": "predict",
-        "question": "Un depozit are 8% dobândă. Cât rămâne după impozitul de 10%?",
-        "answerValue": 7.2,
-        "min": 5,
-        "max": 9,
+        "question": "Cel mai bun depozit pe un an din listă dă 7% pe an (octombrie 2026). Cât rămâne după impozitul de 10%?",
+        "answerValue": 6.3,
+        "min": 4,
+        "max": 8,
         "step": 0.1,
-        "start": 8.6,
+        "start": 7.6,
         "unit": "%",
-        "explain": "8% minus o zecime din el = 7,2%. Titlurile de stat nu au impozit, așa că 7,4% rămân 7,4%."
+        "explain": "7% minus o zecime din el = 6,3%. Tezaur pe un an dă 6,5% și nu are impozit, deci rămâne 6,5%: dobânda afișată mai mică aduce mai mult."
       },
       {
         "type": "explore",
@@ -542,9 +542,9 @@
         },
         {
           "type": "predict",
-          "question": "A deposit pays 8% interest. What is left after the 10% tax?",
+          "question": "The best one-year deposit in the list pays 7% a year (October 2026). What is left after the 10% tax?",
           "unit": "%",
-          "explain": "8% minus a tenth of it = 7.2%. Government bonds carry no tax, so 7.4% stays 7.4%."
+          "explain": "7% minus a tenth of it = 6.3%. One-year Tezaur pays 6.5% with no tax, so it stays 6.5%: the lower headline rate earns more."
         },
         {
           "type": "explore",

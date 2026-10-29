@@ -19,8 +19,8 @@ var providerAssets = []string{"cont_economii", "depozit", "titluri_stat", "etf",
 
 type assetProviders struct {
 	AssetID string `json:"assetId"`
-	// Both listed best-known first (clients in Romania). Savings show the net rate after tax,
-	// brokers the cost of a 1,000 lei order.
+	// Both ranked by the public formula: savings by net rate after tax (then easier access, then
+	// name), brokers by the cost of a 1,000 lei order. Client counts are shown, never ranked on.
 	ProviderKind string               `json:"providerKind"`
 	AmountLei    float64              `json:"amountLei"`
 	Offers       []rules.RankedOffer  `json:"offers,omitempty"`
@@ -34,7 +34,7 @@ func brokerKey(id string) string { return "broker:" + id }
 // providersFor ranks first and labels partners after, so a partner mark can never move a row.
 func providersFor(assetID string, lang reference.Lang, partners map[string]bool) (assetProviders, bool) {
 	if reference.IsBrokerAsset(assetID) {
-		brokers := rules.BrokersByClients(rules.RankBrokers(reference.Brokers(lang)))
+		brokers := rules.RankBrokers(reference.Brokers(lang))
 		for i := range brokers {
 			brokers[i].IsPartner = partners[brokerKey(brokers[i].ID)]
 		}
@@ -44,7 +44,7 @@ func providersFor(assetID string, lang reference.Lang, partners map[string]bool)
 	if len(offers) == 0 {
 		return assetProviders{}, false
 	}
-	ranked := rules.ByClients(rules.RankByNet(offers, assetProvidersAmount))
+	ranked := rules.RankByNet(offers, assetProvidersAmount)
 	bank := bankNames()
 	for i := range ranked {
 		if name, ok := bank[ranked[i].ID]; ok && partners[bankKey(name)] {
@@ -77,7 +77,7 @@ func (s *server) partnerSet(ctx context.Context) (map[string]bool, error) {
 	return out, nil
 }
 
-// GET /api/providers/{assetId}: the real providers of one asset, best-known first. No session needed.
+// GET /api/providers/{assetId}: the real providers of one asset, ranked by the public formula. No session needed.
 func (s *server) assetProviders(w http.ResponseWriter, r *http.Request) {
 	partners, err := s.partnerSet(r.Context())
 	if err != nil {
