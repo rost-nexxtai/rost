@@ -13,7 +13,7 @@ const T = copy(
     down: 'Nu ne putem conecta acum',
     downSub: 'Încearcă din nou peste câteva momente, din aplicația băncii tale.',
     with: 'cu',
-    privacy: (bank: string) => `${bank} a trimis doar ponderile cheltuielilor pe categorii și o grupă de vârstă. Fără nume, cont sau tranzacții. Rost nu salvează nimic.`,
+    privacy: (bank: string) => `${bank} a trimis ponderile cheltuielilor pe categorii, o grupă de vârstă și sumele de care are nevoie lecția. Fără nume, cont sau tranzacții. Rost nu salvează nimic.`,
   },
   {
     expired: 'This link has expired',
@@ -21,7 +21,7 @@ const T = copy(
     down: "We can't connect right now",
     downSub: "Try again in a moment, from your bank's app.",
     with: 'with',
-    privacy: (bank) => `${bank} shared only your spending mix by category and an age band. No name, account or transactions. Rost stores nothing.`,
+    privacy: (bank) => `${bank} shared your spending mix by category, an age band and the amounts this lesson needs. No name, account or transactions. Rost stores nothing.`,
   },
 );
 
