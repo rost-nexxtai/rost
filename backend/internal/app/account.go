@@ -18,6 +18,9 @@ const (
 	// a used session moves its expiry at most once a day
 	sessionRenewAfter = 24 * time.Hour
 	LoginLinkTTL      = 15 * time.Minute
+	// After the first swap of an old rost_uid cookie, it still becomes a session for this long, so
+	// parallel requests, a reload before the cookie arrived or a failed answer land on the same account.
+	LegacySwapWindow = 10 * time.Minute
 )
 
 var ErrBadLink = errors.New("this login link is used or expired")
@@ -79,6 +82,17 @@ func (s Service) EndSession(ctx context.Context, token string) error {
 	return s.Store.DeleteSession(ctx, auth.HashToken(token))
 }
 
+// UseLegacyUID says whether an old rost_uid cookie with userID may become a session (store.UseLegacyUID):
+// ErrNoSession when it may not.
+func (s Service) UseLegacyUID(ctx context.Context, userID string) error {
+	now := s.now()
+	err := s.Store.UseLegacyUID(ctx, userID, clock.ISO(now), clock.ISO(now.Add(-LegacySwapWindow)))
+	if errors.Is(err, store.ErrNotFound) {
+		return ErrNoSession
+	}
+	return err
+}
+
 // ---- email login ----
 
 // RequestLogin makes a one-time login link for email and returns the email as kept (lowercase)
@@ -110,14 +124,14 @@ func (s Service) RequestLogin(ctx context.Context, email, userID, nonce string) 
 
 // UseLoginLink opens a login link, once, in the browser that asked for it (nonce, its rost_login
 // cookie), and answers the account to sign in as: the one with the link's email (log in on another
-// device); else the account that asked, when it is still the one signed in here (currentUserID) and
-// has no email, which gets this one; else a new account with the email. ErrBadLink for an unknown,
-// used or expired link or another browser's: that leaves the link as it is, so a mail scanner or a
-// forwarded link neither burns it nor signs anyone in.
+// device); else the account signed in here now (currentUserID), when it has no email, which gets this
+// one; else a new account with the email. ErrBadLink for an unknown, used or expired link or another
+// browser's: that leaves the link as it is, so a mail scanner or a forwarded link neither burns it
+// nor signs anyone in.
 //
-// A new email never goes to an account that didn't ask for it from this browser: someone could
-// otherwise send you a link for their own email, or ask for one with yours, and so share an account
-// with you.
+// A new email only ever goes to an account signed in on the browser that asked for the link (the
+// nonce proves it): someone could otherwise send you a link for their own email, or ask for one with
+// yours, and so share an account with you.
 func (s Service) UseLoginLink(ctx context.Context, token, nonce, currentUserID string) (string, error) {
 	if token == "" || nonce == "" {
 		return "", ErrBadLink
@@ -140,11 +154,12 @@ func (s Service) UseLoginLink(ctx context.Context, token, nonce, currentUserID s
 	if err == nil || !errors.Is(err, store.ErrNotFound) {
 		return id, err
 	}
-	if t.UserID != "" && t.UserID == currentUserID {
-		err := s.Store.SetUserEmail(ctx, t.UserID, t.Email)
+	// a shared persona never gets an email
+	if currentUserID != "" && !reference.IsDemoUser(currentUserID) {
+		err := s.Store.SetUserEmail(ctx, currentUserID, t.Email)
 		switch {
 		case err == nil:
-			return t.UserID, nil
+			return currentUserID, nil
 		case errors.Is(err, store.ErrConflict): // another link for this email won, or the account has an email now
 			if id, err := byEmail(); !errors.Is(err, store.ErrNotFound) {
 				return id, err

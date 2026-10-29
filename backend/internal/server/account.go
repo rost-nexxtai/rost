@@ -16,6 +16,8 @@ import (
 const (
 	// Login emails one address can get per hour.
 	loginMailsPerHour = 5
+	// Login emails one client address can ask for a day, so one client can't use up the server's day.
+	loginMailsPerClientPerDay = 30
 	// Login emails the whole server sends a day, so no one can run up the mail bill or our sender's name.
 	loginMailsPerDay = 500
 )
@@ -31,9 +33,11 @@ func (s *server) authRoutes(mux *http.ServeMux) {
 	}
 	perEmail := auth.NewLimiter()
 	perEmail.MaxFailures, perEmail.Window = loginMailsPerHour, time.Hour
+	perClient := auth.NewLimiter()
+	perClient.MaxFailures, perClient.Window = loginMailsPerClientPerDay, 24*time.Hour
 	all := auth.NewLimiter()
 	all.MaxFailures, all.Window = loginMailsPerDay, 24*time.Hour
-	mux.HandleFunc("POST /api/auth/email", s.emailLogin(perEmail, all))
+	mux.HandleFunc("POST /api/auth/email", s.emailLogin(perEmail, perClient, all))
 	mux.HandleFunc("GET /api/auth/verify", s.verifyLogin)
 }
 
@@ -57,7 +61,7 @@ func loginNonce(r *http.Request) (string, error) {
 // POST /api/auth/email {email}: mails a one-time login link, which works only in this browser (the
 // rost_login cookie). The answer is the same whether the email has an account or not, so no one can
 // find out who uses Rost.
-func (s *server) emailLogin(perEmail, all *auth.Limiter) http.HandlerFunc {
+func (s *server) emailLogin(perEmail, perClient, all *auth.Limiter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Email string `json:"email"`
@@ -70,8 +74,8 @@ func (s *server) emailLogin(perEmail, all *auth.Limiter) http.HandlerFunc {
 			s.internal(w, r, err)
 			return
 		}
-		key, now := app.NormalizeEmail(body.Email), time.Now()
-		if perEmail.Allow(key, now) != nil || all.Allow("all", now) != nil {
+		key, client, now := app.NormalizeEmail(body.Email), clientIP(r, s.Config.TrustProxy), time.Now()
+		if perEmail.Allow(key, now) != nil || perClient.Allow(client, now) != nil || all.Allow("all", now) != nil {
 			fail(w, http.StatusTooManyRequests, "too many login emails, try again later")
 			return
 		}
@@ -90,6 +94,7 @@ func (s *server) emailLogin(perEmail, all *auth.Limiter) http.HandlerFunc {
 			return
 		}
 		perEmail.Fail(key, now)
+		perClient.Fail(client, now)
 		all.Fail("all", now)
 		s.setLoginCookie(w, nonce, int(app.LoginLinkTTL.Seconds()))
 		link := s.Config.AppURL + "/api/auth/verify?token=" + url.QueryEscape(token)
@@ -112,8 +117,8 @@ func loginMail(to, link string, lang reference.Lang) mail.Message {
 }
 
 // GET /api/auth/verify?token= (the link in the email), in the browser that asked for it: signs it in
-// to the email's account (another device), or ties a new email to the account that asked, or makes
-// one, then goes to /acasa. In any other browser, or for a used or expired link, nothing changes and
+// to the email's account (another device), or ties a new email to the account signed in here, or
+// makes one, then goes to /acasa. In any other browser, or for a used or expired link, nothing changes and
 // it only goes to /acasa.
 func (s *server) verifyLogin(w http.ResponseWriter, r *http.Request) {
 	current, err := s.sessionUserID(w, r)
@@ -158,8 +163,12 @@ func (s *server) exportMe(w http.ResponseWriter, r *http.Request) {
 // POST /api/me/import: the profile an old browser kept in the rost_profile cookie, sent once by the
 // web app's proxy. 400 for a cookie the old app couldn't have written and 409 when the user has a
 // profile already: both mean there is nothing to import. Without a session it makes the user, like
-// POST /api/quiz.
+// POST /api/quiz. It goes with the rost_uid swap: 404 once LEGACY_UID_COOKIE is off.
 func (s *server) importProfile(w http.ResponseWriter, r *http.Request) {
+	if !s.Config.LegacyUIDCookie {
+		fail(w, http.StatusNotFound, "not found")
+		return
+	}
 	var body app.LegacyProfile
 	if !readJSON(w, r, &body) {
 		return

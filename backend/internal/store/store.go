@@ -89,9 +89,10 @@ type SessionStore interface {
 	DeleteSession(ctx context.Context, tokenHash string) error
 	// oldest first
 	ListSessions(ctx context.Context, userID string) ([]domain.Session, error)
-	// TakeLegacyUID clears the mark that lets the user's old rost_uid cookie become a session, so it
-	// works once. ErrNotFound for an unknown user or one without the mark (made after sessions, or swapped).
-	TakeLegacyUID(ctx context.Context, userID string) error
+	// UseLegacyUID lets the user's old rost_uid cookie become a session: only for a user with the
+	// mark (made before sessions) whose first swap is after since, or who has none yet, which it
+	// records as at. ErrNotFound otherwise: unknown, made after sessions, or swapped too long ago.
+	UseLegacyUID(ctx context.Context, userID, at, since string) error
 
 	// also drops expired links. ErrNotFound when t.UserID is set and isn't a user.
 	CreateLoginToken(ctx context.Context, t domain.LoginToken) error

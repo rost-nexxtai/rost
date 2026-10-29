@@ -123,13 +123,25 @@ func TestLoginLinks(t *testing.T) {
 		t.Errorf("cleo = %+v", u)
 	}
 
-	// the account that asked isn't the one signed in here anymore: a new account, not bob's
-	_, token, _ = s.RequestLogin(ctx, "moved@example.ro", "bob", here)
-	if id, err := s.UseLoginLink(ctx, token, here, "maria"); id == "bob" || id == "maria" || err != nil {
-		t.Errorf("signed in as someone else = %q %v", id, err)
+	// this browser switched accounts since it asked: the one signed in now gets the email, since the
+	// nonce proves it's the same browser; the account that asked doesn't
+	if _, err := st.CreateUser(ctx, domain.User{ID: "dan"}); err != nil {
+		t.Fatal(err)
+	}
+	_, token, _ = s.RequestLogin(ctx, "dan@example.ro", "bob", here)
+	if id, err := s.UseLoginLink(ctx, token, here, "dan"); id != "dan" || err != nil {
+		t.Errorf("switched account = %q %v", id, err)
+	}
+	if u, _ := st.GetUser(ctx, "dan"); u.Email == nil || *u.Email != "dan@example.ro" {
+		t.Errorf("dan = %+v", u)
 	}
 	if u, _ := st.GetUser(ctx, "bob"); u.Email != nil {
 		t.Errorf("bob got an email: %+v", u)
+	}
+	// signed in as the demo persona now: a new account, never the persona
+	_, token, _ = s.RequestLogin(ctx, "moved@example.ro", "bob", here)
+	if id, err := s.UseLoginLink(ctx, token, here, "maria"); id == "bob" || id == "maria" || id == "" || err != nil {
+		t.Errorf("signed in as maria = %q %v", id, err)
 	}
 
 	// without a session (or as a demo persona), a new email gets a new account
@@ -231,5 +243,28 @@ func TestEraseAndExport(t *testing.T) {
 	}
 	if ss, _ := st.ListSessions(ctx, "maria"); len(ss) != 1 {
 		t.Errorf("maria's sessions = %v", ss)
+	}
+}
+
+func TestLegacySwapWindow(t *testing.T) {
+	ctx := context.Background()
+	st := storetest.New(domain.User{ID: "old"}, domain.User{ID: "new"})
+	st.MarkLegacy("old")
+	s, now := clocked(st)
+
+	if err := s.UseLegacyUID(ctx, "new"); !errors.Is(err, ErrNoSession) {
+		t.Errorf("a user made after sessions = %v", err)
+	}
+	// the first swap, then retries (parallel requests, a lost answer) inside the window
+	for _, step := range []time.Duration{0, time.Minute, LegacySwapWindow - 2*time.Minute} {
+		*now = now.Add(step)
+		if err := s.UseLegacyUID(ctx, "old"); err != nil {
+			t.Fatalf("swap after %v = %v", step, err)
+		}
+	}
+	// the window counts from the first swap, not the last
+	*now = now.Add(2 * time.Minute)
+	if err := s.UseLegacyUID(ctx, "old"); !errors.Is(err, ErrNoSession) {
+		t.Errorf("after the window = %v", err)
 	}
 }

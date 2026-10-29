@@ -85,7 +85,7 @@ func (s *Postgres) CreateSession(ctx context.Context, x domain.Session) error {
 	}
 	_, err := s.db.Exec(ctx, `INSERT INTO sessions (`+sessionCols+`) VALUES ($1, $2, $3, $4, $5)`,
 		x.TokenHash, x.UserID, x.CreatedAt, x.LastSeenAt, x.ExpiresAt)
-	return conflict(err)
+	return missingUser(conflict(err))
 }
 
 func (s *Postgres) GetSession(ctx context.Context, tokenHash string) (domain.Session, error) {
@@ -113,8 +113,9 @@ func (s *Postgres) ListSessions(ctx context.Context, userID string) ([]domain.Se
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.Session, error) { return scanSession(row) })
 }
 
-func (s *Postgres) TakeLegacyUID(ctx context.Context, userID string) error {
-	tag, err := s.db.Exec(ctx, `UPDATE users SET legacy_uid = false WHERE id = $1 AND legacy_uid`, userID)
+func (s *Postgres) UseLegacyUID(ctx context.Context, userID, at, since string) error {
+	tag, err := s.db.Exec(ctx, `UPDATE users SET legacy_swapped_at = COALESCE(legacy_swapped_at, $2)
+		WHERE id = $1 AND legacy_uid AND (legacy_swapped_at IS NULL OR legacy_swapped_at > $3)`, userID, at, since)
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
@@ -133,11 +134,16 @@ func (s *Postgres) CreateLoginToken(ctx context.Context, t domain.LoginToken) er
 	}
 	_, err := s.db.Exec(ctx, `INSERT INTO login_tokens (token_hash, email, user_id, nonce_hash, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6)`,
 		t.TokenHash, t.Email, userID, t.NonceHash, t.CreatedAt, t.ExpiresAt)
+	return missingUser(conflict(err))
+}
+
+// missingUser maps a foreign key to a user that isn't there to ErrNotFound.
+func missingUser(err error) error {
 	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23503" { // the user is gone
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
 		return ErrNotFound
 	}
-	return conflict(err)
+	return err
 }
 
 func (s *Postgres) TakeLoginToken(ctx context.Context, tokenHash, nonceHash string) (domain.LoginToken, error) {

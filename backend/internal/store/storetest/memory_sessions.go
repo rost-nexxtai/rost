@@ -187,17 +187,20 @@ func (m *Memory) MarkLegacy(ids ...string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, id := range ids {
-		m.legacy[id] = true
+		m.legacy[id] = ""
 	}
 }
 
-func (m *Memory) TakeLegacyUID(_ context.Context, userID string) error {
+func (m *Memory) UseLegacyUID(_ context.Context, userID, at, since string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.users[userID]; !ok || !m.legacy[userID] {
+	first, marked := m.legacy[userID]
+	if _, ok := m.users[userID]; !ok || !marked || (first != "" && first <= since) {
 		return store.ErrNotFound
 	}
-	delete(m.legacy, userID)
+	if first == "" {
+		m.legacy[userID] = at
+	}
 	return nil
 }
 

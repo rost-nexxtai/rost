@@ -53,6 +53,14 @@ var moneyLines = []string{"fuelLei", "electricityLei", "savedLei"}
 // at most this many lessons in one import, well above the library's size
 const maxImportedLessons = 200
 
+// legacyCore is what the old app counted toward a level (CORE_MOMENTS on main, unchanged since it
+// was written), so a real cookie's level comes out the same and a forged one can't claim more.
+var legacyCore = map[domain.Level][]string{
+	0: {"fondul_urgenta", "economii_vs_depozit", "dobanda_compusa"},
+	1: {"titluri_stat", "etf"},
+	2: {"actiuni", "aur"},
+}
+
 func isLevel(p *int) bool { return p != nil && *p >= 0 && *p <= 2 }
 
 func amount(p *float64) bool { return p != nil && *p >= 0 && *p < 1e9 }
@@ -146,8 +154,9 @@ func (s Service) ImportLegacyProfile(ctx context.Context, userID string, p Legac
 	if u.MonthlyExpenses == nil && m.ExpensesLei != nil {
 		u.MonthlyExpenses = m.ExpensesLei
 	}
-	// the old app worked the level out with the same rules
-	u.LevelEarned = max(u.LevelEarned, domain.Level(*p.Level))
+	// the old app's level, at most what its own rule gives for the cookie's quiz level and lessons
+	level := min(domain.Level(*p.Level), learning.LevelWithMoments(domain.Level(*p.QuizLevel), legacyCore, p.CompletedMomentIDs))
+	u.LevelEarned = max(u.LevelEarned, level)
 	if len(p.LearnedDays) > 0 {
 		l := domain.Learning{}
 		if u.Learning != nil {
@@ -184,6 +193,6 @@ func (s Service) ImportLegacyProfile(ctx context.Context, userID string, p Legac
 	if out.Created {
 		events = append(events, serverEvent(u.ID, "user_created", map[string]any{"via": "import"}))
 	}
-	events = append(events, serverEvent(u.ID, "profile_imported", map[string]any{"level": *p.Level, "lessons": len(passed)}))
+	events = append(events, serverEvent(u.ID, "profile_imported", map[string]any{"level": level, "lessons": len(passed)}))
 	return out, s.Store.AddTrackEvents(ctx, events)
 }

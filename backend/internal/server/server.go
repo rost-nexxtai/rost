@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"mime"
 	"net/http"
 	"time"
 
@@ -93,8 +94,25 @@ func (s *server) internal(w http.ResponseWriter, r *http.Request, err error) {
 	fail(w, http.StatusInternalServerError, "internal error")
 }
 
-// readJSON decodes the request body into v, answering 400 when it isn't valid JSON.
+// readJSON decodes the request body into v. It answers 415 unless the body is sent as
+// application/json, and 400 when it isn't valid JSON. Requiring the type keeps forms and text/plain
+// posts from other sites out even in browsers that don't send Sec-Fetch-Site: a cross-origin page
+// can't send application/json without CORS, which the API never allows.
 func readJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	if !isJSON(r) {
+		fail(w, http.StatusUnsupportedMediaType, "send the body as application/json")
+		return false
+	}
+	return decodeJSON(w, r, v)
+}
+
+func isJSON(r *http.Request) bool {
+	t, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return err == nil && t == "application/json"
+}
+
+// decodeJSON is readJSON without the type check, for callers that are servers (the referral postback).
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(v); err != nil {
 		fail(w, http.StatusBadRequest, "invalid JSON body")
 		return false
@@ -113,6 +131,9 @@ func (r *statusRecorder) WriteHeader(status int) {
 	r.status = status
 	r.ResponseWriter.WriteHeader(status)
 }
+
+// Unwrap lets http.ResponseController reach the real writer.
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
 
 func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

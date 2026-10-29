@@ -83,9 +83,9 @@ func (s *server) sessionUserID(w http.ResponseWriter, r *http.Request) (string, 
 	return id, err
 }
 
-// upgradeLegacy swaps a rost_uid cookie for a session, once per user, and only for users from before
-// sessions (store.TakeLegacyUID), so an id is never a password again. With the swap off, the old
-// cookie is only cleared.
+// upgradeLegacy swaps a rost_uid cookie for a session, only for users from before sessions and only
+// within app.LegacySwapWindow of the first swap (app.UseLegacyUID), so an id is never a password
+// again while a lost answer can still be retried. With the swap off, the old cookie is only cleared.
 func (s *server) upgradeLegacy(w http.ResponseWriter, r *http.Request, uid string) (string, error) {
 	if uid == "" {
 		return "", nil
@@ -103,9 +103,9 @@ func (s *server) upgradeLegacy(w http.ResponseWriter, r *http.Request, uid strin
 		}
 		_, err = s.Store.GetUser(r.Context(), uid)
 	} else {
-		err = s.Store.TakeLegacyUID(r.Context(), uid)
+		err = s.svc.UseLegacyUID(r.Context(), uid)
 	}
-	if isNotFound(err) {
+	if isNotFound(err) || errors.Is(err, app.ErrNoSession) {
 		clearUIDCookie(w)
 		return "", nil
 	} else if err != nil {

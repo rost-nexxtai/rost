@@ -42,8 +42,12 @@ func (b *logBuffer) String() string {
 
 func (b *logBuffer) logger() *slog.Logger { return slog.New(slog.NewJSONHandler(b, nil)) }
 
+// send makes one request; a body goes as application/json unless header says otherwise.
 func send(h http.Handler, method, path, body string, header map[string]string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	for k, v := range header {
 		if k == "RemoteAddr" {
 			req.RemoteAddr = v
@@ -377,5 +381,57 @@ func TestAPIHeaders(t *testing.T) {
 	}))
 	if got := send(own, "GET", "/api/x", "", nil).Header().Get("Cache-Control"); got != "public, max-age=60" {
 		t.Errorf("handler Cache-Control = %q", got)
+	}
+}
+
+// Forms and text/plain posts are what other sites can send without CORS: JSON routes refuse them,
+// so login CSRF needs no Sec-Fetch-Site.
+func TestJSONRoutesNeedJSON(t *testing.T) {
+	h := testServer(fakeDB{}, config.Config{AllowDemoTools: true, LegacyUIDCookie: true})
+	quiz := quizAllNuStiu
+	for _, c := range []struct {
+		name, path, body, ctype string
+		want                    int
+	}{
+		{"login link as text", "/api/auth/email", `{"email":"eve@example.ro"}`, "text/plain", 415},
+		{"login link as a form", "/api/auth/email", `email=eve@example.ro`, "application/x-www-form-urlencoded", 415},
+		{"login link without a type", "/api/auth/email", `{"email":"eve@example.ro"}`, "", 415},
+		{"import as text", "/api/me/import", `{}`, "text/plain;charset=UTF-8", 415},
+		{"quiz as multipart", "/api/quiz", quiz, "multipart/form-data; boundary=x", 415},
+		{"bad type", "/api/quiz", quiz, "application/json;;", 415},
+		{"json with a charset", "/api/quiz", quiz, "application/json; charset=utf-8", 200},
+		{"json in capitals", "/api/auth/email", `{"email":"ana@example.ro"}`, "Application/JSON", 202},
+		// partners' servers: authenticated by the secret, answered by the handler (unknown click)
+		{"postback as text", "/api/referrals/postback", `{"clickId":"nope","status":"opened"}`, "text/plain", 404},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if rec := send(h, "POST", c.path, c.body, map[string]string{"Content-Type": c.ctype}); rec.Code != c.want {
+				t.Errorf("= %d %s, want %d", rec.Code, rec.Body, c.want)
+			}
+		})
+	}
+
+	// a lesson's answers are optional: an empty body needs no type, a body does
+	c := &client{t: t, h: h}
+	c.do("POST", "/api/users", `{"demo":"maria"}`)
+	cookie := "rost_session=" + c.cookies[SessionCookie].Value
+	if rec := send(h, "POST", "/api/library/fondul_urgenta/complete", "", map[string]string{"Cookie": cookie}); rec.Code != 200 {
+		t.Errorf("empty completion = %d %s", rec.Code, rec.Body)
+	}
+	if rec := send(h, "POST", "/api/library/fondul_urgenta/complete", `{"answers":[]}`, map[string]string{"Cookie": cookie, "Content-Type": "text/plain"}); rec.Code != 415 {
+		t.Errorf("completion as text = %d", rec.Code)
+	}
+}
+
+// The recorders the middleware wraps the writer in let http.ResponseController reach it.
+func TestRecordersUnwrap(t *testing.T) {
+	for name, wrap := range map[string]func(http.ResponseWriter) http.ResponseWriter{
+		"status": func(w http.ResponseWriter) http.ResponseWriter { return &statusRecorder{ResponseWriter: w} },
+		"wrote":  func(w http.ResponseWriter) http.ResponseWriter { return &wroteRecorder{ResponseWriter: w} },
+	} {
+		rec := httptest.NewRecorder()
+		if err := http.NewResponseController(wrap(rec)).Flush(); err != nil || !rec.Flushed {
+			t.Errorf("%s: flush = %v", name, err)
+		}
 	}
 }

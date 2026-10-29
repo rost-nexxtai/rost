@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strings"
 	"sync"
@@ -123,8 +125,9 @@ func TestLegacyUIDCookie(t *testing.T) {
 	if ss, _ := st.ListSessions(ctx, "ana"); len(ss) != 1 {
 		t.Errorf("one session, not one per request: %v", ss)
 	}
-	// once only: the id alone doesn't sign anyone in again
-	if again := withUID("ana"); again.id() != "" || again.cookies[SessionCookie] != nil {
+	// a retry inside the window (a reload before the cookie arrived) lands on the same account; the
+	// window closing is in app.TestLegacySwapWindow
+	if again := withUID("ana"); again.id() != "ana" {
 		t.Errorf("second swap = %v", again.cookies)
 	}
 
@@ -153,6 +156,38 @@ func TestLegacyUIDCookie(t *testing.T) {
 		if code, _ := c.do("GET", "/api/me", ""); code != 401 || c.cookies[SessionCookie] != nil || c.cookies[UIDCookie] != nil {
 			t.Errorf("%s = %d %v", name, code, c.cookies)
 		}
+	}
+}
+
+// Parallel page loads with the same old cookie all get a session for the same account.
+func TestLegacySwapInParallel(t *testing.T) {
+	h, st, _ := accountServer(config.Config{LegacyUIDCookie: true})
+	ctx := context.Background()
+	if _, err := st.CreateUser(ctx, domain.User{ID: "ana", Situations: []domain.Situation{}}); err != nil {
+		t.Fatal(err)
+	}
+	st.MarkLegacy("ana")
+	var wg sync.WaitGroup
+	ids := make([]string, 8)
+	for i := range ids {
+		wg.Go(func() {
+			req := httptest.NewRequest("GET", "/api/me", nil)
+			req.AddCookie(&http.Cookie{Name: UIDCookie, Value: "ana"})
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			var out map[string]any
+			_ = json.Unmarshal(rec.Body.Bytes(), &out)
+			ids[i], _ = get(out, "user", "id").(string)
+		})
+	}
+	wg.Wait()
+	for i, id := range ids {
+		if id != "ana" {
+			t.Errorf("request %d = %q", i, id)
+		}
+	}
+	if users, _ := st.ListUsers(ctx); len(users) != len(reference.DemoUsers())+1 {
+		t.Errorf("users = %d", len(users))
 	}
 }
 
@@ -426,14 +461,26 @@ func TestEmailLoginNoCSRF(t *testing.T) {
 }
 
 func TestLoginMailsHaveADailyCap(t *testing.T) {
-	h, _, box := accountServer(config.Config{RateLimitsOff: true}) // as if from many clients
-	c := &client{t: t, h: h}
-	for i := range loginMailsPerDay {
-		if code, _ := c.do("POST", "/api/auth/email", fmt.Sprintf(`{"email":"user%d@example.ro"}`, i)); code != 202 {
+	h, _, box := accountServer(config.Config{RateLimitsOff: true})
+	ask := func(i int, addr string) int {
+		return send(h, "POST", "/api/auth/email", fmt.Sprintf(`{"email":"user%d@example.ro"}`, i), map[string]string{"RemoteAddr": addr}).Code
+	}
+	// one client: a few a day, whatever the address
+	for i := range loginMailsPerClientPerDay {
+		if code := ask(i, "203.0.113.7:1234"); code != 202 {
 			t.Fatalf("mail %d = %d", i, code)
 		}
 	}
-	if code, _ := c.do("POST", "/api/auth/email", `{"email":"one-more@example.ro"}`); code != 429 || len(box.sent) != loginMailsPerDay {
+	if code := ask(1000, "203.0.113.7:1234"); code != 429 {
+		t.Errorf("over the client's day = %d", code)
+	}
+	// many clients: the server's day
+	for i := loginMailsPerClientPerDay; i < loginMailsPerDay; i++ {
+		if code := ask(i, fmt.Sprintf("198.51.100.%d:1234", i%250)); code != 202 {
+			t.Fatalf("mail %d = %d", i, code)
+		}
+	}
+	if code := ask(1001, "192.0.2.1:1234"); code != 429 || len(box.sent) != loginMailsPerDay {
 		t.Errorf("over the cap = %d, %d sent", code, len(box.sent))
 	}
 }

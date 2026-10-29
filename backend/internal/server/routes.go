@@ -528,7 +528,7 @@ func (s *server) referralPostback(w http.ResponseWriter, r *http.Request) {
 		ClickID string                `json:"clickId"`
 		Status  domain.ReferralStatus `json:"status"`
 	}
-	if !readJSON(w, r, &body) {
+	if !decodeJSON(w, r, &body) { // partners' servers, authenticated by the secret
 		return
 	}
 	if body.Status != domain.ReferralOpened && body.Status != domain.ReferralFunded {

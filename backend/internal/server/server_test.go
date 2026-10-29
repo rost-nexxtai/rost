@@ -94,6 +94,9 @@ func (c *client) id() string {
 func (c *client) send(method, path, body string) *httptest.ResponseRecorder {
 	c.t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	for _, ck := range c.cookies {
 		req.AddCookie(ck)
 	}

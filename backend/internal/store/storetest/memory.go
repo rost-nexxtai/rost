@@ -30,8 +30,9 @@ type Memory struct {
 
 	userSessions map[string]domain.Session
 	loginTokens  map[string]domain.LoginToken
-	// users whose old rost_uid cookie may still become a session (users.legacy_uid)
-	legacy map[string]bool
+	// users whose old rost_uid cookie may become a session (users.legacy_uid), with when it first did
+	// (users.legacy_swapped_at, "" before)
+	legacy map[string]string
 }
 
 var _ store.Store = (*Memory)(nil)
@@ -51,7 +52,7 @@ func New(users ...domain.User) *Memory {
 
 		userSessions: map[string]domain.Session{},
 		loginTokens:  map[string]domain.LoginToken{},
-		legacy:       map[string]bool{},
+		legacy:       map[string]string{},
 	}
 	for _, u := range users {
 		if u.CreatedAt == "" {

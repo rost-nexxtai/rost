@@ -125,21 +125,35 @@ func TestPostgresSessionsAndErasure(t *testing.T) {
 		t.Errorf("link for an unknown user = %v", err)
 	}
 
-	// the old rost_uid swap: once, for users from before sessions only
-	if err := s.TakeLegacyUID(ctx, bob.ID); err != store.ErrNotFound {
+	// the old rost_uid swap: for users from before sessions, within a window of the first swap
+	const first, later, since = "2026-03-01T12:00:00.000Z", "2026-03-01T12:05:00.000Z", "2026-03-01T11:55:00.000Z"
+	if err := s.UseLegacyUID(ctx, bob.ID, first, since); err != store.ErrNotFound {
 		t.Errorf("a user made after sessions = %v", err)
 	}
 	if _, err := pool.Exec(ctx, `UPDATE users SET legacy_uid = true WHERE id = $1`, bob.ID); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.TakeLegacyUID(ctx, bob.ID); err != nil {
+	if err := s.UseLegacyUID(ctx, bob.ID, first, since); err != nil {
 		t.Errorf("legacy user = %v", err)
 	}
-	if err := s.TakeLegacyUID(ctx, bob.ID); err != store.ErrNotFound {
-		t.Errorf("second swap = %v", err)
+	// again inside the window: still bob, and the first swap's time stays
+	if err := s.UseLegacyUID(ctx, bob.ID, later, since); err != nil {
+		t.Errorf("second swap in the window = %v", err)
 	}
-	if err := s.TakeLegacyUID(ctx, "nobody"); err != store.ErrNotFound {
+	var swapped string
+	if err := pool.QueryRow(ctx, `SELECT legacy_swapped_at FROM users WHERE id = $1`, bob.ID).Scan(&swapped); err != nil || swapped != first {
+		t.Errorf("swapped at = %q %v", swapped, err)
+	}
+	// the window is over once since passes the first swap
+	if err := s.UseLegacyUID(ctx, bob.ID, "2026-03-01T12:20:00.000Z", first); err != store.ErrNotFound {
+		t.Errorf("after the window = %v", err)
+	}
+	if err := s.UseLegacyUID(ctx, "nobody", first, since); err != store.ErrNotFound {
 		t.Errorf("unknown user = %v", err)
+	}
+	// a session for a user that isn't there
+	if err := s.CreateSession(ctx, domain.Session{TokenHash: store.NewID(), UserID: "nobody", CreatedAt: first, LastSeenAt: first, ExpiresAt: "2099-01-01T00:00:00.000Z"}); err != store.ErrNotFound {
+		t.Errorf("session for nobody = %v", err)
 	}
 
 	// erasure: everything goes, referrals and tracking stay without the user

@@ -78,6 +78,9 @@ func (w *wroteRecorder) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
+// Unwrap lets http.ResponseController reach the real writer.
+func (w *wroteRecorder) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
 // recoverPanics answers 500 and logs the panic with its stack.
 func recoverPanics(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +146,8 @@ func refuseCrossSite(next http.Handler) http.Handler {
 // Per client IP. Users and quizzes fill the database, a payslip read is a paid model call,
 // tracking and referral clicks are cheap but unauthenticated writes.
 var rateLimits = map[string]rateLimit{
-	"users":   {Per: time.Minute, Burst: 20},
+	// a classroom behind one NAT takes the quiz at once
+	"users":   {Per: time.Minute, Burst: 60},
 	"payslip": {Per: 10 * time.Minute, Burst: 5},
 	"track":   {Per: time.Minute, Burst: 60},
 }

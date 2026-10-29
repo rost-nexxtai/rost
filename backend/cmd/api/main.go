@@ -75,10 +75,10 @@ func run(logger *slog.Logger) error {
 		Addr:              cfg.HTTPAddr,
 		Handler:           server.New(server.Deps{Logger: logger, DB: db, Store: st, Config: cfg}),
 		ReadHeaderTimeout: 5 * time.Second,
-		// A 10 MB payslip photo on a slow phone connection.
-		ReadTimeout: 30 * time.Second,
-		// Counted from the end of the headers: the upload plus the 60 s payslip model call.
-		WriteTimeout: 100 * time.Second,
+		// A 10 MB payslip photo on a slow phone uplink (about 1 Mbit/s).
+		ReadTimeout: 90 * time.Second,
+		// Counted from the end of the headers: the upload, the 60 s payslip model call and a margin.
+		WriteTimeout: 160 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 

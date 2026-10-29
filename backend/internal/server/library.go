@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"io"
@@ -29,9 +30,14 @@ func (s *server) libraryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/track", s.track)
 }
 
-// empty body is ok here
+// empty body is ok here; one with something in it must be application/json, like readJSON
 func readOptionalJSON(w http.ResponseWriter, r *http.Request, v any) bool {
-	err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(v)
+	body := bufio.NewReader(http.MaxBytesReader(w, r.Body, 1<<20))
+	if _, err := body.Peek(1); err == nil && !isJSON(r) {
+		fail(w, http.StatusUnsupportedMediaType, "send the body as application/json")
+		return false
+	}
+	err := json.NewDecoder(body).Decode(v)
 	if err != nil && !errors.Is(err, io.EOF) {
 		fail(w, http.StatusBadRequest, "invalid JSON body")
 		return false
