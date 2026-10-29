@@ -42,7 +42,7 @@ Click **Continuă ca Maria (demo)**. The browser only talks to the Next.js app; 
 
 Only the frontend is public. It reaches the API over the stack's internal network, and neither the API nor Postgres publishes a port. The database lives in the named volume `rost-db`, which Dokploy's Volume Backups can back up. Demo tools stay off unless you set `ALLOW_DEMO_TOKEN=true`. The API rate-limits each client by the address Dokploy's proxy puts in `X-Forwarded-For` (`TRUST_PROXY`, on in the compose file); if the whole audience of a stage demo shares one address, set `RATE_LIMITS=off`.
 
-Both images run as a non-root user and carry a Docker health check: the API answers `GET /healthz` (a tiny `healthcheck` binary, since the image has no shell), the web app serves its landing page. Every service restarts unless stopped, and the web app starts once the API is healthy.
+Both images run as a non-root user and carry a Docker health check: the API answers `GET /healthz` (a tiny `healthcheck` binary, since the image has no shell), the web app answers `GET /healthz` without rendering a page or calling the API. Every service restarts unless stopped, and the web app starts once the API is healthy.
 
 The web app sends browser security headers on every page: `nosniff`, a short `Referrer-Policy`, a `Permissions-Policy` that turns off camera, microphone, location and the like, and no `X-Powered-By`. No site may frame it (`X-Frame-Options: DENY`, `frame-ancestors 'none'`) except the bank view `/embed`, which this site and the origins in `EMBED_FRAME_ANCESTORS` may frame. `Strict-Transport-Security` is sent only with `HSTS=true`. Like `BACKEND_URL`, both are read when the frontend image is built, so redeploy with a rebuild after changing them.
 
