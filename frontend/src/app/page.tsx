@@ -7,7 +7,7 @@ import { LandingTeaser } from '@/components/LandingTeaser';
 import { LangSwitch } from '@/components/ui/LangSwitch';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
-import { getProfile } from '@/data';
+import { getDemoEnabled, getProfile } from '@/data';
 import { entryRoute } from '@/data/mock/scoring';
 import { apiOrNothing } from '@/lib/api';
 import { hasSessionCookie } from '@/lib/session';
@@ -39,9 +39,11 @@ async function hasSession() {
 }
 
 export default async function Home() {
-  const route = entryRoute(await hasSession(), Boolean(await getProfile()));
+  // backend down: the landing page, as without a session
+  const route = entryRoute(await hasSession(), Boolean(await getProfile().catch(() => undefined)));
   if (route !== '/') redirect(route);
-  const t = T[await getLang()];
+  const [lang, demo] = await Promise.all([getLang(), getDemoEnabled()]);
+  const t = T[lang];
 
   return (
     <main className="shell shell-bare">
@@ -63,7 +65,7 @@ export default async function Home() {
         <Link href="/quiz" className="btn btn-primary btn-block">
           {t.start}
         </Link>
-        <DemoLogin />
+        {demo && <DemoLogin />}
       </div>
       <p className="note" style={{ textAlign: 'center' }}>
         {t.note}

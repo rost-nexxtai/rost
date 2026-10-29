@@ -1,6 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
-import type { AllProvidersResponse, AssetProvidersResponse, LibraryMomentResponse, LibraryResponse, MeResponse, PayslipBreakdown, TodayResponse } from '@/contract';
+import type { AllProvidersResponse, AssetProvidersResponse, DemoResponse, LibraryMomentResponse, LibraryResponse, MeResponse, PayslipBreakdown, TodayResponse } from '@/contract';
 import { api, apiOrNothing } from '@/lib/api';
 import { getLang } from '@/i18n/server';
 import { assetsFor, newsInLang } from './fixtures/en';
@@ -15,6 +15,17 @@ import type { AcasaResponse, AssetResponse, LibraryMoment, MomenteResponse, Prof
  * views (Acasă, the Momente grouping, Știri) are still put together here from it.
  */
 
+/**
+ * The backend can't be reached. Pages let it go up to app/error.tsx, so an outage shows an error, not the
+ * quiz a missing profile leads to.
+ */
+export class BackendDown extends Error {
+  constructor() {
+    super('backend unreachable');
+    this.name = 'BackendDown';
+  }
+}
+
 /** GET /api/me once per request: several screens read both the user and the profile. */
 const me = cache(async (): Promise<MeResponse | undefined | 'down'> => {
   try {
@@ -24,10 +35,11 @@ const me = cache(async (): Promise<MeResponse | undefined | 'down'> => {
   }
 });
 
-/** The profile the backend built from the quiz, lessons and the user's numbers. Undefined before the quiz, without a session, or with the backend down. */
+/** The profile the backend built from the quiz, lessons and the user's numbers. Undefined before the quiz or without a session; throws BackendDown when the backend can't be reached. */
 export async function getProfile(): Promise<Profile | undefined> {
   const m = await me();
-  return m && m !== 'down' ? m.profile : undefined;
+  if (m === 'down') throw new BackendDown();
+  return m?.profile;
 }
 
 /** MOCK until GET /api/acasa; the provider headlines are real (GET /api/providers). */
@@ -46,7 +58,8 @@ export async function getAsset(id: string): Promise<AssetResponse | undefined> {
   if (!asset) return undefined;
   const [res, profile] = await Promise.all([
     api<AssetProvidersResponse>(`/api/providers/${encodeURIComponent(asset.id)}`).catch(() => undefined),
-    getProfile(),
+    // the asset still shows with national inflation
+    getProfile().catch(() => undefined),
   ]);
   return {
     asset,
@@ -92,15 +105,24 @@ export async function getMomente(): Promise<MomenteResponse | undefined> {
   return buildMomente(p, today, library);
 }
 
-/** GET /api/stiri: the news, ordered by what each costs this user a month, in the visitor's language. */
+/** GET /api/stiri: the news, ordered by what each costs this user a month, in the visitor's language. Undefined before the quiz; throws BackendDown when unreachable. */
 export async function getStiri(): Promise<StiriResponse | undefined> {
   const lang = await getLang();
+  let out: StiriResponse | undefined;
   try {
-    const out = await apiOrNothing<StiriResponse>('/api/stiri');
-    return out && { ...out, items: out.items.map((n) => newsInLang(n, lang)) };
+    out = await apiOrNothing<StiriResponse>('/api/stiri');
   } catch {
-    return undefined;
+    throw new BackendDown();
   }
+  return out && { ...out, items: out.items.map((n) => newsInLang(n, lang)) };
+}
+
+/** GET /api/demo: whether the demo tools are on. Off when the backend can't be reached. */
+export async function getDemoEnabled(): Promise<boolean> {
+  return api<DemoResponse>('/api/demo').then(
+    (d) => d.enabled,
+    () => false,
+  );
 }
 
 /** The backend's record of the user (salary, dates, spending, inflation). `down` when unreachable; undefined without a session. */
