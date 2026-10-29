@@ -27,6 +27,9 @@ type Memory struct {
 	admins      map[string]domain.Admin
 	sessions    map[string]domain.AdminSession
 	partners    map[string]bool
+
+	userSessions map[string]domain.Session
+	loginTokens  map[string]domain.LoginToken
 }
 
 var _ store.Store = (*Memory)(nil)
@@ -43,6 +46,9 @@ func New(users ...domain.User) *Memory {
 		admins:    map[string]domain.Admin{},
 		sessions:  map[string]domain.AdminSession{},
 		partners:  map[string]bool{},
+
+		userSessions: map[string]domain.Session{},
+		loginTokens:  map[string]domain.LoginToken{},
 	}
 	for _, u := range users {
 		if u.CreatedAt == "" {
@@ -66,6 +72,9 @@ func (m *Memory) CreateUser(_ context.Context, u domain.User) (domain.User, erro
 	defer m.mu.Unlock()
 	if u.CreatedAt == "" {
 		u.CreatedAt = clock.NowISO()
+	}
+	if _, taken := m.users[u.ID]; taken || m.emailTaken(u.Email, u.ID) {
+		return u, store.ErrConflict
 	}
 	m.users[u.ID] = clone(u)
 	return clone(u), nil
@@ -262,6 +271,11 @@ func (m *Memory) ResetUsers(_ context.Context, seed []domain.User) error {
 			}
 		}
 		m.tracking = tracking
+		for h, t := range m.loginTokens {
+			if t.UserID == u.ID {
+				delete(m.loginTokens, h)
+			}
+		}
 		u.CreatedAt = clock.NowISO()
 		m.users[u.ID] = clone(u)
 	}

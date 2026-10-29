@@ -97,6 +97,8 @@ type User struct {
 	// lessons left halfway and the days with a finished lesson; nil until the first lesson
 	Learning  *Learning `json:"learning,omitempty"`
 	CreatedAt string    `json:"createdAt"`
+	// lowercase; nil until the user ties the account to an email
+	Email *string `json:"email,omitempty"`
 }
 
 // One answer in a lesson: picked for choice, value for predict, buckets for sort (one per item),

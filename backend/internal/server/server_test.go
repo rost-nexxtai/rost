@@ -73,6 +73,17 @@ type client struct {
 
 func (c *client) do(method, path, body string) (int, map[string]any) {
 	c.t.Helper()
+	rec := c.send(method, path, body)
+	var out map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		c.t.Fatalf("%s %s: not JSON: %s", method, path, rec.Body)
+	}
+	return rec.Code, out
+}
+
+// send is do without reading the answer as JSON.
+func (c *client) send(method, path, body string) *httptest.ResponseRecorder {
+	c.t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
 	for _, ck := range c.cookies {
 		req.AddCookie(ck)
@@ -92,11 +103,7 @@ func (c *client) do(method, path, body string) (int, map[string]any) {
 			c.cookies[ck.Name] = ck
 		}
 	}
-	var out map[string]any
-	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
-		c.t.Fatalf("%s %s: not JSON: %s", method, path, rec.Body)
-	}
-	return rec.Code, out
+	return rec
 }
 
 func TestDemoPathOverHTTP(t *testing.T) {

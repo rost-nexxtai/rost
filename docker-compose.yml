@@ -36,6 +36,15 @@ services:
       # Only the frontend reaches the API, behind Dokploy's proxy, which sets X-Forwarded-For: rate limits key on it.
       TRUST_PROXY: ${TRUST_PROXY:-true}
       RATE_LIMITS: ${RATE_LIMITS:-on}
+      # Sessions and email login. Production is on HTTPS behind Dokploy, so the cookie is Secure.
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      LEGACY_UID_COOKIE: ${LEGACY_UID_COOKIE:-true}
+      APP_URL: ${APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       # First admin, created on start (both or neither).
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}

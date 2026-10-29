@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"rost/backend/internal/clock"
 	"rost/backend/internal/domain"
@@ -15,7 +16,11 @@ import (
 	"rost/backend/internal/views"
 )
 
-type Service struct{ Store store.Store }
+type Service struct {
+	Store store.Store
+	// Now is real time for sessions and login links (not the demo clock); nil means time.Now.
+	Now func() time.Time
+}
 
 type EventInput struct {
 	UserID          string

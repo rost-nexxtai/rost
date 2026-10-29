@@ -35,25 +35,31 @@ DATABASE_URL='postgres://rost:rost@localhost:5432/rost?sslmode=disable' ALLOW_DE
 | `DATABASE_URL` | required | Postgres connection string |
 | `HTTP_ADDR` | `:8080` | Listen address |
 | `SHUTDOWN_TIMEOUT` | `10s` | Time in-flight requests get on SIGTERM |
-| `ALLOW_DEMO_TOKEN` | off | `true` turns on the stage helpers: demo partner token, app clock, demo reset. Keep it off in production |
+| `ALLOW_DEMO_TOKEN` | off | `true` turns on the stage helpers: demo partner token, app clock, demo reset, logging in as a demo persona. Keep it off in production |
 | `PARTNER_DEMO_SECRET` | dev secret when demo tools are on | Secret the demo partner bank signs tokens with. Real partners get their own variable, named in `partners.json` |
 | `POSTBACK_SECRET` | empty | When set, referral postbacks must send it in `x-postback-secret`. Set it in production |
 | `ANTHROPIC_API_KEY`, `PAYSLIP_MODEL` | empty | Optional payslip photo reading. Without them `/api/payslip/read` answers 501 |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | empty | Both or neither. Create the first admin on start when that email has no account yet. Changing them later does nothing; add more admins with `POST /api/admin/admins` |
 | `TRUST_PROXY` | off (on in `docker-compose.yml`) | `true` when the API is only reachable through a proxy that writes the client's address into `X-Forwarded-For` (Dokploy's Traefik does). Rate limits then key on the right-most public address in it instead of the proxy's. Leave it off when clients can reach the API directly, or they can pick their own address |
 | `RATE_LIMITS` | on | `off` turns off the per-client limits on creating users and quizzes (20 a minute), reading payslip photos (5 per 10 minutes) and tracking and referral clicks (60 a minute). Over a limit the API answers 429 with `Retry-After` |
+| `COOKIE_SECURE` | off | `true` marks the session cookie `Secure`. Turn it on when the app is served over HTTPS |
+| `LEGACY_UID_COOKIE` | on | Swaps the old `rost_uid` cookie (the raw user id) for a session on the next visit. Set `false` after one release, and delete `frontend/src/proxy.ts` with it |
+| `APP_URL` | `http://localhost:3000` | Where users open the app; login links in emails point here |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | empty, port `587` | Sending login emails (STARTTLS, or TLS on 465). `MAIL_FROM` is required with `SMTP_HOST`. Without `SMTP_HOST` emails are only logged: with demo tools on the log shows the link, otherwise only that a mail would have gone |
 
 ## Endpoints
 
-App routes are under `/api`; shapes are in `frontend/src/contract.ts`. The session is the `rost_uid` cookie.
+App routes are under `/api`; shapes are in `frontend/src/contract.ts`. The session is the `rost_session` cookie: 32 random bytes, HttpOnly, SameSite=Lax. The server keeps only its SHA-256 hash, with an expiry of 90 days that moves (at most once a day) while it's used.
 
 Every response carries an `X-Request-ID` (a sane incoming one is kept), which is also on its log lines, plus `X-Content-Type-Options: nosniff` and `Cache-Control: no-store`. A panic answers 500 and is logged with its stack. A `POST`, `PUT`, `PATCH` or `DELETE` that the browser marks `Sec-Fetch-Site: cross-site` is refused with 403, except the referral postback; requests without the header (servers, the Next.js server) pass.
 
 | Route | Purpose |
 | --- | --- |
 | `GET /healthz`, `GET /readyz` | Liveness; readiness (Postgres answers a ping) |
-| `POST /api/users` | Create a user (onboarding) or `{demo:"maria"}` (demo personas only); sets the session cookie |
-| `DELETE /api/users`, `GET /api/me` | Sign out; the current user |
+| `POST /api/users` | Create a user (onboarding) or `{demo:"maria"}` (demo personas, demo tools only); starts a session |
+| `DELETE /api/users` | Profil → Resetează: erase the account and its data, end the session. Referrals and tracking events stay without the user id. A demo persona goes back to its seed instead |
+| `GET /api/me`, `GET /api/me/export` | The current user; everything kept about them, as a JSON download |
+| `POST /api/auth/email`, `GET /api/auth/verify?token=` | Email login, API only: mail a one-time link (15 minutes, a few per address an hour, always 202); the link signs in to the email's account, or ties a new email to the account that asked for the link, then redirects to `/acasa` |
 | `POST /api/events` | Fire an event: `salary_received`, `inflation_published`, `shock_scenario`, `raise`, `catch_up`, … |
 | `POST /api/calendar` | Run today's computed triggers for the current user |
 | `GET /api/today` | Everything the Today/Momente screen needs |
@@ -115,6 +121,7 @@ internal/moments/     the engine that decides which moment an event opens
 internal/views/       the numbers a moment shows one user
 internal/app/         services (events, moments, follow-ups, referrals, quiz, library, tracking, admin), calendar, metrics, stats
 internal/auth/        admin passwords (PBKDF2-SHA256), session tokens, login rate limit
+internal/mail/        login emails over SMTP, or to the log
 internal/content/     validation for admin-edited content; the first content seed in seed/
 internal/learning/    pure rules: quiz level, risk profile, level from moments, Momente and Știri order
 internal/partner/     HS256 token a bank signs to open the partner view

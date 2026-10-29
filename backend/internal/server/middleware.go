@@ -152,6 +152,7 @@ var rateLimits = map[string]rateLimit{
 var limitedRoutes = map[string]string{
 	"POST /api/users":            "users",
 	"POST /api/quiz":             "users",
+	"POST /api/auth/email":       "users",
 	"POST /api/payslip/read":     "payslip",
 	"POST /api/track":            "track",
 	"POST /api/referrals/clicks": "track",

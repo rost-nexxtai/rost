@@ -4,6 +4,7 @@ package config
 import (
 	"errors"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -32,6 +33,19 @@ type Config struct {
 	TrustProxy bool
 	// RateLimitsOff turns the per-client rate limits off, e.g. for a stage demo behind one address.
 	RateLimitsOff bool
+	// CookieSecure marks the session cookie Secure. Turn it on when the app is served over HTTPS.
+	CookieSecure bool
+	// LegacyUIDCookie swaps the old rost_uid cookie (the raw user id) for a session, so users from
+	// before sessions keep their account. On by default; turn it off after one release.
+	LegacyUIDCookie bool
+	// AppURL is where users open the app, for links in emails, e.g. "https://rost.ro".
+	AppURL string
+	// SMTP for login emails. Without SMTPHost, emails are only logged.
+	SMTPHost     string
+	SMTPPort     string
+	SMTPUser     string
+	SMTPPassword string
+	MailFrom     string
 }
 
 func Load() (Config, error) {
@@ -46,8 +60,16 @@ func Load() (Config, error) {
 		AdminEmail:      os.Getenv("ADMIN_EMAIL"),
 		AdminPassword:   os.Getenv("ADMIN_PASSWORD"),
 
-		TrustProxy:    os.Getenv("TRUST_PROXY") == "true",
-		RateLimitsOff: os.Getenv("RATE_LIMITS") == "off",
+		TrustProxy:      os.Getenv("TRUST_PROXY") == "true",
+		RateLimitsOff:   os.Getenv("RATE_LIMITS") == "off",
+		CookieSecure:    os.Getenv("COOKIE_SECURE") == "true",
+		LegacyUIDCookie: os.Getenv("LEGACY_UID_COOKIE") != "false",
+		AppURL:          strings.TrimRight(getenv("APP_URL", "http://localhost:3000"), "/"),
+		SMTPHost:        os.Getenv("SMTP_HOST"),
+		SMTPPort:        getenv("SMTP_PORT", "587"),
+		SMTPUser:        os.Getenv("SMTP_USER"),
+		SMTPPassword:    os.Getenv("SMTP_PASSWORD"),
+		MailFrom:        os.Getenv("MAIL_FROM"),
 	}
 	if cfg.DatabaseURL == "" {
 		return Config{}, errors.New("DATABASE_URL is not set")
@@ -61,6 +83,9 @@ func Load() (Config, error) {
 	}
 	if (cfg.AdminEmail == "") != (cfg.AdminPassword == "") {
 		return Config{}, errors.New("set both ADMIN_EMAIL and ADMIN_PASSWORD, or neither")
+	}
+	if cfg.SMTPHost != "" && cfg.MailFrom == "" {
+		return Config{}, errors.New("MAIL_FROM is not set (needed with SMTP_HOST)")
 	}
 	return cfg, nil
 }

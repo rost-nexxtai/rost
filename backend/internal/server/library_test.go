@@ -78,7 +78,7 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 		}
 	}
 	code, out := c.do("POST", "/api/quiz", quizAllNuStiu)
-	if code != 200 || c.cookies[UIDCookie] == nil {
+	if code != 200 || c.cookies[SessionCookie] == nil {
 		t.Fatalf("quiz = %d %v", code, out)
 	}
 	if p := out["profile"].(map[string]any); p["level"] != 0.0 || p["riskProfile"] != "prudent" || p["horizon"] != "1_3_ani" || p["expensiveDebt"] != false ||
@@ -164,7 +164,7 @@ func TestMomenteNeedsTheQuiz(t *testing.T) {
 }
 
 func TestMariaMomente(t *testing.T) {
-	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{AllowDemoTools: true})}
 	c.do("POST", "/api/users", `{"demo":"maria"}`)
 	_, me := c.do("GET", "/api/me", "")
 	if p := me["profile"].(map[string]any); p["level"] != 1.0 || p["riskProfile"] != "echilibrat" || get(p, "money", "inflationPct") != 8.48 {
@@ -333,7 +333,7 @@ func TestCatchUpOnlyWhatCanOpen(t *testing.T) {
 		t.Errorf("still asks for a salary: %v", today["catchUpNeeds"])
 	}
 
-	m := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	m := &client{t: t, h: testServer(fakeDB{}, config.Config{AllowDemoTools: true})}
 	m.do("POST", "/api/users", `{"demo":"maria"}`)
 	_, today = m.do("GET", "/api/today", "")
 	if !strings.Contains(jsonString(today["catchUpMomentIds"]), "personal_inflation") || jsonString(today["catchUpNeeds"]) != `{}` {

@@ -1,43 +1,131 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
+	"rost/backend/internal/app"
 	"rost/backend/internal/domain"
 	"rost/backend/internal/reference"
 	"rost/backend/internal/store"
 )
 
-// UIDCookie holds the user id set at onboarding. No accounts in the MVP.
+// SessionCookie holds a random token; the server keeps only its hash (see app.StartSession).
+const SessionCookie = "rost_session"
+
+// UIDCookie held the raw user id before sessions. While Config.LegacyUIDCookie is on, a request
+// with only this cookie gets a session in its place. Remove after one release.
 const UIDCookie = "rost_uid"
 
 func newUserID() string { return store.NewID() }
 
-func currentUserID(r *http.Request) (string, bool) {
-	c, err := r.Cookie(UIDCookie)
-	if err != nil || c.Value == "" {
-		return "", false
-	}
-	return c.Value, true
-}
-
-func setUserID(w http.ResponseWriter, id string) {
+func (s *server) setSession(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
-		Name: UIDCookie, Value: id, Path: "/", MaxAge: 60 * 60 * 24 * 90, HttpOnly: true, SameSite: http.SameSiteLaxMode,
+		Name: SessionCookie, Value: token, Path: "/", MaxAge: int(app.SessionTTL.Seconds()), HttpOnly: true,
+		SameSite: http.SameSiteLaxMode, Secure: s.Config.CookieSecure,
 	})
 }
 
-func clearUserID(w http.ResponseWriter) {
+func (s *server) clearSessionCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name: SessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: s.Config.CookieSecure,
+	})
+}
+
+func clearUIDCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{Name: UIDCookie, Value: "", Path: "/", MaxAge: -1})
 }
 
-// userID answers 401 when there is no session cookie.
+func cookieValue(r *http.Request, name string) string {
+	if c, err := r.Cookie(name); err == nil {
+		return c.Value
+	}
+	return ""
+}
+
+// startSession signs this browser in as userID, ending the session it had.
+func (s *server) startSession(w http.ResponseWriter, r *http.Request, userID string) error {
+	if err := s.svc.EndSession(r.Context(), cookieValue(r, SessionCookie)); err != nil {
+		return err
+	}
+	token, err := s.svc.StartSession(r.Context(), userID)
+	if err != nil {
+		return err
+	}
+	s.setSession(w, token)
+	return nil
+}
+
+// sessionUserID is the signed-in user's id, "" without a valid session. It sets the cookie again
+// when the session's expiry moved, and swaps an old rost_uid cookie for a session.
+func (s *server) sessionUserID(w http.ResponseWriter, r *http.Request) (string, error) {
+	token, legacy := cookieValue(r, SessionCookie), cookieValue(r, UIDCookie)
+	if token != "" {
+		id, renewed, err := s.svc.SessionUser(r.Context(), token)
+		switch {
+		case err == nil:
+			if renewed {
+				s.setSession(w, token)
+			}
+			if legacy != "" {
+				clearUIDCookie(w)
+			}
+			return id, nil
+		case !errors.Is(err, app.ErrNoSession):
+			return "", err
+		}
+	}
+	id, err := s.upgradeLegacy(w, r, legacy)
+	if id == "" && err == nil && token != "" {
+		s.clearSessionCookie(w) // expired or unknown
+	}
+	return id, err
+}
+
+// upgradeLegacy swaps a rost_uid cookie of a real user for a session. With the swap off, the old
+// cookie is only cleared.
+func (s *server) upgradeLegacy(w http.ResponseWriter, r *http.Request, uid string) (string, error) {
+	if uid == "" {
+		return "", nil
+	}
+	// a demo persona only with demo tools, like POST /api/users
+	if !s.Config.LegacyUIDCookie || (reference.IsDemoUser(uid) && !s.Config.AllowDemoTools) {
+		clearUIDCookie(w)
+		return "", nil
+	}
+	if _, err := s.Store.GetUser(r.Context(), uid); isNotFound(err) {
+		clearUIDCookie(w)
+		return "", nil
+	} else if err != nil {
+		return "", err
+	}
+	if err := s.startSession(w, r, uid); err != nil {
+		return "", err
+	}
+	clearUIDCookie(w)
+	return uid, nil
+}
+
+// currentUserID is for routes that work without a session too. A store error counts as no session.
+func (s *server) currentUserID(w http.ResponseWriter, r *http.Request) (string, bool) {
+	id, err := s.sessionUserID(w, r)
+	if err != nil {
+		s.Logger.Error("session lookup failed", "path", r.URL.Path, "err", err)
+	}
+	return id, id != ""
+}
+
+// userID answers 401 when there is no session.
 func (s *server) userID(w http.ResponseWriter, r *http.Request) (string, bool) {
-	id, ok := currentUserID(r)
-	if !ok {
+	id, err := s.sessionUserID(w, r)
+	if err != nil {
+		s.internal(w, r, err)
+		return "", false
+	}
+	if id == "" {
 		fail(w, http.StatusUnauthorized, "no user")
 	}
-	return id, ok
+	return id, id != ""
 }
 
 // user loads the session's user, answering 401 when there is no session or the user is gone.

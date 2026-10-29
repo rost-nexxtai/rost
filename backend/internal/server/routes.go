@@ -26,6 +26,7 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/users", s.signOut)
 	mux.HandleFunc("GET /api/me", s.me)
 	mux.HandleFunc("PATCH /api/me", s.updateMe)
+	mux.HandleFunc("GET /api/me/export", s.exportMe)
 
 	mux.HandleFunc("POST /api/events", s.fireEvent)
 	mux.HandleFunc("POST /api/calendar", s.runCalendar)
@@ -58,6 +59,7 @@ func (s *server) routes(mux *http.ServeMux) {
 
 	s.libraryRoutes(mux)
 	s.adminRoutes(mux)
+	s.authRoutes(mux)
 }
 
 // ---- users and session ----
@@ -74,7 +76,7 @@ type createUserRequest struct {
 	Spending        *domain.SpendingProfile `json:"spending"`
 }
 
-// POST /api/users: either { demo: "maria" } or an onboarding profile. Sets the session cookie.
+// POST /api/users: either { demo: "maria" } (demo tools only) or an onboarding profile. Starts a session.
 func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	var body createUserRequest
 	if !readJSON(w, r, &body) {
@@ -82,6 +84,11 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var userID string
 	if body.Demo != "" {
+		// a shared account: never on a production server
+		if !s.Config.AllowDemoTools {
+			fail(w, http.StatusForbidden, "demo is demo-only")
+			return
+		}
 		// Only the synthetic personas can be entered by id.
 		u, err := s.Store.GetUser(r.Context(), body.Demo)
 		if !reference.IsDemoUser(body.Demo) || isNotFound(err) {
@@ -118,12 +125,34 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 		}
 		userID = u.ID
 	}
-	setUserID(w, userID)
+	if err := s.startSession(w, r, userID); err != nil {
+		s.internal(w, r, err)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"userId": userID})
 }
 
+// DELETE /api/users (Profil → Resetează): erases the account and its data, then signs out. A demo
+// persona goes back to its seed instead.
 func (s *server) signOut(w http.ResponseWriter, r *http.Request) {
-	clearUserID(w)
+	id, err := s.sessionUserID(w, r)
+	if err != nil {
+		s.internal(w, r, err)
+		return
+	}
+	if id != "" {
+		if err := s.svc.EraseUser(r.Context(), id); err != nil {
+			s.internal(w, r, err)
+			return
+		}
+		// a demo persona keeps its other sessions; this one ends
+		if err := s.svc.EndSession(r.Context(), cookieValue(r, SessionCookie)); err != nil {
+			s.internal(w, r, err)
+			return
+		}
+	}
+	s.clearSessionCookie(w)
+	clearUIDCookie(w)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -426,7 +455,7 @@ func (s *server) options(w http.ResponseWriter, r *http.Request) {
 	}
 	cpi := reference.LatestCPI(langOf(r))
 	inflationPct, personal := cpi.HeadlinePct, false
-	if id, ok := currentUserID(r); ok {
+	if id, ok := s.currentUserID(w, r); ok {
 		if u, err := s.Store.GetUser(r.Context(), id); err == nil && u.Spending != nil {
 			if p, err := rules.PersonalInflationFor(u.Spending.Shares, cpi.GroupsPct); err == nil {
 				inflationPct, personal = p.PersonalPct, true
@@ -453,7 +482,7 @@ func (s *server) referralClick(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var userID *string
-	if id, ok := currentUserID(r); ok {
+	if id, ok := s.currentUserID(w, r); ok {
 		userID = &id
 	}
 	clickID, err := s.svc.TrackReferralClick(r.Context(), body.OfferID, userID)
