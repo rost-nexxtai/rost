@@ -133,7 +133,7 @@ func TestInternalErrorLogsTheRequestID(t *testing.T) {
 }
 
 func TestCrossSiteGuard(t *testing.T) {
-	h := testServer(fakeDB{}, config.Config{})
+	h := testServer(fakeDB{}, config.Config{AllowDemoTools: true})
 	demo := `{"demo":"maria"}`
 	cases := []struct {
 		name, method, path, body, site string
@@ -211,7 +211,7 @@ func TestRateLimitsOverHTTP(t *testing.T) {
 	burst := rateLimits["payslip"].Burst
 
 	t.Run("429 with Retry-After, per IP", func(t *testing.T) {
-		h := testServer(fakeDB{}, config.Config{})
+		h := testServer(fakeDB{}, config.Config{AllowDemoTools: true})
 		one := map[string]string{"RemoteAddr": "203.0.113.1:5000"}
 		for range burst {
 			if rec := read(h, one); rec.Code != http.StatusNotImplemented {
