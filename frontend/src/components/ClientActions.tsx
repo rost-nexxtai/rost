@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useId, useState } from 'react';
 import { Slider } from '@/components/ui/Slider';
-import { resetProfile, setDemoProfile } from '@/data/actions';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 
@@ -13,6 +12,7 @@ const T = copy(
     start: 'Începe',
     demoFailed: (e: string) => `Nu am putut porni demo-ul: ${e}`,
     reset: 'Resetează',
+    signOut: 'Ieși din cont',
     weekLater: 'O săptămână mai târziu',
     yes: 'Da, gata',
     notYet: 'Încă nu',
@@ -25,6 +25,7 @@ const T = copy(
     start: 'Start',
     demoFailed: (e) => `Couldn't start the demo: ${e}`,
     reset: 'Reset',
+    signOut: 'Log out',
     weekLater: 'A week later',
     yes: 'Yes, done',
     notYet: 'Not yet',
@@ -40,7 +41,7 @@ async function post(url: string, body: unknown) {
   return res.json();
 }
 
-/** "Continuă ca Maria" for the stage demo: a real backend session plus Maria's (mock) profile. */
+/** "Continuă ca Maria" for the stage demo: a backend session as Maria, with her profile. */
 export function DemoLogin() {
   const router = useRouter();
   const t = T[useLang().lang];
@@ -55,7 +56,6 @@ export function DemoLogin() {
           setBusy(true);
           try {
             await post('/api/users', { demo: 'maria' });
-            await setDemoProfile('maria');
             router.push('/acasa');
           } catch (e) {
             setError(String((e as Error).message));
@@ -70,7 +70,7 @@ export function DemoLogin() {
   );
 }
 
-/** Profil → Resetează: forgets the mock profile and the session, back to the landing page. */
+/** Profil → Resetează: erases the account and its data (a demo persona goes back to its seed), back to the landing page. */
 export function ResetButton() {
   const router = useRouter();
   const t = T[useLang().lang];
@@ -78,13 +78,30 @@ export function ResetButton() {
     <button
       className="btn btn-ghost btn-block"
       onClick={async () => {
-        await resetProfile();
-        await fetch('/api/users', { method: 'DELETE' }).catch(() => undefined);
+        await fetch('/api/me', { method: 'DELETE' }).catch(() => undefined);
         router.push('/');
         router.refresh();
       }}
     >
       {t.reset}
+    </button>
+  );
+}
+
+/** Profil, for a saved account: ends this browser's session only; the account stays, to log back into. */
+export function SignOutButton() {
+  const router = useRouter();
+  const t = T[useLang().lang];
+  return (
+    <button
+      className="btn btn-secondary btn-block"
+      onClick={async () => {
+        await fetch('/api/users', { method: 'DELETE' }).catch(() => undefined);
+        router.push('/');
+        router.refresh();
+      }}
+    >
+      {t.signOut}
     </button>
   );
 }

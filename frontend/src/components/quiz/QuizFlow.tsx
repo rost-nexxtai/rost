@@ -5,13 +5,15 @@ import { useState } from 'react';
 import { LessonBar } from '@/components/lesson/LessonBar';
 import { Icon } from '@/components/ui/Icon';
 import { Slider } from '@/components/ui/Slider';
-import { nextLesson, saveQuiz } from '@/data/actions';
+import { nextLesson } from '@/data/actions';
+import type { QuizResponse } from '@/contract';
 import { quizFor } from '@/data/fixtures/quiz';
 import { askQuestion } from '@/data/mock/scoring';
 import { useLang } from '@/i18n/client';
 import { copy, type Lang } from '@/i18n/lang';
 import type { AgeBand, KnowledgeAnswer, Profile, QuizAnswers, Situation } from '@/data/types';
 import { QuizResult } from './QuizResult';
+import { SaveAccountStep } from '@/components/account/SaveAccountStep';
 
 type Answer = string | number | boolean;
 interface Screen {
@@ -37,6 +39,9 @@ const T = copy(
     previous: 'Întrebarea anterioară',
     screen: (n: number, of: number) => `Ecranul ${n} din ${of}`,
     preparing: 'Îți pregătim prima lecție…',
+    saveFailed: 'Nu am putut salva răspunsurile: serverul nu răspunde. Mai încearcă o dată.',
+    tooMany: 'Prea multe încercări de pe această rețea. Mai încearcă peste un minut.',
+    tryAgain: 'Încearcă din nou',
     gross: 'Cât e salariul tău brut pe lună?',
     grossHint: 'Suma din contract, înainte de taxe. O folosim doar ca să-ți arătăm unde merg banii din el.',
     grossLabel: 'Salariul brut',
@@ -56,6 +61,9 @@ const T = copy(
     previous: 'Previous question',
     screen: (n, of) => `Screen ${n} of ${of}`,
     preparing: 'Getting your first lesson ready…',
+    saveFailed: "We couldn't save your answers: the server isn't answering. Please try again.",
+    tooMany: 'Too many tries from this network. Try again in a minute.',
+    tryAgain: 'Try again',
     gross: "What's your gross monthly salary?",
     grossHint: 'The amount in your contract, before tax. We only use it to explain your payslip.',
     grossLabel: 'Gross salary',
@@ -89,19 +97,26 @@ function screensFor(lang: Lang): Screen[] {
 /**
  * Onboarding: six to eight screens, one tap each, no Continue button. Under a minute.
  * `retake` (from Profil) keeps the session, name and finished lessons; a new user starts fresh.
+ * `hasProfile`: this browser's session already has a profile (someone took the quiz here before).
  */
-export function QuizFlow({ retake = false }: { retake?: boolean }) {
+export function QuizFlow({ retake = false, hasProfile = false }: { retake?: boolean; hasProfile?: boolean }) {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [tapped, setTapped] = useState<Answer>();
   const [finishing, setFinishing] = useState(false);
+  const [failed, setFailed] = useState<Answer[]>();
+  // the failure was the API's rate limit (a classroom behind one address), not the server being down
+  const [limited, setLimited] = useState(false);
   const [result, setResult] = useState<{ profile: Profile; lesson: Awaited<ReturnType<typeof nextLesson>> }>();
+  // a new user is offered to save the account first (or carry on as a guest); a retake isn't
+  const [offerSave, setOfferSave] = useState(!retake);
   const [gross, setGross] = useState<number>();
   const [askGross, setAskGross] = useState(false);
   const { lang, f } = useLang();
   const t = T[lang];
   const SCREENS = screensFor(lang);
 
+  if (result && offerSave) return <SaveAccountStep onDone={() => setOfferSave(false)} />;
   if (result) return <QuizResult profile={result.profile} lesson={result.lesson} grossMonthly={gross} />;
   const screen = SCREENS[i];
 
@@ -114,17 +129,29 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
       expensiveDebt: expensiveDebt as boolean,
       knowledge: knowledge as KnowledgeAnswer[],
     };
-    if (!retake) {
-      // A new user gets a backend session for triggered moments. If the API is down the lessons still
-      // work, and Momente says so itself, so there's nothing to tell the user here.
-      await fetch('/api/users', {
+    setFailed(undefined);
+    try {
+      // A retake from Profil keeps the session, with its lessons and numbers, and so does an account
+      // without a profile yet (its salary and moments stay). When this browser's session already has
+      // a profile, someone else may have used it: sign out (never erase) and start a new user. The
+      // backend scores the quiz and, for a new user, sets the session cookie on this response.
+      if (!retake && hasProfile) {
+        const out = await fetch('/api/users', { method: 'DELETE' });
+        if (!out.ok) throw new Error(String(out.status));
+      }
+      const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ situations: [quiz.situation], grossMonthly: gross }),
-      }).catch(() => undefined);
+        body: JSON.stringify({ ...quiz, ...(gross !== undefined && { grossMonthly: gross }) }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const { profile } = (await res.json()) as QuizResponse;
+      setResult({ profile, lesson: await nextLesson(profile) });
+    } catch (e) {
+      setFinishing(false);
+      setLimited(e instanceof Error && e.message === '429');
+      setFailed(all);
     }
-    const profile = await saveQuiz(quiz, { retake });
-    setResult({ profile, lesson: await nextLesson(profile) });
   }
 
   function pick(value: Answer) {
@@ -229,6 +256,21 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
           ))}
         </div>
         {finishing && <p className="play-hint">{t.preparing}</p>}
+        {failed && (
+          <div className="stack" style={{ gap: 10 }}>
+            <p className="error">{limited ? t.tooMany : t.saveFailed}</p>
+            <button
+              type="button"
+              className="btn btn-secondary btn-block"
+              onClick={() => {
+                setFinishing(true);
+                void finish(failed);
+              }}
+            >
+              {t.tryAgain}
+            </button>
+          </div>
+        )}
       </fieldset>
     </main>
   );

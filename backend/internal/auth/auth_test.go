@@ -74,3 +74,15 @@ func TestLimiter(t *testing.T) {
 		t.Errorf("failures kept after success: %v", l.failures)
 	}
 }
+
+func TestLimiterForgetsOldKeys(t *testing.T) {
+	l := NewLimiter()
+	now := time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC)
+	for _, key := range []string{"a@rost.ro", "b@rost.ro", "c@rost.ro"} {
+		l.Fail(key, now)
+	}
+	l.Fail("d@rost.ro", now.Add(l.Window))
+	if len(l.failures) != 1 || l.failures["d@rost.ro"] == nil {
+		t.Errorf("keys not seen for a window stay: %v", l.failures)
+	}
+}

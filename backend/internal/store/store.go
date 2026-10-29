@@ -25,6 +25,17 @@ type Store interface {
 	UpdateUser(ctx context.Context, u domain.User) error
 	// only for stats
 	ListUsers(ctx context.Context) ([]domain.User, error)
+	// GetUserByEmail returns ErrNotFound when no account has this (lowercase) email.
+	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
+	// SetUserEmail ties an account without an email to one. ErrConflict if another account has this
+	// email or this one has an email already (it is never overwritten).
+	SetUserEmail(ctx context.Context, id, email string) error
+	// PasswordHash is the account's password hash, "" when it has none. ErrNotFound for an unknown user.
+	PasswordHash(ctx context.Context, id string) (string, error)
+	SetPasswordHash(ctx context.Context, id, hash string) error
+	// DeleteUser erases a user and everything they did (events, runs, actions, lessons, sessions,
+	// login links). Referrals and tracking events stay, without the user id. ErrNotFound for an unknown id.
+	DeleteUser(ctx context.Context, id string) error
 
 	AddEvent(ctx context.Context, e domain.AppEvent) (domain.AppEvent, error)
 	ListEvents(ctx context.Context, userID string) ([]domain.AppEvent, error)
@@ -45,8 +56,10 @@ type Store interface {
 	ListReferrals(ctx context.Context) ([]domain.Referral, error)
 
 	// ResetUsers deletes everything these users did (events, runs, actions, referrals) and
-	// writes their rows back from the given seed. Stage helper for the demo personas.
+	// writes their rows back from the given seed. Their sessions stay. Stage helper for the demo personas.
 	ResetUsers(ctx context.Context, seed []domain.User) error
+
+	SessionStore
 
 	ContentStore
 	ProgressStore
@@ -68,6 +81,29 @@ type ContentStore interface {
 	SeedContent(ctx context.Context, seedName string, items []domain.ContentItem) error
 }
 
+// user sessions and email login links, both by the hash of their token
+type SessionStore interface {
+	// also drops expired sessions
+	CreateSession(ctx context.Context, s domain.Session) error
+	// ErrNotFound for an unknown hash
+	GetSession(ctx context.Context, tokenHash string) (domain.Session, error)
+	// TouchSession moves the expiry (sliding sessions).
+	TouchSession(ctx context.Context, tokenHash, lastSeenAt, expiresAt string) error
+	DeleteSession(ctx context.Context, tokenHash string) error
+	// oldest first
+	ListSessions(ctx context.Context, userID string) ([]domain.Session, error)
+	// UseLegacyUID lets the user's old rost_uid cookie become a session: only for a user with the
+	// mark (made before sessions) whose first swap is after since, or who has none yet, which it
+	// records as at. ErrNotFound otherwise: unknown, made after sessions, or swapped too long ago.
+	UseLegacyUID(ctx context.Context, userID, at, since string) error
+
+	// also drops expired links. ErrNotFound when t.UserID is set and isn't a user.
+	CreateLoginToken(ctx context.Context, t domain.LoginToken) error
+	// TakeLoginToken deletes the link and returns it, so it works once, but only with the nonce of the
+	// browser that asked for it. ErrNotFound for an unknown or used link or another nonce, which leaves it.
+	TakeLoginToken(ctx context.Context, tokenHash, nonceHash string) (domain.LoginToken, error)
+}
+
 type ProgressStore interface {
 	// Keeps the best attempt per user and lesson. False when an earlier attempt was as good or better.
 	AddCompletion(ctx context.Context, c domain.Completion) (bool, error)
@@ -79,6 +115,8 @@ type TrackingStore interface {
 	AddTrackEvents(ctx context.Context, events []domain.TrackEvent) error
 	// from <= createdAt < to
 	ListTrackEvents(ctx context.Context, fromISO, toISO string) ([]domain.TrackEvent, error)
+	// one user's, oldest first (data export)
+	ListUserTrackEvents(ctx context.Context, userID string) ([]domain.TrackEvent, error)
 }
 
 type AdminStore interface {

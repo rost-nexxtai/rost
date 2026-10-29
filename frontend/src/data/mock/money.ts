@@ -1,8 +1,6 @@
-// The user's own numbers (Profil → "Banii tăi"). The backend keeps what drives triggers and personal
-// inflation (PATCH /api/me); the profile cookie keeps the lines the screens read.
+// The user's own numbers (Profil → "Banii tăi"), all kept by the backend (PATCH /api/me).
 import type { CategoryShares, UpdateMeRequest } from '@/contract';
 import type { MoneyLine, Profile, Situation } from '../types';
-import { NATIONAL_INFLATION_PCT } from './scoring';
 
 /** What we assume someone under 30 spends a month when they haven't told us. Always labelled as assumed. */
 export const DEFAULT_EXPENSES_LEI = 2500;
@@ -22,18 +20,6 @@ export interface MyMoney {
 
 const LINES: MoneyLine[] = ['fuelLei', 'electricityLei', 'savedLei'];
 
-/** The profile after the user edits their numbers, with the inflation the backend worked out (if it answered). */
-export function withMyMoney(p: Profile, m: MyMoney, inflation?: { pct: number; personal: boolean }): Profile {
-  const money = { ...p.money };
-  for (const line of LINES) money[line] = Math.max(0, Math.round(m[line] ?? 0));
-  money.known = LINES.filter((line) => m[line] !== undefined);
-  if (m.expensesLei && m.expensesLei > 0) money.expensesLei = Math.round(m.expensesLei);
-  else delete money.expensesLei;
-  money.inflationPct = inflation?.pct ?? (money.inflationPersonal ? money.inflationPct : NATIONAL_INFLATION_PCT);
-  money.inflationPersonal = inflation ? inflation.personal : money.inflationPersonal;
-  return { ...p, situation: m.situation, money };
-}
-
 /** The PATCH /api/me body: blanks are sent as 0 or "" so they clear, and no salary unless employed with one. */
 export function updateMeBody(m: MyMoney): UpdateMeRequest {
   return {
@@ -43,6 +29,8 @@ export function updateMeBody(m: MyMoney): UpdateMeRequest {
     hireDate: m.hireDate ?? '',
     monthlyExpenses: m.expensesLei ?? 0,
     ...(m.shares && { spendingShares: m.shares }),
+    // a blank line is forgotten (null), so the app asks for it again; 0 is a real answer
+    moneyLines: Object.fromEntries(LINES.map((line) => [line, m[line] === undefined ? null : Math.max(0, Math.round(m[line]!))])),
   };
 }
 

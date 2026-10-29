@@ -27,6 +27,14 @@ type Memory struct {
 	admins      map[string]domain.Admin
 	sessions    map[string]domain.AdminSession
 	partners    map[string]bool
+
+	userSessions map[string]domain.Session
+	loginTokens  map[string]domain.LoginToken
+	// users whose old rost_uid cookie may become a session (users.legacy_uid), with when it first did
+	// (users.legacy_swapped_at, "" before)
+	legacy map[string]string
+	// users.password_hash, by user id
+	passwords map[string]string
 }
 
 var _ store.Store = (*Memory)(nil)
@@ -43,6 +51,11 @@ func New(users ...domain.User) *Memory {
 		admins:    map[string]domain.Admin{},
 		sessions:  map[string]domain.AdminSession{},
 		partners:  map[string]bool{},
+
+		userSessions: map[string]domain.Session{},
+		loginTokens:  map[string]domain.LoginToken{},
+		legacy:       map[string]string{},
+		passwords:    map[string]string{},
 	}
 	for _, u := range users {
 		if u.CreatedAt == "" {
@@ -67,6 +80,9 @@ func (m *Memory) CreateUser(_ context.Context, u domain.User) (domain.User, erro
 	if u.CreatedAt == "" {
 		u.CreatedAt = clock.NowISO()
 	}
+	if _, taken := m.users[u.ID]; taken || m.emailTaken(u.Email, u.ID) {
+		return u, store.ErrConflict
+	}
 	m.users[u.ID] = clone(u)
 	return clone(u), nil
 }
@@ -84,9 +100,12 @@ func (m *Memory) GetUser(_ context.Context, id string) (domain.User, error) {
 func (m *Memory) UpdateUser(_ context.Context, u domain.User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.users[u.ID]; !ok {
+	cur, ok := m.users[u.ID]
+	if !ok {
 		return store.ErrNotFound
 	}
+	// like Postgres: the email only changes through SetUserEmail, the creation date never
+	u.Email, u.CreatedAt = cur.Email, cur.CreatedAt
 	m.users[u.ID] = clone(u)
 	return nil
 }
@@ -262,6 +281,11 @@ func (m *Memory) ResetUsers(_ context.Context, seed []domain.User) error {
 			}
 		}
 		m.tracking = tracking
+		for h, t := range m.loginTokens {
+			if t.UserID == u.ID {
+				delete(m.loginTokens, h)
+			}
+		}
 		u.CreatedAt = clock.NowISO()
 		m.users[u.ID] = clone(u)
 	}

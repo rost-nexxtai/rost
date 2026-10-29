@@ -112,10 +112,13 @@ export function assetsFor(lang: Lang): Asset[] {
 }
 
 export function newsFor(lang: Lang): NewsItem[] {
-  if (lang === 'ro') return NEWS;
-  return NEWS.map((n) => {
-    const en = NEWS_EN[n.id];
-    const impact = n.impact.kind === 'savings' && en.alternative ? { ...n.impact, alternative: { ...n.impact.alternative, label: en.alternative } } : n.impact;
-    return { ...n, date: en.date, title: en.title, facts: en.facts, sources: n.sources.map((s, i) => ({ ...s, label: en.sources[i] ?? s.label, date: dateEn(s.date) })), impact };
-  });
+  return NEWS.map((n) => newsInLang(n, lang));
+}
+
+/** One news item (from GET /api/stiri, in Romanian) in the visitor's language. One we have no translation for stays Romanian. */
+export function newsInLang<T extends NewsItem>(n: T, lang: Lang): T {
+  const en = NEWS_EN[n.id];
+  if (lang === 'ro' || !en) return n;
+  const impact = n.impact.kind === 'savings' && en.alternative ? { ...n.impact, alternative: { ...n.impact.alternative, label: en.alternative } } : n.impact;
+  return { ...n, date: en.date, title: en.title, facts: en.facts, sources: n.sources.map((s, i) => ({ ...s, label: en.sources[i] ?? s.label, date: dateEn(s.date) })), impact };
 }

@@ -35,14 +35,21 @@ func (s *server) setSalary(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/payslip?gross=6000: where a gross salary goes, for a preview while the user types.
-// Pure arithmetic on the year's rules, so it needs no session.
+// Pure arithmetic on the year's rules, so it needs no session; with one, the personal deduction
+// follows the user's age band (under 26 gets the extra 15%). ?young=true asks for it without a session.
 func (s *server) payslip(w http.ResponseWriter, r *http.Request) {
 	gross, err := strconv.ParseFloat(r.URL.Query().Get("gross"), 64)
 	if err != nil || !validGross(gross) {
 		fail(w, http.StatusBadRequest, "gross must be a monthly gross salary in lei")
 		return
 	}
-	p, err := rules.Payslip(gross, 0)
+	d := rules.Deduction{Young: r.URL.Query().Get("young") == "true"}
+	if id, ok := s.currentUserID(w, r); ok {
+		if u, err := s.Store.GetUser(r.Context(), id); err == nil && u.Quiz != nil {
+			d = rules.DeductionFor(u.AgeBand())
+		}
+	}
+	p, err := rules.Payslip(gross, d)
 	if err != nil {
 		fail(w, http.StatusBadRequest, err.Error())
 		return

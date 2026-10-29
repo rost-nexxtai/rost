@@ -8,10 +8,20 @@ import (
 )
 
 func TestPayslipPreview(t *testing.T) {
-	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{AllowDemoTools: true})}
+	// 6,000 lei is 34 steps of 50 lei above the 4,325 minimum wage: a 3% deduction, 130 lei
 	code, p := c.do("GET", "/api/payslip?gross=6000", "")
-	if code != 200 || p["pension"] != 1500.0 || p["health"] != 600.0 || p["net"] != 3510.0 {
+	if code != 200 || p["pension"] != 1500.0 || p["health"] != 600.0 || p["personalDeduction"] != 130.0 || p["net"] != 3523.0 {
 		t.Errorf("payslip = %d %v", code, p)
+	}
+	// under 26: another 15% of the minimum wage
+	if code, p := c.do("GET", "/api/payslip?gross=6000&young=true", ""); code != 200 || p["personalDeduction"] != 779.0 || p["net"] != 3588.0 {
+		t.Errorf("young payslip = %d %v", code, p)
+	}
+	// with a session, the user's age band decides: Maria is under 25
+	c.do("POST", "/api/users", `{"demo":"maria"}`)
+	if code, p := c.do("GET", "/api/payslip?gross=6000", ""); code != 200 || p["personalDeduction"] != 779.0 {
+		t.Errorf("Maria's payslip = %d %v", code, p)
 	}
 	for _, q := range []string{"", "?gross=abc", "?gross=10", "?gross=900000"} {
 		if code, _ := c.do("GET", "/api/payslip"+q, ""); code != 400 {

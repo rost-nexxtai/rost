@@ -241,7 +241,7 @@ func TestStiri(t *testing.T) {
 	for _, i := range s.Items {
 		got = append(got, i.ID)
 	}
-	// same as stiri.test.ts
+	// biggest effect on her money first
 	if !reflect.DeepEqual(got, []string{"motorina", "electricitate", "bnr"}) || s.Items[0].MonthlyLei != 32 || s.Items[1].MonthlyLei != 30 || s.Items[2].MonthlyLei != 195.0/12 {
 		t.Errorf("stiri = %v %+v", got, s.Items)
 	}

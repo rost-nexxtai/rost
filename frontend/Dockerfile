@@ -4,13 +4,16 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Build. The /api rewrite in next.config.mjs is fixed at build time, so BACKEND_URL must be known here.
+# Build. The /api rewrite and the security headers in next.config.mjs are fixed at build time,
+# so BACKEND_URL, EMBED_FRAME_ANCESTORS and HSTS must be known here.
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG BACKEND_URL=http://backend:8080
-ENV BACKEND_URL=$BACKEND_URL NEXT_TELEMETRY_DISABLED=1
+ARG EMBED_FRAME_ANCESTORS=
+ARG HSTS=false
+ENV BACKEND_URL=$BACKEND_URL EMBED_FRAME_ANCESTORS=$EMBED_FRAME_ANCESTORS HSTS=$HSTS NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Runtime: Next's standalone server only, as the non-root node user.
@@ -21,4 +24,7 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 USER node
 EXPOSE 3000
+# /healthz answers without rendering a page or calling the API, so an API outage doesn't restart the
+# web app too. busybox wget comes with the alpine base.
+HEALTHCHECK --interval=10s --timeout=4s --start-period=20s --retries=3 CMD wget -q -O /dev/null "http://127.0.0.1:$PORT/healthz" || exit 1
 CMD ["node", "server.js"]

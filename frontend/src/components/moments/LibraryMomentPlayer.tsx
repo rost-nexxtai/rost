@@ -16,6 +16,8 @@ import type { FundStart } from '@/data/mock/money';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
 import type { Asset, LessonProgress, Level, LibraryMoment } from '@/data/types';
+import type { LessonAnswer } from '@/contract';
+import type { StepAnswer } from '@/components/lesson/answers';
 
 const T = copy(
   {
@@ -58,6 +60,8 @@ export function LibraryMomentPlayer({
 }) {
   const [i, setI] = useState(resume?.step ?? 0);
   const [results, setResults] = useState<boolean[]>(resume?.results ?? []);
+  // the raw answers behind results: the server scores these, not our booleans
+  const [answers, setAnswers] = useState<LessonAnswer[]>(resume?.answers ?? []);
   const started = useRef(Date.now());
   const t = T[useLang().lang];
   const step = moment.steps[i];
@@ -65,30 +69,31 @@ export function LibraryMomentPlayer({
   // Remember the place on every new screen, so leaving keeps the lesson "in progress".
   // The finish screen saves the completion instead.
   useEffect(() => {
-    if (i > 0 && i < last) void saveLessonProgress(moment.id, { step: i, results, of: moment.steps.length }).catch(() => undefined);
+    if (i > 0 && i < last) void saveLessonProgress(moment.id, { step: i, results, answers, of: moment.steps.length }).catch(() => undefined);
     // results change together with i on graded screens
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i]);
   const next = () => setI((n) => Math.min(n + 1, moment.steps.length - 1));
-  const graded = (ok: boolean) => {
+  const graded = (ok: boolean, answer: StepAnswer) => {
     setResults((r) => [...r, ok]);
+    setAnswers((a) => [...a, { step: i, ...answer }]);
     next();
   };
   // a failed lesson starts again from the top, with a clean score
   const retry = () => {
     setResults([]);
+    setAnswers([]);
     started.current = Date.now();
     setI(0);
   };
 
   async function finish(): Promise<FinishOutcome> {
-    const right = results.filter(Boolean).length;
-    const res = await completeLibraryMoment(moment.id, right, results.length);
+    const res = await completeLibraryMoment(moment.id, answers);
     if (!res) return { line: t.noProfile, passed: true };
-    const { profile: after, passed, week } = res;
+    const { profile: after, passed, week, correct, total } = res;
     if (passed) feel('done');
     const line = !passed
-      ? t.retake(right, results.length)
+      ? t.retake(correct, total)
       : after.level > levelBefore
         ? t.levelUp(after.level)
         : after.level === 2 || coreLeftAfter === 0

@@ -205,11 +205,29 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 		}
 		return *p
 	}
-	u.Quiz = &domain.QuizProfile{
+	q := &domain.QuizProfile{
 		Score: score, Level: learning.PlaceLevel(tiers, right), AgeBand: in.AgeBand, Situation: string(in.Situation),
-		BufferMonths: in.BufferMonths, ExpensiveDebt: in.ExpensiveDebt, Horizon: in.Horizon,
-		FuelLei: orZero(in.FuelLei), ElectricityLei: orZero(in.ElectricityLei), SavedLei: orZero(in.SavedLei), TakenAt: clock.NowISO(),
+		BufferMonths: in.BufferMonths, ExpensiveDebt: in.ExpensiveDebt, Horizon: in.Horizon, TakenAt: clock.NowISO(),
 	}
+	// a retake keeps the money lines it didn't ask about
+	if old := u.Quiz; old != nil {
+		q.FuelLei, q.ElectricityLei, q.SavedLei, q.Known = old.FuelLei, old.ElectricityLei, old.SavedLei, old.Known
+	}
+	for _, line := range []struct {
+		name string
+		in   *float64
+		to   *float64
+	}{{"fuelLei", in.FuelLei, &q.FuelLei}, {"electricityLei", in.ElectricityLei, &q.ElectricityLei}, {"savedLei", in.SavedLei, &q.SavedLei}} {
+		if line.in != nil {
+			*line.to = orZero(line.in)
+			q.Known = withLine(q.Known, line.name)
+		}
+	}
+	// "nothing put aside" already answers the savings question (same as profileFromQuiz)
+	if in.BufferMonths == 0 && in.SavedLei == nil {
+		q.SavedLei, q.Known = 0, withLine(q.Known, "savedLei")
+	}
+	u.Quiz = q
 	if err := s.Store.UpdateUser(ctx, u); err != nil {
 		return out, err
 	}
@@ -225,6 +243,14 @@ func (s Service) SaveQuiz(ctx context.Context, userID string, in QuizInput) (Qui
 		"score": score, "level": out.Profile.Level, "riskProfile": out.Profile.RiskProfile, "ageBand": in.AgeBand, "situation": in.Situation,
 	}))
 	return out, s.Store.AddTrackEvents(ctx, events)
+}
+
+// withLine marks a money line as answered by the user.
+func withLine(known []string, line string) []string {
+	if slices.Contains(known, line) {
+		return known
+	}
+	return append(append([]string{}, known...), line)
 }
 
 type CompleteOutcome struct {
@@ -255,6 +281,17 @@ func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momen
 	if err != nil {
 		return CompleteOutcome{}, err
 	}
+	// finished, passed or not: no longer in progress, and today counts as a day you learned
+	l := domain.Learning{}
+	if u.Learning != nil {
+		l = *u.Learning
+	}
+	l = learning.WithoutProgress(l, m.ID)
+	l.LearnedDays = learning.WithDay(l.LearnedDays, learning.DayKey(clock.Now()))
+	u.Learning = &l
+	if err := s.Store.UpdateUser(ctx, u); err != nil {
+		return CompleteOutcome{}, err
+	}
 	stored := make([]map[string]any, 0, len(answers))
 	for _, a := range answers {
 		row := map[string]any{"step": a.Step}
@@ -263,6 +300,12 @@ func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momen
 		}
 		if a.Value != nil {
 			row["value"] = *a.Value
+		}
+		if a.Buckets != nil {
+			row["buckets"] = a.Buckets
+		}
+		if a.Order != nil {
+			row["order"] = a.Order
 		}
 		stored = append(stored, row)
 	}
@@ -288,6 +331,49 @@ func (s Service) CompleteLibraryMoment(ctx context.Context, u domain.User, momen
 		events = append(events, serverEvent(u.ID, "level_up", map[string]any{"from": before.Level, "to": out.Profile.Level, "momentId": m.ID}))
 	}
 	return out, s.Store.AddTrackEvents(ctx, events)
+}
+
+// SaveLessonProgress remembers where a lesson was left, so Momente shows it in progress and
+// reopening it resumes there.
+func (s Service) SaveLessonProgress(ctx context.Context, u domain.User, momentID string, p domain.LessonProgress) (*domain.Profile, error) {
+	m, err := s.LibraryMoment(ctx, momentID)
+	if err != nil {
+		return nil, err
+	}
+	if !m.Playable() {
+		return nil, ErrNotPlayable
+	}
+	graded := 0
+	for _, st := range m.Steps[:min(p.Step, len(m.Steps))] {
+		if content.IsGraded(st) {
+			graded++
+		}
+	}
+	// the screen must be inside the lesson, before the finish screen, with no more results than graded screens passed
+	if p.Of != len(m.Steps) || p.Step < 1 || p.Step >= len(m.Steps)-1 || len(p.Results) > graded {
+		return nil, ErrBadAnswers
+	}
+	// the answers so far must fit their screens, all before the one the user is on
+	if _, _, ok := learning.ScoreAnswers(m, p.Answers); !ok || slices.ContainsFunc(p.Answers, func(a learning.Answer) bool { return a.Step >= p.Step }) {
+		return nil, ErrBadAnswers
+	}
+	if p.Answers == nil {
+		p.Answers = []learning.Answer{}
+	}
+	l := domain.Learning{}
+	if u.Learning != nil {
+		l = *u.Learning
+	}
+	p.SavedAt = clock.NowISO()
+	if p.Results == nil {
+		p.Results = []bool{}
+	}
+	l = learning.WithProgress(l, m.ID, p)
+	u.Learning = &l
+	if err := s.Store.UpdateUser(ctx, u); err != nil {
+		return nil, err
+	}
+	return s.Profile(ctx, u)
 }
 
 func (s Service) Momente(ctx context.Context, u domain.User, lang reference.Lang) (learning.MomenteResponse, error) {

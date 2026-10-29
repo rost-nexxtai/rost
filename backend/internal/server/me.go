@@ -1,10 +1,12 @@
 package server
 
 import (
+	"math"
 	"net/http"
 	"slices"
 	"time"
 
+	"rost/backend/internal/app"
 	"rost/backend/internal/domain"
 	"rost/backend/internal/reference"
 	"rost/backend/internal/rules"
@@ -22,7 +24,11 @@ type updateMeRequest struct {
 	HireDate        *string                `json:"hireDate"`
 	MonthlyExpenses *float64               `json:"monthlyExpenses"`
 	SpendingShares  *domain.CategoryShares `json:"spendingShares"`
+	// fuelLei, electricityLei, savedLei: a number sets the line (0 is a real answer), null forgets it
+	MoneyLines map[string]*float64 `json:"moneyLines"`
 }
+
+var moneyLines = []string{"fuelLei", "electricityLei", "savedLei"}
 
 // UserInflation is the national 12-month figure and, once the user gave a spending mix, theirs.
 type UserInflation struct {
@@ -59,7 +65,7 @@ func (s *server) updateMe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, sit := range body.Situations {
-			if !slices.Contains(situations, sit) {
+			if !slices.Contains(app.Situations, sit) {
 				fail(w, http.StatusBadRequest, "unknown situation")
 				return
 			}
@@ -113,9 +119,59 @@ func (s *server) updateMe(w http.ResponseWriter, r *http.Request) {
 		sp.Shares, sp.Source = *sh, "user"
 		u.Spending = &sp
 	}
+	if body.Situations != nil && u.Quiz != nil {
+		u.Quiz.Situation = string(body.Situations[0])
+	}
+	if len(body.MoneyLines) > 0 {
+		if u.Quiz == nil {
+			fail(w, http.StatusConflict, "take the quiz first")
+			return
+		}
+		for line, v := range body.MoneyLines {
+			if !slices.Contains(moneyLines, line) {
+				fail(w, http.StatusBadRequest, "moneyLines takes fuelLei, electricityLei and savedLei")
+				return
+			}
+			if v != nil && !(*v >= 0 && *v < 1e9) {
+				fail(w, http.StatusBadRequest, "money lines must be 0 or more")
+				return
+			}
+		}
+		q := *u.Quiz
+		q.Known = slices.DeleteFunc(slices.Clone(q.Known), func(l string) bool { _, given := body.MoneyLines[l]; return given })
+		for _, line := range moneyLines {
+			v, given := body.MoneyLines[line]
+			if !given {
+				continue
+			}
+			lei := 0.0
+			if v != nil {
+				lei = math.Round(*v)
+				q.Known = append(q.Known, line)
+			}
+			switch line {
+			case "fuelLei":
+				q.FuelLei = lei
+			case "electricityLei":
+				q.ElectricityLei = lei
+			case "savedLei":
+				q.SavedLei = lei
+			}
+		}
+		u.Quiz = &q
+	}
 	if err := s.Store.UpdateUser(r.Context(), u); err != nil {
 		s.internal(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"user": u, "inflation": inflationOf(u, langOf(r))})
+	out := map[string]any{"user": u, "inflation": inflationOf(u, langOf(r))}
+	p, err := s.svc.Profile(r.Context(), u)
+	if err != nil {
+		s.internal(w, r, err)
+		return
+	}
+	if p != nil {
+		out["profile"] = p
+	}
+	writeJSON(w, http.StatusOK, out)
 }

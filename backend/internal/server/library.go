@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"io"
@@ -21,6 +22,7 @@ func (s *server) libraryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/library", s.library)
 	mux.HandleFunc("GET /api/library/{id}", s.libraryMoment)
 	mux.HandleFunc("POST /api/library/{id}/complete", s.completeLibraryMoment)
+	mux.HandleFunc("PUT /api/library/{id}/progress", s.saveLessonProgress)
 
 	mux.HandleFunc("GET /api/momente", s.momente)
 	mux.HandleFunc("GET /api/stiri", s.stiri)
@@ -28,9 +30,14 @@ func (s *server) libraryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/track", s.track)
 }
 
-// empty body is ok here
+// empty body is ok here; one with something in it must be application/json, like readJSON
 func readOptionalJSON(w http.ResponseWriter, r *http.Request, v any) bool {
-	err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(v)
+	body := bufio.NewReader(http.MaxBytesReader(w, r.Body, 1<<20))
+	if _, err := body.Peek(1); err == nil && !isJSON(r) {
+		fail(w, http.StatusUnsupportedMediaType, "send the body as application/json")
+		return false
+	}
+	err := json.NewDecoder(body).Decode(v)
 	if err != nil && !errors.Is(err, io.EOF) {
 		fail(w, http.StatusBadRequest, "invalid JSON body")
 		return false
@@ -69,8 +76,6 @@ type quizRequest struct {
 	SavedLei       *float64          `json:"savedLei"`
 }
 
-var situations = []domain.Situation{domain.Student, domain.Graduate, domain.Employed, domain.Freelance, domain.BetweenJobs}
-
 func (q quizRequest) input() (app.QuizInput, string) {
 	questions := reference.Quiz()
 	if len(q.Knowledge) != len(questions) {
@@ -95,7 +100,7 @@ func (q quizRequest) input() (app.QuizInput, string) {
 	switch {
 	case !slices.Contains(learning.AgeBands, q.AgeBand):
 		return in, "unknown ageBand"
-	case !slices.Contains(situations, q.Situation):
+	case !slices.Contains(app.Situations, q.Situation):
 		return in, "unknown situation"
 	case !slices.Contains(learning.Horizons, q.Horizon):
 		return in, "unknown horizon"
@@ -129,16 +134,23 @@ func (s *server) postQuiz(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, problem)
 		return
 	}
-	userID, _ := currentUserID(r)
+	userID, err := s.sessionUserID(w, r)
+	if err != nil {
+		s.internal(w, r, err)
+		return
+	}
 	out, err := s.svc.SaveQuiz(r.Context(), userID, in)
 	if err != nil {
 		s.internal(w, r, err)
 		return
 	}
 	if out.Created {
-		setUserID(w, out.User.ID)
+		if err := s.startSession(w, r, out.User.ID); err != nil {
+			s.internal(w, r, err)
+			return
+		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"userId": out.User.ID, "profile": out.Profile, "results": out.Results})
+	writeJSON(w, http.StatusOK, map[string]any{"profile": out.Profile, "results": out.Results})
 }
 
 // ---- library ----
@@ -195,6 +207,31 @@ func (s *server) completeLibraryMoment(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PUT /api/library/{id}/progress {step, results, of}: where the user left a lesson. Answers with the profile.
+func (s *server) saveLessonProgress(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.user(w, r)
+	if !ok {
+		return
+	}
+	var body domain.LessonProgress
+	if !readJSON(w, r, &body) {
+		return
+	}
+	p, err := s.svc.SaveLessonProgress(r.Context(), u, r.PathValue("id"), body)
+	switch {
+	case isNotFound(err):
+		fail(w, http.StatusNotFound, "not found")
+	case errors.Is(err, app.ErrNotPlayable):
+		fail(w, http.StatusConflict, err.Error())
+	case errors.Is(err, app.ErrBadAnswers):
+		fail(w, http.StatusBadRequest, "step must be a screen inside the lesson, before the finish, of the lesson's length")
+	case err != nil:
+		s.internal(w, r, err)
+	default:
+		writeJSON(w, http.StatusOK, map[string]any{"profile": p})
+	}
+}
+
 // 404 before the quiz
 func (s *server) momente(w http.ResponseWriter, r *http.Request) {
 	u, ok := s.user(w, r)
@@ -242,7 +279,7 @@ func (s *server) track(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var userID *string
-	if id, ok := currentUserID(r); ok {
+	if id, ok := s.currentUserID(w, r); ok {
 		if _, err := s.Store.GetUser(r.Context(), id); err == nil {
 			userID = &id
 		} else if !isNotFound(err) {

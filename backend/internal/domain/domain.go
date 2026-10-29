@@ -93,8 +93,48 @@ type User struct {
 	// nil until the quiz
 	Quiz *QuizProfile `json:"quiz,omitempty"`
 	// max level reached, never goes down
-	LevelEarned Level  `json:"levelEarned"`
-	CreatedAt   string `json:"createdAt"`
+	LevelEarned Level `json:"levelEarned"`
+	// lessons left halfway and the days with a finished lesson; nil until the first lesson
+	Learning  *Learning `json:"learning,omitempty"`
+	CreatedAt string    `json:"createdAt"`
+	// lowercase; nil until the user ties the account to an email
+	Email *string `json:"email,omitempty"`
+}
+
+// One answer in a lesson: picked for choice, value for predict, buckets for sort (one per item),
+// order for order (the items as the user left them, top to bottom, as indexes into the step's list).
+type LessonAnswer struct {
+	Step    int      `json:"step"`
+	Picked  *int     `json:"picked,omitempty"`
+	Value   *float64 `json:"value,omitempty"`
+	Buckets []int    `json:"buckets,omitempty"`
+	Order   []int    `json:"order,omitempty"`
+}
+
+// A lesson left halfway: the screen to resume on and the graded answers so far.
+type LessonProgress struct {
+	Step    int    `json:"step"`
+	Results []bool `json:"results"`
+	// the answers behind results, so a resumed lesson is scored on all of them at the end
+	Answers []LessonAnswer `json:"answers"`
+	// how many screens the lesson had, so a lesson edited since starts over
+	Of int `json:"of"`
+	// when it was saved, so the oldest is dropped first
+	SavedAt string `json:"savedAt,omitempty"`
+}
+
+type Learning struct {
+	LessonProgress map[string]LessonProgress `json:"lessonProgress,omitempty"`
+	// YYYY-MM-DD in Romanian time, oldest first, the last two weeks only
+	LearnedDays []string `json:"learnedDays,omitempty"`
+}
+
+// AgeBand from the quiz, "" before it.
+func (u User) AgeBand() string {
+	if u.Quiz == nil {
+		return ""
+	}
+	return u.Quiz.AgeBand
 }
 
 func (u User) HasSituation(s Situation) bool {

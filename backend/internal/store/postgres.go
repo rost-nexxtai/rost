@@ -25,7 +25,7 @@ type Postgres struct{ db *pgxpool.Pool }
 func NewPostgres(db *pgxpool.Pool) *Postgres { return &Postgres{db: db} }
 
 // Migrate applies migrations/*.sql in order, once each, then seeds the demo personas
-// (existing rows are left alone). Safe to run on every start.
+// (existing rows are left alone, except a missing quiz is filled in). Safe to run on every start.
 func (s *Postgres) Migrate(ctx context.Context, seed []domain.User) error {
 	if _, err := s.db.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`); err != nil {
 		return fmt.Errorf("migrations table: %w", err)
@@ -60,8 +60,14 @@ func (s *Postgres) Migrate(ctx context.Context, seed []domain.User) error {
 		if u.CreatedAt == "" {
 			u.CreatedAt = clock.NowISO()
 		}
-		if err := s.insertUser(ctx, s.db, u, true); err != nil {
+		if err := s.insertUser(ctx, s.db, u, ignoreConflict); err != nil {
 			return fmt.Errorf("seed %s: %w", u.ID, err)
+		}
+		// a persona seeded before the quiz column gets the seed's quiz; one it already has is kept
+		if u.Quiz != nil {
+			if _, err := s.db.Exec(ctx, `UPDATE users SET quiz = $2::jsonb WHERE id = $1 AND quiz IS NULL`, u.ID, jsonb(u.Quiz)); err != nil {
+				return fmt.Errorf("seed %s quiz: %w", u.ID, err)
+			}
 		}
 	}
 	return nil
@@ -96,16 +102,33 @@ func notFound(err error) error {
 
 // ---- users ----
 
-const userCols = `id, name, situations, payday, hire_date, gross_monthly, last_raise_date, monthly_expenses, firsts_done, spending, quiz, level_earned, created_at`
+const userCols = `id, name, situations, payday, hire_date, gross_monthly, last_raise_date, monthly_expenses, firsts_done, spending, quiz, level_earned, created_at, learning, email`
 
-func (s *Postgres) insertUser(ctx context.Context, db execer, u domain.User, ignoreExisting bool) error {
-	sql := `INSERT INTO users (` + userCols + `) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13)`
-	if ignoreExisting {
+// What insertUser does when the id exists.
+type onConflict int
+
+const (
+	failOnConflict onConflict = iota
+	ignoreConflict
+	// overwrite every column, so rows pointing at the user (sessions) stay
+	replaceOnConflict
+)
+
+func (s *Postgres) insertUser(ctx context.Context, db execer, u domain.User, existing onConflict) error {
+	sql := `INSERT INTO users (` + userCols + `) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14::jsonb, $15)`
+	switch existing {
+	case ignoreConflict:
 		sql += ` ON CONFLICT (id) DO NOTHING`
+	case replaceOnConflict:
+		sql += ` ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, situations = EXCLUDED.situations, payday = EXCLUDED.payday,
+			hire_date = EXCLUDED.hire_date, gross_monthly = EXCLUDED.gross_monthly, last_raise_date = EXCLUDED.last_raise_date,
+			monthly_expenses = EXCLUDED.monthly_expenses, firsts_done = EXCLUDED.firsts_done, spending = EXCLUDED.spending,
+			quiz = EXCLUDED.quiz, level_earned = EXCLUDED.level_earned, created_at = EXCLUDED.created_at,
+			learning = EXCLUDED.learning, email = EXCLUDED.email`
 	}
 	_, err := db.Exec(ctx, sql, u.ID, u.Name, jsonb(nonNil(u.Situations)), u.Payday, u.HireDate, u.GrossMonthly, u.LastRaiseDate,
-		u.MonthlyExpenses, jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned, u.CreatedAt)
-	return err
+		u.MonthlyExpenses, jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned, u.CreatedAt, jsonb(u.Learning), u.Email)
+	return conflict(err)
 }
 
 func nonNil[T any](s []T) []T {
@@ -117,9 +140,9 @@ func nonNil[T any](s []T) []T {
 
 func scanUser(row pgx.Row) (domain.User, error) {
 	var u domain.User
-	var situations, firsts, spending, quiz []byte
+	var situations, firsts, spending, quiz, learning []byte
 	var payday *int32
-	err := row.Scan(&u.ID, &u.Name, &situations, &payday, &u.HireDate, &u.GrossMonthly, &u.LastRaiseDate, &u.MonthlyExpenses, &firsts, &spending, &quiz, &u.LevelEarned, &u.CreatedAt)
+	err := row.Scan(&u.ID, &u.Name, &situations, &payday, &u.HireDate, &u.GrossMonthly, &u.LastRaiseDate, &u.MonthlyExpenses, &firsts, &spending, &quiz, &u.LevelEarned, &u.CreatedAt, &learning, &u.Email)
 	if err != nil {
 		return u, notFound(err)
 	}
@@ -145,6 +168,12 @@ func scanUser(row pgx.Row) (domain.User, error) {
 			return u, err
 		}
 	}
+	if learning != nil {
+		u.Learning = &domain.Learning{}
+		if err := unjson(learning, u.Learning); err != nil {
+			return u, err
+		}
+	}
 	return u, nil
 }
 
@@ -153,7 +182,7 @@ func (s *Postgres) CreateUser(ctx context.Context, u domain.User) (domain.User, 
 		u.CreatedAt = clock.NowISO()
 	}
 	u.Situations, u.FirstsDone = nonNil(u.Situations), nonNil(u.FirstsDone)
-	return u, s.insertUser(ctx, s.db, u, false)
+	return u, s.insertUser(ctx, s.db, u, failOnConflict)
 }
 
 func (s *Postgres) GetUser(ctx context.Context, id string) (domain.User, error) {
@@ -162,9 +191,9 @@ func (s *Postgres) GetUser(ctx context.Context, id string) (domain.User, error) 
 
 func (s *Postgres) UpdateUser(ctx context.Context, u domain.User) error {
 	tag, err := s.db.Exec(ctx, `UPDATE users SET name = $2, situations = $3::jsonb, payday = $4, hire_date = $5, gross_monthly = $6,
-		last_raise_date = $7, monthly_expenses = $8, firsts_done = $9::jsonb, spending = $10::jsonb, quiz = $11::jsonb, level_earned = $12 WHERE id = $1`,
+		last_raise_date = $7, monthly_expenses = $8, firsts_done = $9::jsonb, spending = $10::jsonb, quiz = $11::jsonb, level_earned = $12, learning = $13::jsonb WHERE id = $1`,
 		u.ID, u.Name, jsonb(nonNil(u.Situations)), u.Payday, u.HireDate, u.GrossMonthly, u.LastRaiseDate, u.MonthlyExpenses,
-		jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned)
+		jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned, jsonb(u.Learning))
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
@@ -347,14 +376,14 @@ func (s *Postgres) ResetUsers(ctx context.Context, seed []domain.User) error {
 				`DELETE FROM referrals WHERE user_id = $1`,
 				`DELETE FROM library_completions WHERE user_id = $1`,
 				`DELETE FROM track_events WHERE user_id = $1`,
-				`DELETE FROM users WHERE id = $1`,
+				`DELETE FROM login_tokens WHERE user_id = $1`,
 			} {
 				if _, err := tx.Exec(ctx, sql, u.ID); err != nil {
 					return err
 				}
 			}
 			u.CreatedAt = clock.NowISO()
-			if err := s.insertUser(ctx, tx, u, false); err != nil {
+			if err := s.insertUser(ctx, tx, u, replaceOnConflict); err != nil {
 				return err
 			}
 		}

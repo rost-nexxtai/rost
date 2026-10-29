@@ -9,38 +9,66 @@ import (
 	"rost/backend/internal/domain"
 )
 
-// Hand-checked cases (no personal deduction). Add real payslips here before the demo.
+// Hand-checked cases, minimum wage 4,325 lei (July 2026). The minimum-wage line matches the worked
+// example on salariile.ro/metodologie (net 2,699 lei); add real payslips here before the demo.
 func TestPayslip(t *testing.T) {
-	cases := []struct{ gross, pension, pillar2, health, incomeTax, net float64 }{
-		{6000, 1500, 285, 600, 390, 3510},
-		{4325, 1081, 205, 433, 281, 2530},
-		{9000, 2250, 428, 900, 585, 5265},
-		{12000, 3000, 570, 1200, 780, 7020},
-		{0, 0, 0, 0, 0, 0},
+	cases := []struct {
+		name                                                string
+		gross                                               float64
+		d                                                   Deduction
+		pension, pillar2, health, deduction, incomeTax, net float64
+	}{
+		{"minimum wage, 200 lei untaxed", 4325, Deduction{}, 1031, 196, 413, 865, 182, 2699},
+		{"5,000: 14 steps above the minimum, 13%", 5000, Deduction{}, 1250, 238, 500, 562, 269, 2981},
+		{"6,000: 34 steps, 3%", 6000, Deduction{}, 1500, 285, 600, 130, 377, 3523},
+		{"6,000 under 26: 3% + 15%", 6000, Deduction{Young: true}, 1500, 285, 600, 779, 312, 3588},
+		{"9,000: above the cap", 9000, Deduction{Young: true}, 2250, 428, 900, 0, 585, 5265},
+		{"12,000", 12000, Deduction{}, 3000, 570, 1200, 0, 780, 7020},
+		{"nothing", 0, Deduction{}, 0, 0, 0, 0, 0, 0},
 	}
 	for _, c := range cases {
-		p, err := Payslip(c.gross, 0)
+		p, err := Payslip(c.gross, c.d)
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := []float64{p.Pension, p.Pillar2, p.Health, p.IncomeTax, p.Net}
-		want := []float64{c.pension, c.pillar2, c.health, c.incomeTax, c.net}
+		got := []float64{p.Pension, p.Pillar2, p.Health, p.PersonalDeduction, p.IncomeTax, p.Net}
+		want := []float64{c.pension, c.pillar2, c.health, c.deduction, c.incomeTax, c.net}
 		if !reflect.DeepEqual(got, want) {
-			t.Errorf("payslip(%v) = %v, want %v", c.gross, got, want)
+			t.Errorf("%s: payslip(%v) = %v, want %v", c.name, c.gross, got, want)
 		}
 		if p.PublicPension+p.Pillar2 != p.Pension || p.Pension+p.Health+p.IncomeTax+p.Net != c.gross {
-			t.Errorf("payslip(%v) parts don't add up: %+v", c.gross, p)
+			t.Errorf("%s: parts don't add up: %+v", c.name, p)
 		}
+	}
+	if _, err := Payslip(-1, Deduction{}); err == nil {
+		t.Error("negative gross should fail")
 	}
 }
 
-func TestPayslipPersonalDeduction(t *testing.T) {
-	p, _ := Payslip(6000, 300)
-	if p.IncomeTax != 360 || p.Pension != 1500 || p.Net != 3540 {
-		t.Errorf("got %+v", p)
+func TestPersonalDeduction(t *testing.T) {
+	cases := []struct {
+		name  string
+		gross float64
+		d     Deduction
+		want  float64
+	}{
+		{"at the minimum wage, 20%", 4325, Deduction{}, 865},
+		{"4 or more dependants, 45%", 4325, Deduction{Dependants: 6}, 1946},
+		{"1 lei above the minimum: 19.5%", 4326, Deduction{}, 843},
+		{"50 lei above: still the first step", 4375, Deduction{}, 843},
+		{"51 lei above: second step, 19%", 4376, Deduction{}, 822},
+		{"at the cap, 40 steps: 0%", 6325, Deduction{}, 0},
+		{"at the cap, under 26: 15% stays", 6325, Deduction{Young: true}, 649},
+		{"above the cap: nothing", 6326, Deduction{Young: true}, 0},
+		{"no salary", 0, Deduction{Young: true}, 0},
 	}
-	if _, err := Payslip(-1, 0); err == nil {
-		t.Error("negative gross should fail")
+	for _, c := range cases {
+		if got := PersonalDeduction(c.gross, c.d); got != c.want {
+			t.Errorf("%s: PersonalDeduction(%v, %+v) = %v, want %v", c.name, c.gross, c.d, got, c.want)
+		}
+	}
+	if !DeductionFor("sub_25").Young || DeductionFor("25_29").Young || DeductionFor("").Young {
+		t.Error("only the under-25 band is surely under 26")
 	}
 }
 
@@ -219,4 +247,3 @@ func TestDates(t *testing.T) {
 		t.Errorf("days = %d", got)
 	}
 }
-

@@ -26,11 +26,15 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/users", s.signOut)
 	mux.HandleFunc("GET /api/me", s.me)
 	mux.HandleFunc("PATCH /api/me", s.updateMe)
+	mux.HandleFunc("DELETE /api/me", s.eraseMe)
+	mux.HandleFunc("GET /api/me/export", s.exportMe)
+	mux.HandleFunc("POST /api/me/import", s.importProfile)
 
 	mux.HandleFunc("POST /api/events", s.fireEvent)
 	mux.HandleFunc("POST /api/calendar", s.runCalendar)
 	mux.HandleFunc("GET /api/clock", s.getClock)
 	mux.HandleFunc("POST /api/clock", s.setClock)
+	mux.HandleFunc("GET /api/demo", s.getDemo)
 	mux.HandleFunc("POST /api/demo/reset", s.resetDemo)
 
 	mux.HandleFunc("GET /api/today", s.today)
@@ -51,12 +55,15 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/embed", s.embed)
 
 	mux.HandleFunc("GET /api/metrics", s.metrics)
+	mux.HandleFunc("GET /api/payslip/read", s.canReadPayslip)
 	mux.HandleFunc("POST /api/payslip/read", s.readPayslip)
 	mux.HandleFunc("GET /api/payslip", s.payslip)
 	mux.HandleFunc("PUT /api/me/salary", s.setSalary)
 
 	s.libraryRoutes(mux)
 	s.adminRoutes(mux)
+	s.authRoutes(mux)
+	s.passwordRoutes(mux)
 }
 
 // ---- users and session ----
@@ -73,7 +80,7 @@ type createUserRequest struct {
 	Spending        *domain.SpendingProfile `json:"spending"`
 }
 
-// POST /api/users: either { demo: "maria" } or an onboarding profile. Sets the session cookie.
+// POST /api/users: either { demo: "maria" } (demo tools only) or an onboarding profile. Starts a session.
 func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	var body createUserRequest
 	if !readJSON(w, r, &body) {
@@ -81,6 +88,11 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var userID string
 	if body.Demo != "" {
+		// a shared account: never on a production server
+		if !s.Config.AllowDemoTools {
+			fail(w, http.StatusForbidden, "demo is demo-only")
+			return
+		}
 		// Only the synthetic personas can be entered by id.
 		u, err := s.Store.GetUser(r.Context(), body.Demo)
 		if !reference.IsDemoUser(body.Demo) || isNotFound(err) {
@@ -117,12 +129,46 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 		}
 		userID = u.ID
 	}
-	setUserID(w, userID)
-	writeJSON(w, http.StatusOK, map[string]string{"userId": userID})
+	if err := s.startSession(w, r, userID); err != nil {
+		s.internal(w, r, err)
+		return
+	}
+	// the id stays on the server: the session cookie is all the browser needs
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+// DELETE /api/users: signs this browser out. The account and its data stay.
 func (s *server) signOut(w http.ResponseWriter, r *http.Request) {
-	clearUserID(w)
+	if err := s.svc.EndSession(r.Context(), cookieValue(r, SessionCookie)); err != nil {
+		s.internal(w, r, err)
+		return
+	}
+	s.clearSessionCookie(w)
+	clearUIDCookie(w)
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// DELETE /api/me (Profil → Resetează): erases the account and its data, then signs out. A demo
+// persona goes back to its seed instead.
+func (s *server) eraseMe(w http.ResponseWriter, r *http.Request) {
+	id, err := s.sessionUserID(w, r)
+	if err != nil {
+		s.internal(w, r, err)
+		return
+	}
+	if id != "" {
+		if err := s.svc.EraseUser(r.Context(), id); err != nil {
+			s.internal(w, r, err)
+			return
+		}
+		// a demo persona keeps its other sessions; this one ends
+		if err := s.svc.EndSession(r.Context(), cookieValue(r, SessionCookie)); err != nil {
+			s.internal(w, r, err)
+			return
+		}
+	}
+	s.clearSessionCookie(w)
+	clearUIDCookie(w)
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
@@ -225,6 +271,11 @@ func clockResponse() map[string]any {
 
 func (s *server) getClock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, clockResponse())
+}
+
+// GET /api/demo: whether the demo tools are on, so the app shows "Continuă ca Maria" only then.
+func (s *server) getDemo(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]bool{"enabled": s.Config.AllowDemoTools})
 }
 
 // POST /api/clock moves the app clock forward (e.g. "7 days later" for follow-ups). Demo tools only.
@@ -425,7 +476,7 @@ func (s *server) options(w http.ResponseWriter, r *http.Request) {
 	}
 	cpi := reference.LatestCPI(langOf(r))
 	inflationPct, personal := cpi.HeadlinePct, false
-	if id, ok := currentUserID(r); ok {
+	if id, ok := s.currentUserID(w, r); ok {
 		if u, err := s.Store.GetUser(r.Context(), id); err == nil && u.Spending != nil {
 			if p, err := rules.PersonalInflationFor(u.Spending.Shares, cpi.GroupsPct); err == nil {
 				inflationPct, personal = p.PersonalPct, true
@@ -452,7 +503,7 @@ func (s *server) referralClick(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var userID *string
-	if id, ok := currentUserID(r); ok {
+	if id, ok := s.currentUserID(w, r); ok {
 		userID = &id
 	}
 	clickID, err := s.svc.TrackReferralClick(r.Context(), body.OfferID, userID)
@@ -478,7 +529,7 @@ func (s *server) referralPostback(w http.ResponseWriter, r *http.Request) {
 		ClickID string                `json:"clickId"`
 		Status  domain.ReferralStatus `json:"status"`
 	}
-	if !readJSON(w, r, &body) {
+	if !decodeJSON(w, r, &body) { // partners' servers, authenticated by the secret
 		return
 	}
 	if body.Status != domain.ReferralOpened && body.Status != domain.ReferralFunded {

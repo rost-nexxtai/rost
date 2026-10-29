@@ -12,6 +12,14 @@ import (
 
 var anthropicClient = &http.Client{Timeout: 60 * time.Second}
 
+// modelImageTypes are the image types the model reads.
+var modelImageTypes = map[string]bool{"image/jpeg": true, "image/png": true, "image/gif": true, "image/webp": true}
+
+// GET /api/payslip/read: whether this server can read a payslip photo, so the app only offers it when it can.
+func (s *server) canReadPayslip(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]bool{"available": s.Config.AnthropicAPIKey != "" && s.Config.PayslipModel != ""})
+}
+
 // POST /api/payslip/read: payslip photo -> gross salary. Answers 501 until ANTHROPIC_API_KEY and
 // PAYSLIP_MODEL are set; the app then falls back to a typed-in gross. The image is not stored.
 func (s *server) readPayslip(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +28,7 @@ func (s *server) readPayslip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
-	file, header, err := r.FormFile("image")
+	file, _, err := r.FormFile("image")
 	if err != nil {
 		fail(w, http.StatusBadRequest, "no image")
 		return
@@ -31,9 +39,11 @@ func (s *server) readPayslip(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, "no image")
 		return
 	}
-	mediaType := header.Header.Get("Content-Type")
-	if mediaType == "" {
-		mediaType = "image/jpeg"
+	// The type comes from the bytes, not the client's label.
+	mediaType := http.DetectContentType(img)
+	if !modelImageTypes[mediaType] {
+		fail(w, http.StatusUnsupportedMediaType, "unsupported image type")
+		return
 	}
 
 	reqBody, _ := json.Marshal(map[string]any{

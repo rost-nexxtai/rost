@@ -16,7 +16,8 @@ const T = copy(
       `${pillar2} ajung în contul tău de Pilon II`,
       `: sunt ai tăi și se moștenesc. Restul de ${rest} plătesc pensiile de azi și îți aduc puncte de pensie.`,
     ],
-    deduction: (year: number) => `Deducerea personală nu e aplicată încă, așa că în realitate impozitul poate fi puțin mai mic. Reguli ${year}.`,
+    deduction: (amount: string, year: number) =>
+      `Impozitul ține cont de deducerea personală de ${amount}, socotită fără persoane în întreținere. Dacă ai copii sau alte persoane în grijă, e mai mare. Reguli ${year}.`,
   },
   {
     parts: { pension: 'Pension (CAS, 25%)', health: 'Health (CASS, 10%)', incomeTax: 'Income tax (10%)', net: 'Net pay, in your hand' },
@@ -29,7 +30,8 @@ const T = copy(
       `${pillar2} lands in your own Pillar II account`,
       `: it's yours and can be inherited. The other ${rest} pays today's pensions and earns you pension points.`,
     ],
-    deduction: (year) => `The personal deduction isn't applied yet, so on your real payslip the tax may be a little lower. ${year} rules.`,
+    deduction: (amount, year) =>
+      `The tax counts your personal deduction of ${amount}, worked out with no dependants. If you support children or others, it's higher. ${year} rules.`,
   },
 );
 
@@ -77,7 +79,7 @@ export function PayslipReveal({ p, guess }: { p: PayslipBreakdown & { pillar2Dea
           {after}
         </p>
       </div>
-      {p.personalDeduction === 0 && <p className="note">{t.deduction(p.rulesYear)}</p>}
+      {p.personalDeduction > 0 && <p className="note">{t.deduction(f.lei(p.personalDeduction), p.rulesYear)}</p>}
     </div>
   );
 }

@@ -29,11 +29,28 @@ var ErrWeakPassword = fmt.Errorf("password must be at least %d characters", MinP
 
 var b64 = base64.RawStdEncoding
 
+// MinUserPasswordLength is for app users' accounts; admins need MinPasswordLength.
+const MinUserPasswordLength = 8
+
+var ErrWeakUserPassword = fmt.Errorf("password must be at least %d characters", MinUserPasswordLength)
+
+// HashUserPassword hashes an app user's password, like HashPassword with a shorter minimum.
+func HashUserPassword(password string) (string, error) {
+	if len([]rune(password)) < MinUserPasswordLength {
+		return "", ErrWeakUserPassword
+	}
+	return hash(password)
+}
+
 // format: pbkdf2-sha256$iter$salt$key
 func HashPassword(password string) (string, error) {
 	if len([]rune(password)) < MinPasswordLength {
 		return "", ErrWeakPassword
 	}
+	return hash(password)
+}
+
+func hash(password string) (string, error) {
 	salt := make([]byte, saltBytes)
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
@@ -88,6 +105,7 @@ type Limiter struct {
 
 	mu       sync.Mutex
 	failures map[string][]time.Time
+	swept    time.Time
 }
 
 func NewLimiter() *Limiter {
@@ -109,9 +127,24 @@ func (l *Limiter) recent(key string, now time.Time) []time.Time {
 	return kept
 }
 
+// sweep drops the keys with nothing left in the window, at most once per window, so keys seen
+// once don't pile up (caller holds the lock).
+func (l *Limiter) sweep(now time.Time) {
+	if now.Sub(l.swept) < l.Window {
+		return
+	}
+	l.swept = now
+	for key, times := range l.failures {
+		if len(times) == 0 || now.Sub(times[len(times)-1]) >= l.Window {
+			delete(l.failures, key)
+		}
+	}
+}
+
 func (l *Limiter) Allow(key string, now time.Time) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.sweep(now)
 	if len(l.recent(key, now)) >= l.MaxFailures {
 		return ErrTooManyAttempts
 	}
@@ -121,6 +154,7 @@ func (l *Limiter) Allow(key string, now time.Time) error {
 func (l *Limiter) Fail(key string, now time.Time) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.sweep(now)
 	l.failures[key] = append(l.recent(key, now), now)
 }
 

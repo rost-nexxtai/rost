@@ -102,19 +102,6 @@ export function profileFromQuiz(a: QuizAnswers, name?: string): Profile {
   };
 }
 
-/**
- * The profile a finished quiz saves. A new user starts fresh; a retake from Profil keeps the
- * name, finished lessons and money amounts, because the quiz level is a floor, not a reset.
- */
-export function quizProfile(a: QuizAnswers, previous: Profile | undefined, opts: { retake: boolean }): Profile {
-  const keep = opts.retake ? previous : undefined;
-  const p = profileFromQuiz(a, keep?.name);
-  const completedMomentIds = keep?.completedMomentIds ?? [];
-  // Amounts given in Știri stay too; only the quiz answers change.
-  const money = keep?.money ?? p.money;
-  return { ...p, money, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds) };
-}
-
 /** Where someone lands: no session → landing, session but no profile → quiz, both → Acasă. */
 export function entryRoute(hasSession: boolean, hasProfile: boolean): '/' | '/quiz' | '/acasa' {
   if (!hasSession) return '/';

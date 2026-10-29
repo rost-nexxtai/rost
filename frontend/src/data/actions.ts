@@ -1,31 +1,15 @@
 'use server';
 
-import { cookies } from 'next/headers';
-import type { UpdateMeResponse } from '@/contract';
-import { api } from '@/lib/api';
-import { PERSONAS } from './fixtures/personas';
-import { updateMeBody, withMyMoney, type MyMoney } from './mock/money';
-import { parseProfile, PROFILE_COOKIE, PROFILE_COOKIE_OPTIONS } from './mock/profile';
+import type { CompleteLessonResponse, LessonAnswer, UpdateMeResponse } from '@/contract';
+import { api, ApiError } from '@/lib/api';
+import { updateMeBody, type MyMoney } from './mock/money';
 import { getLibrary } from '.';
 import { firstLesson } from './mock/momente';
-import { dayKey, weekOf, withDay, type WeekDay } from './mock/rhythm';
-import { levelWithMoments, passed, quizProfile } from './mock/scoring';
-import type { LessonProgress, LibraryMoment, MoneyLine, Profile, QuizAnswers } from './types';
+import { dayKey, weekOf, type WeekDay } from './mock/rhythm';
+import type { LessonProgress, LibraryMoment, MoneyLine, Profile } from './types';
 
-// MOCK until backend ships POST /api/quiz and profile progress on the server.
-
-async function write(p: Profile) {
-  (await cookies()).set(PROFILE_COOKIE, JSON.stringify(p), PROFILE_COOKIE_OPTIONS);
-  return p;
-}
-
-async function current() {
-  return parseProfile((await cookies()).get(PROFILE_COOKIE)?.value);
-}
-
-export async function saveQuiz(a: QuizAnswers, opts: { retake: boolean } = { retake: false }): Promise<Profile> {
-  return write(quizProfile(a, await current(), opts));
-}
+// The profile lives in the backend: these write to it through the API, with the browser's session.
+// The quiz is sent from the browser itself (POST /api/quiz), so a new user's session cookie lands there.
 
 /** The lesson to start with after the quiz, from the backend's lessons, in the visitor's language. */
 export async function nextLesson(p: Profile): Promise<Pick<LibraryMoment, 'id' | 'title' | 'hook' | 'minutes'> | undefined> {
@@ -33,79 +17,59 @@ export async function nextLesson(p: Profile): Promise<Pick<LibraryMoment, 'id' |
   return lesson && { id: lesson.id, title: lesson.title, hook: lesson.hook, minutes: lesson.minutes };
 }
 
-export async function setDemoProfile(persona: 'maria'): Promise<void> {
-  await write(PERSONAS[persona]);
-}
+/** No session or no quiz yet: the API answers 401 or 404, which is "nothing to save to", not a failure. */
+const nobody = (e: unknown) => e instanceof ApiError && (e.status === 401 || e.status === 404);
 
 /**
- * Records a finished lesson. Only a passed one (2 of 3 graded screens right) counts toward the next
- * level, like the backend's POST /api/library/{id}/complete; a failed attempt changes nothing there.
- * Either way the day counts as a day you learned, and the week comes back for the end screen.
+ * Records a finished lesson. The backend scores the answers: only a passed one (2 of 3 graded
+ * screens right) counts toward the next level. Either way the day counts as a day you learned,
+ * and the week comes back for the end screen.
  */
 export async function completeLibraryMoment(
   momentId: string,
-  correct: number,
-  total: number,
-): Promise<{ profile: Profile; passed: boolean; week: WeekDay[] } | undefined> {
-  const found = await current();
-  if (!found) return undefined;
-  // finished, passed or not: it's no longer in progress
-  const p = { ...found, lessonProgress: withoutLesson(found.lessonProgress, momentId) };
-  const ok = passed(correct, total);
-  const completedMomentIds = ok && !p.completedMomentIds.includes(momentId) ? [...p.completedMomentIds, momentId] : p.completedMomentIds;
-  const today = dayKey(new Date());
-  const learnedDays = withDay(p.learnedDays, today);
-  const profile = await write({ ...p, completedMomentIds, level: levelWithMoments(p.quizLevel, completedMomentIds), learnedDays });
-  return { profile, passed: ok, week: weekOf(learnedDays, today) };
-}
-
-/** At most this many lessons are remembered halfway; the oldest is dropped first. */
-const MAX_IN_PROGRESS = 8;
-
-function withoutLesson(progress: Profile['lessonProgress'], momentId: string) {
-  if (!progress || !(momentId in progress)) return progress;
-  const { [momentId]: _, ...rest } = progress;
-  return rest;
+  answers: LessonAnswer[],
+): Promise<{ profile: Profile; passed: boolean; correct: number; total: number; week: WeekDay[] } | undefined> {
+  try {
+    const out = await api<CompleteLessonResponse>(`/api/library/${encodeURIComponent(momentId)}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ answers }),
+    });
+    if (!out.profile) return undefined;
+    const { profile, passed, correct, total } = out;
+    return { profile, passed, correct, total, week: weekOf(profile.learnedDays, dayKey(new Date())) };
+  } catch (e) {
+    if (nobody(e)) return undefined;
+    throw e;
+  }
 }
 
 /** Remembers where a lesson was left, so Momente shows it in progress and reopening resumes there. */
 export async function saveLessonProgress(momentId: string, progress: LessonProgress): Promise<void> {
-  const p = await current();
-  if (!p) return;
-  const others = Object.entries(withoutLesson(p.lessonProgress, momentId) ?? {}).slice(-(MAX_IN_PROGRESS - 1));
-  await write({ ...p, lessonProgress: Object.fromEntries([...others, [momentId, progress]]) });
-}
-
-export async function resetProfile(): Promise<void> {
-  (await cookies()).delete(PROFILE_COOKIE);
+  await api(`/api/library/${encodeURIComponent(momentId)}/progress`, { method: 'PUT', body: JSON.stringify(progress) }).catch((e) => {
+    if (!nobody(e)) throw e;
+  });
 }
 
 /**
- * Profil → "Banii tăi": the backend gets what drives triggers and personal inflation, the cookie the
- * lines the screens read. A new salary goes through PUT /api/me/salary, so a raise reopens the payslip.
- * Without a session (or with the backend down) only the cookie changes, and the answer says so.
+ * Profil → "Banii tăi": saved to the backend (PATCH /api/me). A new salary goes through
+ * PUT /api/me/salary, so a raise reopens the payslip. Without a session nothing is saved, and the
+ * answer says so.
  */
-export async function saveMyMoney(m: MyMoney, grossBefore?: number): Promise<{ saved: boolean; synced: boolean; inflationPct?: number; personal?: boolean }> {
-  const p = await current();
-  if (!p) return { saved: false, synced: false };
-  let inflation: { pct: number; personal: boolean } | undefined;
+export async function saveMyMoney(m: MyMoney, grossBefore?: number): Promise<{ saved: boolean; inflationPct?: number; personal?: boolean }> {
   try {
     const out = await api<UpdateMeResponse>('/api/me', { method: 'PATCH', body: JSON.stringify(updateMeBody(m)) });
-    inflation = { pct: out.inflation.personalPct ?? out.inflation.headlinePct, personal: out.inflation.personalPct !== null };
     if (m.situation === 'employed' && m.grossMonthly && m.grossMonthly !== grossBefore) {
       await api('/api/me/salary', { method: 'PUT', body: JSON.stringify({ grossMonthly: m.grossMonthly }) });
     }
+    return { saved: true, inflationPct: out.inflation.personalPct ?? out.inflation.headlinePct, personal: out.inflation.personalPct !== null };
   } catch {
-    // no session or backend down: keep the numbers on this device
+    return { saved: false };
   }
-  await write(withMyMoney(p, m, inflation));
-  return { saved: true, synced: !!inflation, inflationPct: inflation?.pct, personal: inflation?.personal };
 }
 
 /** Saves one money line the user picked inline (Știri), instead of asking for numbers at onboarding. */
 export async function saveMoneyLine(line: MoneyLine, lei: number): Promise<Profile | undefined> {
-  const p = await current();
-  if (!p || !Number.isFinite(lei) || lei < 0) return undefined;
-  const known = Array.from(new Set([...(p.money.known ?? []), line]));
-  return write({ ...p, money: { ...p.money, [line]: Math.round(lei), known } });
+  if (!Number.isFinite(lei) || lei < 0) return undefined;
+  const out = await api<UpdateMeResponse>('/api/me', { method: 'PATCH', body: JSON.stringify({ moneyLines: { [line]: Math.round(lei) } }) }).catch(() => undefined);
+  return out?.profile;
 }

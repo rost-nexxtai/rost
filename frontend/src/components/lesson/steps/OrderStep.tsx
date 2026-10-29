@@ -6,6 +6,7 @@ import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 import { feel } from '../feel';
+import type { StepAnswer } from '../answers';
 
 /**
  * A fixed shuffle, so the server and the browser start from the same order, and never the answer:
@@ -42,7 +43,7 @@ export function OrderStep({
   top: string;
   bottom: string;
   explain: string;
-  onDone: (correct: boolean) => void;
+  onDone: (correct: boolean, answer: StepAnswer) => void;
 }) {
   const [order, setOrder] = useState(() => shuffled(ordered.length));
   const [touched, setTouched] = useState(false);
@@ -130,7 +131,7 @@ export function OrderStep({
           title={right ? t.orderRight : t.orderWrong(placed, ordered.length)}
           body={explain}
           label={t.continue}
-          onClick={() => onDone(right)}
+          onClick={() => onDone(right, { order })}
         />
       ) : (
         <LessonBar

@@ -38,7 +38,7 @@ const T = copy(
     save: 'Salvează',
     saving: 'Se salvează…',
     savedOk: 'Salvat. Lecțiile, simulările și știrile folosesc acum cifrele tale.',
-    savedLocal: 'Salvat doar pe acest dispozitiv: serverul nu răspunde, așa că momentele declanșate de salariu nu pornesc încă.',
+    savedLocal: 'Nu s-a salvat: serverul nu răspunde. Mai încearcă o dată peste puțin timp.',
     inflation: (pct: string, personal: boolean, national: string) =>
       personal ? `Inflația ta: ${pct} (națională: ${national}).` : `Folosim inflația națională, ${pct}, până ne spui pe ce cheltui.`,
     invalid: 'Verifică sumele: doar cifre, fără minus.',
@@ -71,7 +71,7 @@ const T = copy(
     save: 'Save',
     saving: 'Saving…',
     savedOk: 'Saved. Lessons, simulations and news now use your numbers.',
-    savedLocal: "Saved on this device only: the server isn't answering, so salary-triggered moments can't start yet.",
+    savedLocal: "Not saved: the server isn't answering. Try again in a moment.",
     inflation: (pct, personal, national) => (personal ? `Your inflation: ${pct} (national: ${national}).` : `We use the national inflation, ${pct}, until you tell us how you spend.`),
     invalid: 'Check the amounts: numbers only, no minus.',
     lei: 'lei',
@@ -100,7 +100,7 @@ export function MoneyEditor({ initial, inflation }: { initial: MyMoney; inflatio
   async function save() {
     setBusy(true);
     const out = await saveMyMoney(m, initial.grossMonthly);
-    setStatus({ ok: out.synced, inflation: out.inflationPct !== undefined ? { pct: out.inflationPct, personal: !!out.personal } : undefined });
+    setStatus({ ok: out.saved, inflation: out.inflationPct !== undefined ? { pct: out.inflationPct, personal: !!out.personal } : undefined });
     setBusy(false);
     router.refresh();
   }

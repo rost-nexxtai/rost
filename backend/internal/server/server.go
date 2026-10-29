@@ -7,12 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"mime"
 	"net/http"
 	"time"
 
 	"rost/backend/internal/app"
 	"rost/backend/internal/auth"
 	"rost/backend/internal/config"
+	"rost/backend/internal/mail"
 	"rost/backend/internal/store"
 )
 
@@ -26,6 +28,8 @@ type Deps struct {
 	DB     Pinger
 	Store  store.Store
 	Config config.Config
+	// Mailer sends login links; nil picks one from Config (SMTP or the log).
+	Mailer mail.Mailer
 }
 
 type server struct {
@@ -57,7 +61,16 @@ func New(d Deps) http.Handler {
 	})
 
 	s.routes(mux)
-	return logRequests(d.Logger, mux)
+	// Outermost first: request id, request log, panic recovery, headers, cross-site guard, rate limits.
+	var h http.Handler = mux
+	if !d.Config.RateLimitsOff {
+		h = limitRoutes(newLimiters(time.Now), d.Config.TrustProxy, h)
+	}
+	h = refuseCrossSite(h)
+	h = apiHeaders(h)
+	h = recoverPanics(d.Logger, h)
+	h = logRequests(d.Logger, h)
+	return withRequestID(h)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -77,12 +90,29 @@ func fail(w http.ResponseWriter, status int, msg string) {
 
 // internal logs the error and answers 500 without details.
 func (s *server) internal(w http.ResponseWriter, r *http.Request, err error) {
-	s.Logger.Error("request failed", "method", r.Method, "path", r.URL.Path, "err", err)
+	s.Logger.Error("request failed", "requestId", requestIDFrom(r.Context()), "method", r.Method, "path", r.URL.Path, "err", err)
 	fail(w, http.StatusInternalServerError, "internal error")
 }
 
-// readJSON decodes the request body into v, answering 400 when it isn't valid JSON.
+// readJSON decodes the request body into v. It answers 415 unless the body is sent as
+// application/json, and 400 when it isn't valid JSON. Requiring the type keeps forms and text/plain
+// posts from other sites out even in browsers that don't send Sec-Fetch-Site: a cross-origin page
+// can't send application/json without CORS, which the API never allows.
 func readJSON(w http.ResponseWriter, r *http.Request, v any) bool {
+	if !isJSON(r) {
+		fail(w, http.StatusUnsupportedMediaType, "send the body as application/json")
+		return false
+	}
+	return decodeJSON(w, r, v)
+}
+
+func isJSON(r *http.Request) bool {
+	t, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return err == nil && t == "application/json"
+}
+
+// decodeJSON is readJSON without the type check, for callers that are servers (the referral postback).
+func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(v); err != nil {
 		fail(w, http.StatusBadRequest, "invalid JSON body")
 		return false
@@ -102,11 +132,14 @@ func (r *statusRecorder) WriteHeader(status int) {
 	r.ResponseWriter.WriteHeader(status)
 }
 
+// Unwrap lets http.ResponseController reach the real writer.
+func (r *statusRecorder) Unwrap() http.ResponseWriter { return r.ResponseWriter }
+
 func logRequests(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		logger.Info("request", "method", r.Method, "path", r.URL.Path, "status", rec.status, "duration", time.Since(start))
+		logger.Info("request", "requestId", requestIDFrom(r.Context()), "method", r.Method, "path", r.URL.Path, "status", rec.status, "duration", time.Since(start))
 	})
 }

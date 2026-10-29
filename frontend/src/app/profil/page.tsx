@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ResetButton } from '@/components/ClientActions';
+import { ResetButton, SignOutButton } from '@/components/ClientActions';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icon';
 import { LevelBadge } from '@/components/ui/LevelBadge';
@@ -8,7 +8,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { TabBar } from '@/components/ui/TabBar';
 import { TopBar } from '@/components/ui/TopBar';
 import { SalaryEditor } from '@/components/SalaryEditor';
-import { getProfile, getSalary } from '@/data';
+import { getMe, getProfile, getSalary } from '@/data';
 import { CORE_MOMENTS } from '@/data/mock/scoring';
 import { copy } from '@/i18n/lang';
 import { getLang } from '@/i18n/server';
@@ -35,6 +35,7 @@ const T = copy(
     risk: 'Profil de risc',
     riskNote: 'Pornește de la nivel: începător prudent, mediu echilibrat, avansat dinamic. Dacă ai nevoie de bani în mai puțin de un an, sau nu ai încă un fond de urgență de 3 luni, îl ținem mai prudent.',
     retake: 'Refă testul',
+    account: (email: string) => `Cont salvat: ${email}`,
     demo: 'Demo',
     demoNote: 'Unelte pentru prezentare: evenimente simulate și cifrele instanței.',
     metrics: 'Metrici',
@@ -56,6 +57,7 @@ const T = copy(
     risk: 'Risk profile',
     riskNote: "It starts from your level: beginner cautious, intermediate balanced, advanced adventurous. If you need the money within a year, or don't have a 3-month emergency fund yet, we keep it more cautious.",
     retake: 'Retake the quiz',
+    account: (email) => `Saved account: ${email}`,
     demo: 'Demo',
     demoNote: 'Tools for the presentation: simulated events and this instance’s numbers.',
     metrics: 'Metrics',
@@ -63,7 +65,8 @@ const T = copy(
 );
 
 export default async function Profil() {
-  const [profile, lang, salary] = await Promise.all([getProfile(), getLang(), getSalary()]);
+  const [profile, lang, salary, me] = await Promise.all([getProfile(), getLang(), getSalary(), getMe()]);
+  const email = me && me !== 'down' ? me.user.email : undefined;
   if (!profile) redirect('/quiz');
   const t = T[lang];
   const terms = TERMS[lang];
@@ -151,6 +154,14 @@ export default async function Profil() {
         <Link href="/quiz?retake=1" className="btn btn-secondary btn-block">
           {t.retake}
         </Link>
+        {email && (
+          <>
+            <p className="small muted" style={{ margin: 0, textAlign: 'center' }}>
+              {t.account(email)}
+            </p>
+            <SignOutButton />
+          </>
+        )}
         <ResetButton />
       </div>
 

@@ -5,6 +5,7 @@ import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 import { feel } from '../feel';
+import type { StepAnswer } from '../answers';
 
 const KEYS = 'ABCDE';
 
@@ -26,7 +27,7 @@ export function ChoiceStep({
   options: string[];
   correct: number;
   explain: string;
-  onDone: (correct: boolean) => void;
+  onDone: (correct: boolean, answer: StepAnswer) => void;
 }) {
   const [picked, setPicked] = useState<number>();
   const [crossed, setCrossed] = useState<number[]>([]);
@@ -84,7 +85,7 @@ export function ChoiceStep({
           title={right ? (firstTry ? t.correct : t.secondTry) : t.notQuite}
           body={explain}
           label={t.continue}
-          onClick={() => onDone(right && firstTry)}
+          onClick={() => onDone(right && firstTry, { picked: firstTry ? picked : crossed[0] })}
         />
       ) : phase === 'retry' ? (
         <LessonBar
