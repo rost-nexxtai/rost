@@ -48,7 +48,9 @@ Only the frontend is public. It reaches the API over the stack's internal networ
 | --- | --- |
 | Session, Maria login, triggered moments and the moment player, follow-ups, simulator, clock, calendar, partner view, referral click → mock bank → funded, metrics | **Go API** |
 | Banks and brokers on asset pages and Acasă (real providers, rates checked monthly, links to their official sites) | **Go API** (`/api/providers`) |
-| Quiz, level and risk profile, Acasă, asset text, Știri | Fixtures and mock logic in `frontend/src/data/` (each file names the endpoint that will replace it). The Go API now serves the quiz, profile, library, Momente, Știri and tracking (`/api/quiz`, `/api/me`, `/api/library`, `/api/momente`, `/api/stiri`, `/api/track`); the frontend doesn't call them yet |
+| Quiz (scored on the server), level and risk profile, lessons finished and left halfway, the week's days, "Banii tăi", Știri | **Go API** (`/api/quiz`, `/api/me`, `/api/library/{id}/complete`, `/api/library/{id}/progress`, `/api/stiri`). The profile lives in Postgres, not in a browser cookie, so the app and the bank view read the same user |
+| Payslip, with the personal deduction (art. 77: 20% of the minimum wage, down 0.5 points per 50 lei above it, +15% under 26) and the untaxed 200 lei at the minimum wage | **Go API** (`/api/payslip`, the payslip moment); reading the gross from a photo (`/api/payslip/read`) when `ANTHROPIC_API_KEY` and `PAYSLIP_MODEL` are set |
+| Acasă cards and the Momente roadmap, asset text | Put together in `frontend/src/data/` from the backend's profile and lessons; asset text is a fixture |
 
 Request and response shapes live in `frontend/src/contract.ts` and match the Go handlers' JSON tags in `backend/internal/server`.
 

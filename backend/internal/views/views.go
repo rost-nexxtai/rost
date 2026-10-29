@@ -168,7 +168,7 @@ func Build(u domain.User, payload map[string]any, lang reference.Lang) (MomentVi
 	v.Vars["headline"] = cpi.HeadlinePct
 
 	if u.GrossMonthly != nil {
-		p, err := rules.Payslip(*u.GrossMonthly, 0)
+		p, err := rules.Payslip(*u.GrossMonthly, rules.DeductionFor(u.AgeBand()))
 		if err != nil {
 			return v, err
 		}

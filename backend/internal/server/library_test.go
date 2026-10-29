@@ -340,3 +340,67 @@ func TestCatchUpOnlyWhatCanOpen(t *testing.T) {
 		t.Errorf("maria's catch-ups = %v %v", today["catchUpMomentIds"], today["catchUpNeeds"])
 	}
 }
+
+// The profile lives on the server now: lessons left halfway, the days with a finished lesson and
+// the money lines the user gave, kept across a quiz retake.
+func TestProgressOnTheServer(t *testing.T) {
+	c := &client{t: t, h: testServer(fakeDB{}, config.Config{})}
+	if code, _ := c.do("PUT", "/api/library/fondul_urgenta/progress", `{"step":2,"results":[true],"of":6}`); code != 401 {
+		t.Errorf("progress without a session = %d", code)
+	}
+	if code, _ := c.do("POST", "/api/quiz", quizAllNuStiu); code != 200 {
+		t.Fatalf("quiz = %d", code)
+	}
+
+	code, out := c.do("PUT", "/api/library/fondul_urgenta/progress", `{"step":2,"results":[true],"answers":[{"step":0,"buckets":[0,1,0,1,0]}],"of":6}`)
+	if code != 200 || jsonString(get(out, "profile", "lessonProgress", "fondul_urgenta", "results")) != "[true]" ||
+		jsonString(get(out, "profile", "lessonProgress", "fondul_urgenta", "answers")) != `[{"buckets":[0,1,0,1,0],"step":0}]` {
+		t.Fatalf("progress = %d %v", code, out)
+	}
+	for name, body := range map[string]string{
+		"lesson edited since":        `{"step":2,"results":[true],"of":5}`,
+		"on the first screen":        `{"step":0,"results":[],"of":6}`,
+		"on the finish screen":       `{"step":5,"results":[],"of":6}`,
+		"more results than graded":   `{"step":2,"results":[true,true,true],"of":6}`,
+		"an answer that doesn't fit": `{"step":2,"results":[true],"answers":[{"step":0,"picked":1}],"of":6}`,
+		"an answer from later on":    `{"step":2,"results":[true],"answers":[{"step":3,"picked":0}],"of":6}`,
+	} {
+		if code, _ := c.do("PUT", "/api/library/fondul_urgenta/progress", body); code != 400 {
+			t.Errorf("%s = %d", name, code)
+		}
+	}
+	if code, _ := c.do("PUT", "/api/library/nu_exista/progress", `{"step":1,"of":3}`); code != 404 {
+		t.Errorf("unknown lesson = %d", code)
+	}
+
+	// finishing it, even failed, clears the progress and counts today
+	code, done := c.do("POST", "/api/library/fondul_urgenta/complete", `{"answers":[]}`)
+	if code != 200 || done["passed"] != false {
+		t.Fatalf("complete = %d %v", code, done)
+	}
+	if lp := get(done, "profile", "lessonProgress").(map[string]any); len(lp) != 0 {
+		t.Errorf("progress after finishing = %v", lp)
+	}
+	if days := get(done, "profile", "learnedDays").([]any); len(days) != 1 {
+		t.Errorf("learned days = %v", days)
+	}
+
+	// money lines: a number sets it, null forgets it, and the profile says which are known
+	code, me := c.do("PATCH", "/api/me", `{"moneyLines":{"fuelLei":350,"savedLei":0}}`)
+	if code != 200 || get(me, "profile", "money", "fuelLei") != 350.0 || jsonString(get(me, "profile", "money", "known")) != `["fuelLei","savedLei"]` {
+		t.Fatalf("money lines = %d %v", code, me)
+	}
+	_, me = c.do("PATCH", "/api/me", `{"moneyLines":{"fuelLei":null}}`)
+	if get(me, "profile", "money", "fuelLei") != 0.0 || jsonString(get(me, "profile", "money", "known")) != `["savedLei"]` {
+		t.Errorf("forget fuel = %v", get(me, "profile", "money"))
+	}
+	if code, _ := c.do("PATCH", "/api/me", `{"moneyLines":{"rentLei":1}}`); code != 400 {
+		t.Errorf("unknown line = %d", code)
+	}
+
+	// a retake keeps the lines it doesn't ask and the days; the quiz's fuel (200) is answered again
+	_, again := c.do("POST", "/api/quiz", quizAllNuStiu)
+	if jsonString(get(again, "profile", "money", "known")) != `["savedLei","fuelLei"]` || len(get(again, "profile", "learnedDays").([]any)) != 1 {
+		t.Errorf("after a retake = %v", get(again, "profile"))
+	}
+}

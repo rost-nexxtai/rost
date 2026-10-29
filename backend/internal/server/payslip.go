@@ -12,6 +12,11 @@ import (
 
 var anthropicClient = &http.Client{Timeout: 60 * time.Second}
 
+// GET /api/payslip/read: whether this server can read a payslip photo, so the app only offers it when it can.
+func (s *server) canReadPayslip(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]bool{"available": s.Config.AnthropicAPIKey != "" && s.Config.PayslipModel != ""})
+}
+
 // POST /api/payslip/read: payslip photo -> gross salary. Answers 501 until ANTHROPIC_API_KEY and
 // PAYSLIP_MODEL are set; the app then falls back to a typed-in gross. The image is not stored.
 func (s *server) readPayslip(w http.ResponseWriter, r *http.Request) {

@@ -128,7 +128,9 @@ type QuizProfile struct {
 	FuelLei        float64 `json:"fuelLei"`
 	ElectricityLei float64 `json:"electricityLei"`
 	SavedLei       float64 `json:"savedLei"`
-	TakenAt        string  `json:"takenAt"`
+	// the money lines the user answered (fuelLei, electricityLei, savedLei): an answered 0 is real
+	Known   []string `json:"known,omitempty"`
+	TakenAt string   `json:"takenAt"`
 }
 
 // inflation is personal if we have their spending
@@ -137,6 +139,11 @@ type MoneyLines struct {
 	ElectricityLei float64 `json:"electricityLei"`
 	SavedLei       float64 `json:"savedLei"`
 	InflationPct   float64 `json:"inflationPct"`
+	// lines the user answered; the others are 0 and the app asks for them
+	Known []string `json:"known"`
+	// monthly spending, when the user gave it
+	ExpensesLei       *float64 `json:"expensesLei,omitempty"`
+	InflationPersonal bool     `json:"inflationPersonal"`
 }
 
 // same as Profile in frontend data/types.ts
@@ -153,6 +160,10 @@ type Profile struct {
 	Horizon            string      `json:"horizon"`
 	Money              MoneyLines  `json:"money"`
 	CompletedMomentIDs []string    `json:"completedMomentIds"`
+	// lessons left halfway, by id
+	LessonProgress map[string]LessonProgress `json:"lessonProgress"`
+	// days with a finished lesson, YYYY-MM-DD, oldest first
+	LearnedDays []string `json:"learnedDays"`
 }
 
 // one row per user + moment

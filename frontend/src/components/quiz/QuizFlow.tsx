@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { LessonBar } from '@/components/lesson/LessonBar';
 import { Icon } from '@/components/ui/Icon';
 import { Slider } from '@/components/ui/Slider';
-import { nextLesson, saveQuiz } from '@/data/actions';
+import { nextLesson } from '@/data/actions';
+import type { QuizResponse } from '@/contract';
 import { quizFor } from '@/data/fixtures/quiz';
 import { askQuestion } from '@/data/mock/scoring';
 import { useLang } from '@/i18n/client';
@@ -37,6 +38,8 @@ const T = copy(
     previous: 'Întrebarea anterioară',
     screen: (n: number, of: number) => `Ecranul ${n} din ${of}`,
     preparing: 'Îți pregătim prima lecție…',
+    saveFailed: 'Nu am putut salva răspunsurile: serverul nu răspunde. Mai încearcă o dată.',
+    tryAgain: 'Încearcă din nou',
     gross: 'Cât e salariul tău brut pe lună?',
     grossHint: 'Suma din contract, înainte de taxe. O folosim doar ca să-ți arătăm unde merg banii din el.',
     grossLabel: 'Salariul brut',
@@ -56,6 +59,8 @@ const T = copy(
     previous: 'Previous question',
     screen: (n, of) => `Screen ${n} of ${of}`,
     preparing: 'Getting your first lesson ready…',
+    saveFailed: "We couldn't save your answers: the server isn't answering. Please try again.",
+    tryAgain: 'Try again',
     gross: "What's your gross monthly salary?",
     grossHint: 'The amount in your contract, before tax. We only use it to explain your payslip.',
     grossLabel: 'Gross salary',
@@ -95,6 +100,7 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [tapped, setTapped] = useState<Answer>();
   const [finishing, setFinishing] = useState(false);
+  const [failed, setFailed] = useState<Answer[]>();
   const [result, setResult] = useState<{ profile: Profile; lesson: Awaited<ReturnType<typeof nextLesson>> }>();
   const [gross, setGross] = useState<number>();
   const [askGross, setAskGross] = useState(false);
@@ -114,17 +120,24 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
       expensiveDebt: expensiveDebt as boolean,
       knowledge: knowledge as KnowledgeAnswer[],
     };
-    if (!retake) {
-      // A new user gets a backend session for triggered moments. If the API is down the lessons still
-      // work, and Momente says so itself, so there's nothing to tell the user here.
-      await fetch('/api/users', {
+    setFailed(undefined);
+    try {
+      // A new user starts a new session (someone else may have used this browser); a retake from
+      // Profil keeps theirs, with its lessons and numbers. The backend scores the quiz and, for a
+      // new user, sets the session cookie on this response.
+      if (!retake) await fetch('/api/users', { method: 'DELETE' });
+      const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ situations: [quiz.situation], grossMonthly: gross }),
-      }).catch(() => undefined);
+        body: JSON.stringify({ ...quiz, ...(gross !== undefined && { grossMonthly: gross }) }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const { profile } = (await res.json()) as QuizResponse;
+      setResult({ profile, lesson: await nextLesson(profile) });
+    } catch {
+      setFinishing(false);
+      setFailed(all);
     }
-    const profile = await saveQuiz(quiz, { retake });
-    setResult({ profile, lesson: await nextLesson(profile) });
   }
 
   function pick(value: Answer) {
@@ -229,6 +242,21 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
           ))}
         </div>
         {finishing && <p className="play-hint">{t.preparing}</p>}
+        {failed && (
+          <div className="stack" style={{ gap: 10 }}>
+            <p className="error">{t.saveFailed}</p>
+            <button
+              type="button"
+              className="btn btn-secondary btn-block"
+              onClick={() => {
+                setFinishing(true);
+                void finish(failed);
+              }}
+            >
+              {t.tryAgain}
+            </button>
+          </div>
+        )}
       </fieldset>
     </main>
   );

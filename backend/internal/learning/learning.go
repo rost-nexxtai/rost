@@ -125,7 +125,7 @@ func BuildProfile(u domain.User, completed []string, core map[domain.Level][]str
 		completed = []string{}
 	}
 	level := max(LevelWithMoments(q.Level, core, completed), u.LevelEarned)
-	return &domain.Profile{
+	p := &domain.Profile{
 		Name:      u.Name,
 		QuizScore: q.Score,
 		QuizLevel: q.Level,
@@ -140,22 +140,32 @@ func BuildProfile(u domain.User, completed []string, core map[domain.Level][]str
 		Horizon:       q.Horizon,
 		Money: domain.MoneyLines{
 			FuelLei: q.FuelLei, ElectricityLei: q.ElectricityLei, SavedLei: q.SavedLei, InflationPct: inflationPct,
+			Known: nonNil(q.Known), ExpensesLei: u.MonthlyExpenses, InflationPersonal: u.Spending != nil,
 		},
 		CompletedMomentIDs: completed,
+		LessonProgress:     map[string]domain.LessonProgress{},
+		LearnedDays:        []string{},
 	}
+	if l := u.Learning; l != nil {
+		for id, lp := range l.LessonProgress {
+			p.LessonProgress[id] = lp
+		}
+		p.LearnedDays = nonNil(l.LearnedDays)
+	}
+	return p
+}
+
+func nonNil[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
 }
 
 // ---- library answers ----
 
-// picked for choice, value for predict, buckets for sort (one per item), order for order: the
-// items as the user left them, top to bottom, as indexes into the step's ordered list
-type Answer struct {
-	Step    int      `json:"step"`
-	Picked  *int     `json:"picked,omitempty"`
-	Value   *float64 `json:"value,omitempty"`
-	Buckets []int    `json:"buckets,omitempty"`
-	Order   []int    `json:"order,omitempty"`
-}
+// Answer is one answer in a lesson (domain.LessonAnswer); lessons left halfway keep them too.
+type Answer = domain.LessonAnswer
 
 func num(step domain.LibraryStep, key string) float64 {
 	v, _ := step[key].(float64)

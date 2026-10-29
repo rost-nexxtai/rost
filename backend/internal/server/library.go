@@ -21,6 +21,7 @@ func (s *server) libraryRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/library", s.library)
 	mux.HandleFunc("GET /api/library/{id}", s.libraryMoment)
 	mux.HandleFunc("POST /api/library/{id}/complete", s.completeLibraryMoment)
+	mux.HandleFunc("PUT /api/library/{id}/progress", s.saveLessonProgress)
 
 	mux.HandleFunc("GET /api/momente", s.momente)
 	mux.HandleFunc("GET /api/stiri", s.stiri)
@@ -192,6 +193,31 @@ func (s *server) completeLibraryMoment(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, r, err)
 	default:
 		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+// PUT /api/library/{id}/progress {step, results, of}: where the user left a lesson. Answers with the profile.
+func (s *server) saveLessonProgress(w http.ResponseWriter, r *http.Request) {
+	u, ok := s.user(w, r)
+	if !ok {
+		return
+	}
+	var body domain.LessonProgress
+	if !readJSON(w, r, &body) {
+		return
+	}
+	p, err := s.svc.SaveLessonProgress(r.Context(), u, r.PathValue("id"), body)
+	switch {
+	case isNotFound(err):
+		fail(w, http.StatusNotFound, "not found")
+	case errors.Is(err, app.ErrNotPlayable):
+		fail(w, http.StatusConflict, err.Error())
+	case errors.Is(err, app.ErrBadAnswers):
+		fail(w, http.StatusBadRequest, "step must be a screen inside the lesson, before the finish, of the lesson's length")
+	case err != nil:
+		s.internal(w, r, err)
+	default:
+		writeJSON(w, http.StatusOK, map[string]any{"profile": p})
 	}
 }
 

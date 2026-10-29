@@ -156,6 +156,8 @@ export interface Decision {
 
 export interface PayslipBreakdown {
   gross: number;
+  /** Untaxed part of a minimum wage (200 lei), left out of contributions and tax; 0 above it. */
+  untaxed: number;
   /** Total pension contribution (CAS, 25% of gross). */
   pension: number;
   /** Part of CAS that goes into the employee's own Pillar II account. */
@@ -342,11 +344,49 @@ export interface UpdateMeRequest {
   hireDate?: string;
   monthlyExpenses?: number;
   spendingShares?: CategoryShares;
+  /** A number sets the line (0 is a real answer), null forgets it. */
+  moneyLines?: Partial<Record<'fuelLei' | 'electricityLei' | 'savedLei', number | null>>;
 }
 
 export interface UpdateMeResponse {
   user: User;
+  /** after the quiz */
+  profile?: Profile;
   inflation: UserInflation;
+}
+
+/** One answer in a lesson, as POST /api/library/{id}/complete scores it. */
+export interface LessonAnswer {
+  step: number;
+  /** choice: the first pick */
+  picked?: number;
+  /** predict */
+  value?: number;
+  /** sort: the bucket picked for each item, in the step's order */
+  buckets?: number[];
+  /** order: the items as left, top to bottom, as indexes into the step's list */
+  order?: number[];
+}
+
+/** POST /api/quiz: scored on the server; the session cookie comes back for a new user. */
+export interface QuizResponse {
+  userId: string;
+  profile: Profile;
+}
+
+/** POST /api/library/{id}/complete */
+export interface CompleteLessonResponse {
+  profile: Profile | null;
+  levelUp: boolean;
+  alreadyDone: boolean;
+  correct: number;
+  total: number;
+  passed: boolean;
+}
+
+/** PUT /api/library/{id}/progress */
+export interface LessonProgressResponse {
+  profile: Profile | null;
 }
 
 // ---- Triggers ----

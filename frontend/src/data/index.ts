@@ -1,25 +1,33 @@
 import 'server-only';
-import { cookies } from 'next/headers';
+import { cache } from 'react';
 import type { AllProvidersResponse, AssetProvidersResponse, LibraryMomentResponse, LibraryResponse, MeResponse, PayslipBreakdown, TodayResponse } from '@/contract';
 import { api, apiOrNothing } from '@/lib/api';
-import { parseProfile, PROFILE_COOKIE } from './mock/profile';
 import { getLang } from '@/i18n/server';
-import { assetsFor } from './fixtures/en';
+import { assetsFor, newsInLang } from './fixtures/en';
 import { buildAcasa } from './mock/acasa';
 import { buildMomente } from './mock/momente';
-import { buildStiri } from './mock/stiri';
 import { providerRows } from './providers';
 import { NATIONAL_INFLATION_PCT } from './mock/scoring';
 import type { AcasaResponse, AssetResponse, LibraryMoment, MomenteResponse, Profile, StiriResponse } from './types';
 
 /**
- * The only door screens use to get data. Each function returns a proposed response type
- * (data/types.ts) from fixtures for now; switching to the real API is a change to one body here.
+ * The only door screens use to get data. The user and their profile come from the backend; a few
+ * views (Acasă, the Momente grouping, Știri) are still put together here from it.
  */
 
-/** MOCK: the profile cookie until GET /api/me returns the profile. */
+/** GET /api/me once per request: several screens read both the user and the profile. */
+const me = cache(async (): Promise<MeResponse | undefined | 'down'> => {
+  try {
+    return await apiOrNothing<MeResponse>('/api/me');
+  } catch {
+    return 'down';
+  }
+});
+
+/** The profile the backend built from the quiz, lessons and the user's numbers. Undefined before the quiz, without a session, or with the backend down. */
 export async function getProfile(): Promise<Profile | undefined> {
-  return parseProfile((await cookies()).get(PROFILE_COOKIE)?.value);
+  const m = await me();
+  return m && m !== 'down' ? m.profile : undefined;
 }
 
 /** MOCK until GET /api/acasa; the provider headlines are real (GET /api/providers). */
@@ -84,19 +92,20 @@ export async function getMomente(): Promise<MomenteResponse | undefined> {
   return buildMomente(p, today, library);
 }
 
-/** MOCK until GET /api/stiri. */
+/** GET /api/stiri: the news, ordered by what each costs this user a month, in the visitor's language. */
 export async function getStiri(): Promise<StiriResponse | undefined> {
-  const [p, lang] = await Promise.all([getProfile(), getLang()]);
-  return p && buildStiri(p, lang);
+  const lang = await getLang();
+  try {
+    const out = await apiOrNothing<StiriResponse>('/api/stiri');
+    return out && { ...out, items: out.items.map((n) => newsInLang(n, lang)) };
+  } catch {
+    return undefined;
+  }
 }
 
 /** The backend's record of the user (salary, dates, spending, inflation). `down` when unreachable; undefined without a session. */
 export async function getMe(): Promise<MeResponse | undefined | 'down'> {
-  try {
-    return await apiOrNothing<MeResponse>('/api/me');
-  } catch {
-    return 'down';
-  }
+  return me();
 }
 
 /**
@@ -104,12 +113,12 @@ export async function getMe(): Promise<MeResponse | undefined | 'down'> {
  * `down` when the backend can't be reached; `undefined` without a session.
  */
 export async function getSalary(): Promise<{ gross?: number; lastRaiseDate?: string; payslip?: PayslipBreakdown } | undefined | 'down'> {
+  const m = await me();
+  if (!m || m === 'down') return m;
   try {
-    const me = await apiOrNothing<MeResponse>('/api/me');
-    if (!me) return undefined;
-    const gross = me.user.grossMonthly;
+    const gross = m.user.grossMonthly;
     const payslip = gross ? await api<PayslipBreakdown>(`/api/payslip?gross=${gross}`) : undefined;
-    return { gross, lastRaiseDate: me.user.lastRaiseDate, payslip };
+    return { gross, lastRaiseDate: m.user.lastRaiseDate, payslip };
   } catch {
     return 'down';
   }

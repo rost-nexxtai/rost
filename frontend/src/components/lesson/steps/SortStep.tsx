@@ -6,6 +6,7 @@ import { useLang } from '@/i18n/client';
 import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 import { feel } from '../feel';
+import type { StepAnswer } from '../answers';
 
 /** How far (px) a card has to be swiped to count as an answer. */
 const SWIPE = 80;
@@ -25,9 +26,11 @@ export function SortStep({
   buckets: [string, string];
   items: { label: string; bucket: 0 | 1; why?: string }[];
   explain: string;
-  onDone: (correct: boolean) => void;
+  onDone: (correct: boolean, answer: StepAnswer) => void;
 }) {
   const [i, setI] = useState(0);
+  // the bucket picked for each card, in the step's order, for the server to score
+  const [picks, setPicks] = useState<number[]>([]);
   const [answers, setAnswers] = useState<boolean[]>([]);
   const [flash, setFlash] = useState<'correct' | 'wrong'>();
   const [fly, setFly] = useState<0 | 1>();
@@ -56,6 +59,7 @@ export function SortStep({
     const ok = bucket === item.bucket;
     setDx(0);
     setAnswers((a) => [...a, ok]);
+    setPicks((p) => [...p, bucket]);
     setFlash(ok ? 'correct' : 'wrong');
     if (ok) setFly(bucket);
     feel(ok ? 'right' : 'wrong');
@@ -145,7 +149,7 @@ export function SortStep({
           title={right === items.length ? t.allRight : t.almost}
           body={explain}
           label={t.continue}
-          onClick={() => onDone(right === items.length)}
+          onClick={() => onDone(right === items.length, { buckets: picks })}
         />
       )}
     </>

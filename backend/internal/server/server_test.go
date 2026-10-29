@@ -278,6 +278,13 @@ func TestDemoToolsOff(t *testing.T) {
 	if code, out := c.do("POST", "/api/payslip/read", ""); code != 501 || out["error"] != "not_configured" {
 		t.Errorf("payslip = %d %v", code, out)
 	}
+	if code, out := c.do("GET", "/api/payslip/read", ""); code != 200 || out["available"] != false {
+		t.Errorf("can read payslip = %d %v", code, out)
+	}
+	on := &client{t: t, h: testServer(fakeDB{}, config.Config{AnthropicAPIKey: "k", PayslipModel: "m"})}
+	if _, out := on.do("GET", "/api/payslip/read", ""); out["available"] != true {
+		t.Errorf("configured = %v", out)
+	}
 }
 
 func TestEnglishOverHTTP(t *testing.T) {

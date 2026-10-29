@@ -6,6 +6,7 @@ import { LESSON } from '../copy';
 import { LessonBar } from '../LessonBar';
 import type { Lang } from '@/i18n/lang';
 import { feel } from '../feel';
+import type { StepAnswer } from '../answers';
 import { num } from '@/lib/format';
 
 // Intl writes a hyphen for negatives; a real minus sign reads better at display size.
@@ -59,7 +60,7 @@ export function PredictStep({
   explain?: string;
   /** Real moments record the guess on the server before showing the answer. */
   onCheck?: (value: number) => Promise<void>;
-  onDone: (correct: boolean) => void;
+  onDone: (correct: boolean, answer: StepAnswer) => void;
 }) {
   const [value, setValue] = useState(start ?? min + Math.round((max - min) / 2 / step) * step);
   const [touched, setTouched] = useState(false);
@@ -127,7 +128,7 @@ export function PredictStep({
             </>
           }
           label={t.continue}
-          onClick={() => onDone(close)}
+          onClick={() => onDone(close, { value })}
         />
       ) : (
         <LessonBar

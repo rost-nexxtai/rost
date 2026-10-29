@@ -51,6 +51,7 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/embed", s.embed)
 
 	mux.HandleFunc("GET /api/metrics", s.metrics)
+	mux.HandleFunc("GET /api/payslip/read", s.canReadPayslip)
 	mux.HandleFunc("POST /api/payslip/read", s.readPayslip)
 	mux.HandleFunc("GET /api/payslip", s.payslip)
 	mux.HandleFunc("PUT /api/me/salary", s.setSalary)

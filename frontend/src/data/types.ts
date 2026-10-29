@@ -3,7 +3,7 @@
  * Each one notes the endpoint we're proposing. When the backend team agrees a shape,
  * it moves to src/contract.ts (and the Go handler) and data/index.ts switches to the real call.
  */
-import type { Action, Situation } from '@/contract';
+import type { Action, LessonAnswer, Situation } from '@/contract';
 
 export type { Situation };
 
@@ -31,7 +31,7 @@ export interface MoneyLines {
 
 export type MoneyLine = 'fuelLei' | 'electricityLei' | 'savedLei';
 
-/** proposed: GET /api/me (extend the user with this profile) */
+/** GET /api/me: the user's profile, built by the backend from the quiz, lessons and their numbers. */
 export interface Profile {
   name?: string;
   quizScore: number;
@@ -56,6 +56,8 @@ export interface Profile {
 export interface LessonProgress {
   step: number;
   results: boolean[];
+  /** The answers behind results, so the server scores the whole lesson at the end. */
+  answers?: LessonAnswer[];
   /** How many screens the lesson had, so a lesson edited since starts over. */
   of: number;
 }

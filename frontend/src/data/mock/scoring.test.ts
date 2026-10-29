@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { QUIZ } from '../fixtures/quiz';
 import type { KnowledgeAnswer } from '../types';
 import { PERSONAS } from '../fixtures/personas';
-import { askQuestion, CORE_MOMENTS, entryRoute, foundationFor, levelWithMoments, passed, placeLevel, profileFromQuiz, quizProfile, riskProfile, scoreKnowledge } from './scoring';
+import { askQuestion, CORE_MOMENTS, entryRoute, foundationFor, levelWithMoments, passed, placeLevel, profileFromQuiz, riskProfile, scoreKnowledge } from './scoring';
 
 // The placement cases and the backend's questions: the same files the Go tests read.
 import placement from '../../../../backend/internal/learning/testdata/placement.json';
@@ -114,24 +114,6 @@ describe('onboarding answers that cap risk', () => {
 
   it('lets the same user be dinamic without debt', () => {
     expect(profileFromQuiz({ ...base, expensiveDebt: false }).riskProfile).toBe('dinamic');
-  });
-});
-
-describe('saving a quiz', () => {
-  const answers = { knowledge: correct, ageBand: 'sub_25', situation: 'student', bufferMonths: 0, expensiveDebt: false } as const;
-  const maria = { ...PERSONAS.maria, completedMomentIds: ['fondul_urgenta'] };
-
-  it("starts a new user fresh, without the previous profile's name or progress", () => {
-    const p = quizProfile(answers, maria, { retake: false });
-    expect(p.name).toBeUndefined();
-    expect(p.completedMomentIds).toEqual([]);
-  });
-
-  it('keeps the name, finished lessons and Știri amounts on a retake from Profil', () => {
-    const p = quizProfile(answers, maria, { retake: true });
-    expect(p.name).toBe('Maria');
-    expect(p.completedMomentIds).toEqual(['fondul_urgenta']);
-    expect(p.money).toEqual(maria.money);
   });
 });
 

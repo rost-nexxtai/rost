@@ -96,15 +96,15 @@ func notFound(err error) error {
 
 // ---- users ----
 
-const userCols = `id, name, situations, payday, hire_date, gross_monthly, last_raise_date, monthly_expenses, firsts_done, spending, quiz, level_earned, created_at`
+const userCols = `id, name, situations, payday, hire_date, gross_monthly, last_raise_date, monthly_expenses, firsts_done, spending, quiz, level_earned, created_at, learning`
 
 func (s *Postgres) insertUser(ctx context.Context, db execer, u domain.User, ignoreExisting bool) error {
-	sql := `INSERT INTO users (` + userCols + `) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13)`
+	sql := `INSERT INTO users (` + userCols + `) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14::jsonb)`
 	if ignoreExisting {
 		sql += ` ON CONFLICT (id) DO NOTHING`
 	}
 	_, err := db.Exec(ctx, sql, u.ID, u.Name, jsonb(nonNil(u.Situations)), u.Payday, u.HireDate, u.GrossMonthly, u.LastRaiseDate,
-		u.MonthlyExpenses, jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned, u.CreatedAt)
+		u.MonthlyExpenses, jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned, u.CreatedAt, jsonb(u.Learning))
 	return err
 }
 
@@ -117,9 +117,9 @@ func nonNil[T any](s []T) []T {
 
 func scanUser(row pgx.Row) (domain.User, error) {
 	var u domain.User
-	var situations, firsts, spending, quiz []byte
+	var situations, firsts, spending, quiz, learning []byte
 	var payday *int32
-	err := row.Scan(&u.ID, &u.Name, &situations, &payday, &u.HireDate, &u.GrossMonthly, &u.LastRaiseDate, &u.MonthlyExpenses, &firsts, &spending, &quiz, &u.LevelEarned, &u.CreatedAt)
+	err := row.Scan(&u.ID, &u.Name, &situations, &payday, &u.HireDate, &u.GrossMonthly, &u.LastRaiseDate, &u.MonthlyExpenses, &firsts, &spending, &quiz, &u.LevelEarned, &u.CreatedAt, &learning)
 	if err != nil {
 		return u, notFound(err)
 	}
@@ -145,6 +145,12 @@ func scanUser(row pgx.Row) (domain.User, error) {
 			return u, err
 		}
 	}
+	if learning != nil {
+		u.Learning = &domain.Learning{}
+		if err := unjson(learning, u.Learning); err != nil {
+			return u, err
+		}
+	}
 	return u, nil
 }
 
@@ -162,9 +168,9 @@ func (s *Postgres) GetUser(ctx context.Context, id string) (domain.User, error) 
 
 func (s *Postgres) UpdateUser(ctx context.Context, u domain.User) error {
 	tag, err := s.db.Exec(ctx, `UPDATE users SET name = $2, situations = $3::jsonb, payday = $4, hire_date = $5, gross_monthly = $6,
-		last_raise_date = $7, monthly_expenses = $8, firsts_done = $9::jsonb, spending = $10::jsonb, quiz = $11::jsonb, level_earned = $12 WHERE id = $1`,
+		last_raise_date = $7, monthly_expenses = $8, firsts_done = $9::jsonb, spending = $10::jsonb, quiz = $11::jsonb, level_earned = $12, learning = $13::jsonb WHERE id = $1`,
 		u.ID, u.Name, jsonb(nonNil(u.Situations)), u.Payday, u.HireDate, u.GrossMonthly, u.LastRaiseDate, u.MonthlyExpenses,
-		jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned)
+		jsonb(nonNil(u.FirstsDone)), jsonb(u.Spending), jsonb(u.Quiz), u.LevelEarned, jsonb(u.Learning))
 	if err == nil && tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}

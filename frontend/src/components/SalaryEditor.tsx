@@ -30,6 +30,10 @@ const T = copy(
     open: 'Vezi momentul',
     saved: 'Am salvat. Tot ce vezi în aplicație folosește de acum noul salariu.',
     note: 'Îl ții la zi când primești o mărire sau schimbi jobul. Nu îl arătăm nimănui.',
+    photo: 'Citește suma dintr-o poză',
+    reading: 'Citim poza…',
+    read: (amount: string) => `Am citit ${amount}. Verifică suma înainte să salvezi. Poza nu se păstrează.`,
+    unread: 'Nu am găsit salariul brut în poză. Scrie suma de mai sus.',
   },
   {
     changed: 'My salary changed',
@@ -52,6 +56,10 @@ const T = copy(
     open: 'See the moment',
     saved: 'Saved. Everything in the app now uses your new salary.',
     note: 'Keep it up to date when you get a raise or change jobs. We never show it to anyone.',
+    photo: 'Read it from a photo',
+    reading: 'Reading the photo…',
+    read: (amount) => `We read ${amount}. Check it before you save. The photo isn't kept.`,
+    unread: "We couldn't find the gross salary in the photo. Type the amount above.",
   },
 );
 
@@ -78,6 +86,19 @@ function usePayslip(gross: number) {
   return p;
 }
 
+/** Whether the server can read a payslip photo (it needs a model key); asked once, when the editor opens. */
+function usePhotoReading(open: boolean) {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/payslip/read')
+      .then((r) => (r.ok ? r.json() : { available: false }))
+      .then((out: { available: boolean }) => setAvailable(out.available))
+      .catch(() => undefined);
+  }, [open]);
+  return available;
+}
+
 /**
  * "My salary changed": a slider plus the exact amount, a live preview of the new take-home pay
  * next to the current one, then save. A raise reopens the payslip moment with the new numbers.
@@ -99,6 +120,25 @@ export function SalaryEditor({ current, now: given, compact }: { current?: numbe
   const now = given ?? fetched;
   const valid = gross >= MIN && gross <= MAX;
   const changed = gross !== current;
+  const canRead = usePhotoReading(open);
+  const [photo, setPhoto] = useState<{ busy: boolean; text?: string }>({ busy: false });
+
+  async function readPhoto(file: File) {
+    setPhoto({ busy: true });
+    try {
+      const body = new FormData();
+      body.append('image', file);
+      const res = await fetch('/api/payslip/read', { method: 'POST', body });
+      const out = res.ok ? ((await res.json()) as { grossLei: number | null }) : undefined;
+      const lei = out?.grossLei;
+      if (lei && lei >= MIN && lei <= MAX) {
+        setGross(Math.round(lei));
+        setPhoto({ busy: false, text: t.read(f.lei(Math.round(lei))) });
+      } else setPhoto({ busy: false, text: t.unread });
+    } catch {
+      setPhoto({ busy: false, text: t.unread });
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -167,6 +207,28 @@ export function SalaryEditor({ current, now: given, compact }: { current?: numbe
               aria-invalid={!valid || undefined}
             />
           </label>
+          {canRead && (
+            <label className="btn-text" style={{ alignSelf: 'flex-start', cursor: 'pointer' }}>
+              {photo.busy ? t.reading : t.photo}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                hidden
+                disabled={photo.busy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) void readPhoto(file);
+                }}
+              />
+            </label>
+          )}
+          {photo.text && (
+            <p className="small" role="status" style={{ margin: 0 }}>
+              {photo.text}
+            </p>
+          )}
           {!valid && <p className="small" style={{ color: 'var(--danger)', margin: 0 }}>{t.range}</p>}
           {valid && next && (
             <div className="stack" style={{ gap: 8 }} aria-live="polite">

@@ -25,7 +25,7 @@ type SalaryChange struct {
 // moment, the real-salary line in the inflation moment) reads it when shown, so it follows at
 // once. A raise also gets today's date and reopens the payslip moment, even if it was done.
 func (s Service) SetSalary(ctx context.Context, u domain.User, gross float64) (SalaryChange, error) {
-	payslip, err := rules.Payslip(gross, 0)
+	payslip, err := rules.Payslip(gross, rules.DeductionFor(u.AgeBand()))
 	if err != nil {
 		return SalaryChange{}, err
 	}
