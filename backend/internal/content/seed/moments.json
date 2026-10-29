@@ -735,14 +735,181 @@
     "assetIds": [
       "actiuni"
     ],
-    "steps": [],
-    "takeaways": [],
+    "steps": [
+      {
+        "type": "choice",
+        "question": "Ce primești când cumperi o acțiune?",
+        "options": [
+          "Un împrumut către companie, cu dobândă fixă",
+          "O bucată din companie, fără nicio garanție",
+          "Banii înapoi oricând, cu un câștig mic"
+        ],
+        "correct": 1,
+        "explain": "Devii coproprietar: câștigi dacă firma crește sau plătește dividende, pierzi dacă îi merge rău. Împrumutul cu dobândă fixă e o obligațiune, ca titlurile de stat."
+      },
+      {
+        "type": "predict",
+        "question": "Acțiunea ta scade cu 50%. Cu cât trebuie să crească apoi ca să ajungi de unde ai pornit?",
+        "answerValue": 100,
+        "min": 0,
+        "max": 200,
+        "step": 10,
+        "start": 50,
+        "unit": "%",
+        "explain": "Din 1.000 de lei rămân 500. Ca să ajungă iar la 1.000, cei 500 trebuie să se dubleze: +100%."
+      },
+      {
+        "type": "explore",
+        "title": "Cât durează să revii?",
+        "body": "Alege cât scade acțiunea.",
+        "widget": "recovery"
+      },
+      {
+        "type": "sort",
+        "question": "Ce poate trage în jos prețul acțiunilor tale?",
+        "buckets": [
+          "O singură companie",
+          "Toată piața"
+        ],
+        "items": [
+          {
+            "label": "Directorul pleacă după un scandal",
+            "bucket": 0,
+            "why": "Lovește o singură firmă. Dacă ai sute de companii, abia se simte."
+          },
+          {
+            "label": "O criză financiară în toată lumea",
+            "bucket": 1,
+            "why": "Scad aproape toate acțiunile deodată, ca în 2008."
+          },
+          {
+            "label": "Un produs nou nu se vinde",
+            "bucket": 0,
+            "why": "E problema unei singure firme, nu a pieței."
+          },
+          {
+            "label": "Dobânzile cresc peste tot",
+            "bucket": 1,
+            "why": "Când banii se scumpesc, scad multe acțiuni deodată, ca în 2022."
+          },
+          {
+            "label": "Firma pierde un proces mare",
+            "bucket": 0,
+            "why": "Costă doar firma aceea."
+          },
+          {
+            "label": "O pandemie închide magazinele",
+            "bucket": 1,
+            "why": "În martie 2020 au căzut bursele din toată lumea."
+          }
+        ],
+        "explain": "Riscul unei singure companii îl poți împărți: un ETF ține sute. Riscul pieței întregi rămâne, de el te apără doar timpul."
+      },
+      {
+        "type": "stat",
+        "value": "−80%",
+        "label": "a pierdut bursa de la București (indicele BET) din iulie 2007 până în februarie 2009.",
+        "body": "A revenit la vârful din 2007 abia după 13 ani. O singură companie poate să nu-și mai revină deloc."
+      },
+      {
+        "type": "asset_range",
+        "assetId": "actiuni"
+      },
+      {
+        "type": "finish",
+        "cta": {
+          "label": "Vezi acțiunile",
+          "href": "/active/actiuni"
+        }
+      }
+    ],
+    "takeaways": [
+      "O acțiune e o bucată dintr-o singură companie, fără nicio garanție.",
+      "După o scădere de 50% ai nevoie de o creștere de 100% ca să revii.",
+      "Riscul unei companii îl împarți cu un ETF. Riscul pieței rămâne."
+    ],
     "en": {
       "title": "Shares",
       "hook": "A piece of one company.",
       "series": "Investing",
-      "takeaways": [],
-      "steps": []
+      "takeaways": [
+        "A share is a piece of a single company, with no guarantee.",
+        "After a 50% fall you need a 100% rise to get back.",
+        "An ETF spreads the risk of one company. The risk of the whole market stays."
+      ],
+      "steps": [
+        {
+          "type": "choice",
+          "question": "What do you get when you buy a share?",
+          "options": [
+            "A loan to the company, at a fixed interest rate",
+            "A piece of the company, with no guarantee",
+            "Your money back any time, plus a small gain"
+          ],
+          "explain": "You become a part-owner: you gain if the company grows or pays dividends, and lose if it does badly. A loan at a fixed rate is a bond, like government bonds."
+        },
+        {
+          "type": "predict",
+          "question": "Your share falls by 50%. How much does it then have to rise to get back where you started?",
+          "unit": "%",
+          "explain": "1,000 lei becomes 500. To get back to 1,000, those 500 have to double: +100%."
+        },
+        {
+          "type": "explore",
+          "title": "How long does it take to get back?",
+          "body": "Pick how far the share falls."
+        },
+        {
+          "type": "sort",
+          "question": "What can drag down the price of your shares?",
+          "buckets": [
+            "Just one company",
+            "The whole market"
+          ],
+          "items": [
+            {
+              "label": "The CEO leaves after a scandal",
+              "why": "It hits one company. With hundreds of companies you'd barely notice."
+            },
+            {
+              "label": "A worldwide financial crisis",
+              "why": "Almost all shares fall at once, as in 2008."
+            },
+            {
+              "label": "A new product doesn't sell",
+              "why": "It's one company's problem, not the market's."
+            },
+            {
+              "label": "Interest rates rise everywhere",
+              "why": "When money gets dearer, many shares fall at once, as in 2022."
+            },
+            {
+              "label": "The company loses a big lawsuit",
+              "why": "It only costs that company."
+            },
+            {
+              "label": "A pandemic closes the shops",
+              "why": "In March 2020 stock markets fell all over the world."
+            }
+          ],
+          "explain": "You can spread the risk of a single company: an ETF holds hundreds. The risk of the whole market stays, and only time protects you from it."
+        },
+        {
+          "type": "stat",
+          "value": "−80%",
+          "label": "is what the Bucharest stock exchange (the BET index) lost from July 2007 to February 2009.",
+          "body": "It only got back to its 2007 peak 13 years later. A single company may never recover at all."
+        },
+        {
+          "type": "asset_range"
+        },
+        {
+          "type": "finish",
+          "cta": {
+            "label": "See shares"
+          }
+        }
+      ]
     }
   },
   {
@@ -756,14 +923,173 @@
     "assetIds": [
       "aur"
     ],
-    "steps": [],
-    "takeaways": [],
+    "steps": [
+      {
+        "type": "choice",
+        "question": "Ce îți plătește aurul cât timp îl ții?",
+        "options": [
+          "Dobândă, ca un depozit",
+          "Dividende, ca o acțiune",
+          "Nimic: câștigi doar dacă prețul crește"
+        ],
+        "correct": 2,
+        "explain": "Aurul nu produce nimic. Câștigi doar dacă îl vinzi mai scump decât l-ai cumpărat, iar aurul fizic mai costă și să-l păstrezi."
+      },
+      {
+        "type": "predict",
+        "question": "În iulie 2008, petrolul a ajuns la 147 de dolari pe baril. Cu cât a scăzut prețul până în decembrie?",
+        "answerValue": -76,
+        "acceptRange": [
+          -80,
+          -72
+        ],
+        "min": -100,
+        "max": 0,
+        "step": 1,
+        "start": -20,
+        "unit": "%",
+        "explain": "A ajuns pe la 32–36 de dolari: cam trei sferturi din preț, pierdute în cinci luni. Mărfurile, ca petrolul și metalele, se mișcă brusc, în ambele direcții."
+      },
+      {
+        "type": "explore",
+        "title": "Cine te-a apărat în anii grei?",
+        "body": "Alege un an și compară.",
+        "widget": "market_years"
+      },
+      {
+        "type": "sort",
+        "question": "Motiv bun sau motiv slab să cumperi aur?",
+        "buckets": [
+          "Motiv bun",
+          "Motiv slab"
+        ],
+        "items": [
+          {
+            "label": "Vrei ceva care nu cade odată cu acțiunile",
+            "bucket": 0,
+            "why": "În 2008 acțiunile au pierdut 40%, iar aurul a crescut cu 5%."
+          },
+          {
+            "label": "Ai auzit că aurul nu scade niciodată",
+            "bucket": 1,
+            "why": "În 2013 a pierdut 28%."
+          },
+          {
+            "label": "Vrei un venit lunar din el",
+            "bucket": 1,
+            "why": "Aurul nu plătește dobândă și nici dividende."
+          },
+          {
+            "label": "Îl ții ca o parte mică din investiții",
+            "bucket": 0,
+            "why": "Ca plasă de siguranță, nu ca investiție principală."
+          },
+          {
+            "label": "Ai nevoie de bani peste câteva luni",
+            "bucket": 1,
+            "why": "Prețul poate fi mai mic exact când ai nevoie de ei."
+          },
+          {
+            "label": "Accepți ani în care nu câștigă nimic",
+            "bucket": 0,
+            "why": "Așa e aurul: crește în crize și stă pe loc sau scade în anii liniștiți."
+          }
+        ],
+        "explain": "Aurul e o plasă de siguranță pentru anii grei ai pieței. Nu e un loc pentru bani de cheltuit și nici o sursă de venit."
+      },
+      {
+        "type": "asset_range",
+        "assetId": "aur"
+      },
+      {
+        "type": "finish",
+        "cta": {
+          "label": "Vezi aurul",
+          "href": "/active/aur"
+        }
+      }
+    ],
+    "takeaways": [
+      "Aurul nu plătește nimic: câștigi doar dacă prețul crește.",
+      "A ținut în 2008, dar a pierdut 28% în 2013.",
+      "Mărfurile, ca petrolul, se mișcă și mai brusc: au crescut în 2022 și s-au prăbușit în 2008."
+    ],
     "en": {
       "title": "Gold and commodities",
       "hook": "Protection in a crisis, with no interest.",
       "series": "Investing",
-      "takeaways": [],
-      "steps": []
+      "takeaways": [
+        "Gold pays nothing: you only gain if the price rises.",
+        "It held up in 2008, but lost 28% in 2013.",
+        "Commodities like oil move even more sharply: they rose in 2022 and collapsed in 2008."
+      ],
+      "steps": [
+        {
+          "type": "choice",
+          "question": "What does gold pay you while you hold it?",
+          "options": [
+            "Interest, like a deposit",
+            "Dividends, like a share",
+            "Nothing: you only gain if the price rises"
+          ],
+          "explain": "Gold produces nothing. You only gain if you sell it for more than you paid, and physical gold also costs money to keep."
+        },
+        {
+          "type": "predict",
+          "question": "In July 2008, oil reached $147 a barrel. How far had the price fallen by December?",
+          "unit": "%",
+          "explain": "It got down to about $32–36: roughly three quarters of the price, gone in five months. Commodities like oil and metals move sharply, both ways."
+        },
+        {
+          "type": "explore",
+          "title": "What protected you in the hard years?",
+          "body": "Pick a year and compare."
+        },
+        {
+          "type": "sort",
+          "question": "A good or a weak reason to buy gold?",
+          "buckets": [
+            "Good reason",
+            "Weak reason"
+          ],
+          "items": [
+            {
+              "label": "You want something that doesn't fall with shares",
+              "why": "In 2008 shares lost 40%, while gold rose 5%."
+            },
+            {
+              "label": "You heard gold never goes down",
+              "why": "In 2013 it lost 28%."
+            },
+            {
+              "label": "You want a monthly income from it",
+              "why": "Gold pays no interest and no dividends."
+            },
+            {
+              "label": "You hold it as a small part of your investments",
+              "why": "As a safety net, not as your main investment."
+            },
+            {
+              "label": "You need the money in a few months",
+              "why": "The price may be lower right when you need it."
+            },
+            {
+              "label": "You accept years when it earns nothing",
+              "why": "That's gold: it rises in a crisis and stalls or falls in calm years."
+            }
+          ],
+          "explain": "Gold is a safety net for the market's hard years. It's not a place for money you'll spend, nor a source of income."
+        },
+        {
+          "type": "asset_range"
+        },
+        {
+          "type": "finish",
+          "cta": {
+            "label": "See gold"
+          }
+        }
+      ]
     }
   }
 ]

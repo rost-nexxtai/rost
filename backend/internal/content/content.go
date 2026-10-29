@@ -29,7 +29,7 @@ const (
 )
 
 // widgets from components/lesson/widgets.tsx
-var Widgets = []string{"fund_builder", "compound", "savings_vs_deposit", "diversify", "bonds_vs_deposit"}
+var Widgets = []string{"fund_builder", "compound", "savings_vs_deposit", "diversify", "bonds_vs_deposit", "recovery", "market_years"}
 
 var slug = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{1,63}$`)
 

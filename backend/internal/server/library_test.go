@@ -1,11 +1,13 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
 	"rost/backend/internal/config"
+	"rost/backend/internal/domain"
 )
 
 func jsonString(v any) string {
@@ -48,7 +50,13 @@ func completeL0(c *client) map[string]any {
 
 // quiz -> momente -> lesson -> level up -> stiri
 func TestQuizToLevelUpOverHTTP(t *testing.T) {
-	h, _ := testServerWithStore(fakeDB{}, config.Config{})
+	h, st := testServerWithStore(fakeDB{}, config.Config{})
+	// every seeded lesson is written now, so add one that isn't
+	soon := domain.ContentItem{Kind: domain.KindMoment, ID: "in_curand", Status: domain.StatusPublished, Position: 99, UpdatedBy: "test",
+		Doc: []byte(`{"id":"in_curand","title":"În curând","hook":"H","series":"S","level":2,"core":false,"minutes":4,"assetIds":[],"steps":[],"takeaways":[]}`)}
+	if _, err := st.CreateContent(context.Background(), soon); err != nil {
+		t.Fatal(err)
+	}
 	c := &client{t: t, h: h}
 
 	_, quiz := c.do("GET", "/api/quiz", "")
@@ -91,7 +99,7 @@ func TestQuizToLevelUpOverHTTP(t *testing.T) {
 		t.Errorf("progress = %v", p)
 	}
 
-	if code, _ := c.do("POST", "/api/library/actiuni/complete", ""); code != 409 {
+	if code, _ := c.do("POST", "/api/library/in_curand/complete", ""); code != 409 {
 		t.Errorf("complete a lesson not written yet = %d", code)
 	}
 	if code, _ := c.do("POST", "/api/library/nu_exista/complete", ""); code != 404 {

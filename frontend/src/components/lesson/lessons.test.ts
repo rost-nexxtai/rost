@@ -3,7 +3,7 @@ import { firstLesson } from '@/data/mock/momente';
 import { SEED_LESSONS } from '@/data/fixtures/seed-lessons';
 import { PERSONAS } from '@/data/fixtures/personas';
 import { profileFromQuiz } from '@/data/mock/scoring';
-import { bondsVsDeposit, fundTarget, growth, lossIfOneFails, monthsToGoal, netDepositPct, savingsVsDeposit } from './math';
+import { bondsVsDeposit, fundTarget, growth, lossIfOneFails, MARKET_YEARS, monthsToGoal, netDepositPct, recoveryPct, savingsVsDeposit, yearsToRecover } from './math';
 import { move, shuffled } from './steps/OrderStep';
 import { isClose, verdict } from './steps/PredictStep';
 
@@ -34,6 +34,25 @@ describe('lesson math', () => {
     expect(g.at(-1)!.value).toBe(348_852); // Ana, in the compound-interest lesson
     expect(growth(400, 6, 28).at(-1)!.value).toBe(347_451); // Mihai
     expect(growth(0, 6, 1)).toEqual([{ year: 1, paidIn: 0, value: 0 }]);
+  });
+
+  it('a fall needs a bigger rise to undo it', () => {
+    expect(recoveryPct(50)).toBe(100);
+    expect(recoveryPct(20)).toBeCloseTo(25);
+    expect(recoveryPct(80)).toBeCloseTo(400);
+    expect(recoveryPct(100)).toBe(Infinity);
+    expect(yearsToRecover(50, 7)).toBe(11); // 1.07^10 = 1.97, just short of double
+    expect(yearsToRecover(0, 7)).toBe(0);
+    expect(yearsToRecover(30, 0)).toBe(Infinity);
+  });
+
+  it('has four market years where gold, shares and commodities went different ways', () => {
+    const y = Object.fromEntries(MARKET_YEARS.map((m) => [m.year, m]));
+    expect(y[2008].gold).toBeGreaterThan(0);
+    expect(y[2008].shares).toBeLessThan(0);
+    expect(y[2013].gold).toBeLessThan(0);
+    expect(y[2022].commodities).toBeGreaterThan(0);
+    expect(y[2022].shares).toBeLessThan(0);
   });
 
   it('a guess counts as close within a step or a tenth of the scale', () => {
@@ -72,6 +91,11 @@ describe('library lessons', () => {
 
   it('has the three foundation lessons playable', () => {
     expect(playable.filter((m) => m.level === 0).map((m) => m.id)).toEqual(['fondul_urgenta', 'economii_vs_depozit', 'dobanda_compusa']);
+  });
+
+  it('has every lesson written, up to shares and gold at level 2', () => {
+    expect(playable.length).toBe(SEED_LESSONS.length);
+    expect(playable.filter((m) => m.level === 2).map((m) => m.id)).toEqual(['actiuni', 'aur']);
   });
 
   it.each(playable.map((m) => [m.id, m] as const))('%s is short, well-formed and ends on a finish screen', (_, m) => {

@@ -65,13 +65,13 @@ func TestLevelAndRisk(t *testing.T) {
 var (
 	l0 = []string{"fondul_urgenta", "economii_vs_depozit", "dobanda_compusa"}
 	l1 = []string{"titluri_stat", "etf"}
+	l2 = []string{"actiuni", "aur"}
 )
 
 func TestLevelWithMoments(t *testing.T) {
 	library, _ := seedLibrary(t)
 	core := CoreByLevel(library)
-	// actiuni and aur have no steps yet
-	if !reflect.DeepEqual(core, map[domain.Level][]string{0: l0, 1: l1, 2: {}}) {
+	if !reflect.DeepEqual(core, map[domain.Level][]string{0: l0, 1: l1, 2: l2}) {
 		t.Fatalf("core = %v", core)
 	}
 	if got := LevelWithMoments(0, core, nil); got != 0 {
@@ -163,6 +163,34 @@ func TestScoreAnswers(t *testing.T) {
 	}
 }
 
+// The level-2 lessons: shares (choice, predict, sort) and gold (choice, predict with an accepted range, sort).
+func TestScoreMarketLessons(t *testing.T) {
+	library, _ := seedLibrary(t)
+	byID := map[string]domain.LibraryMoment{}
+	for _, m := range library {
+		byID[m.ID] = m
+	}
+	one, two := 1, 2
+	hundred, oil, oilEdge, oilFar := 100.0, -76.0, -72.0, -40.0
+	cases := []struct {
+		id      string
+		answers []Answer
+		right   int
+	}{
+		{"actiuni", []Answer{{Step: 0, Picked: &one}, {Step: 1, Value: &hundred}, {Step: 3, Buckets: []int{0, 1, 0, 1, 0, 1}}}, 3},
+		{"actiuni", []Answer{{Step: 0, Picked: &two}, {Step: 3, Buckets: []int{1, 1, 0, 1, 0, 1}}}, 0},
+		{"aur", []Answer{{Step: 0, Picked: &two}, {Step: 1, Value: &oil}, {Step: 3, Buckets: []int{0, 1, 1, 0, 1, 0}}}, 3},
+		{"aur", []Answer{{Step: 1, Value: &oilEdge}}, 1},
+		{"aur", []Answer{{Step: 1, Value: &oilFar}}, 0},
+	}
+	for _, c := range cases {
+		correct, total, ok := ScoreAnswers(byID[c.id], c.answers)
+		if !ok || total != 3 || correct != c.right {
+			t.Errorf("%s %v = %d/%d %v, want %d", c.id, c.answers, correct, total, ok, c.right)
+		}
+	}
+}
+
 func TestMomente(t *testing.T) {
 	library, _ := seedLibrary(t)
 	core := CoreByLevel(library)
@@ -187,7 +215,13 @@ func TestMomente(t *testing.T) {
 	if f := m.ForYourLevel[0]; f.Status != "todo" || f.Href != "/moment/lib/titluri_stat" || f.Hook == "" {
 		t.Errorf("first = %+v", f)
 	}
-	if a := m.Rest[0]; a.ID != "actiuni" || a.Status != "soon" || a.Href != "" {
+	if a := m.Rest[0]; a.ID != "actiuni" || a.Status != "todo" || a.Href != "/moment/lib/actiuni" {
+		t.Errorf("above your level = %+v", a)
+	}
+	// a lesson with no steps yet is "în curând", with no link
+	soon := domain.LibraryMoment{ID: "in_curand", Title: "În curând", Level: 2, Minutes: 4, Steps: []domain.LibraryStep{}}
+	withSoon := Momente(*p, append(library, soon), core, state)
+	if a := withSoon.Rest[len(withSoon.Rest)-2]; a.ID != "in_curand" || a.Status != "soon" || a.Href != "" {
 		t.Errorf("soon = %+v", a)
 	}
 	last := m.Rest[len(m.Rest)-1]

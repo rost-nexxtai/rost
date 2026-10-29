@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TodayResponse } from '@/contract';
 import { PERSONAS } from '../fixtures/personas';
 import { SEED_LESSONS } from '../fixtures/seed-lessons';
-import type { Profile } from '../types';
+import type { LibraryMoment, Profile } from '../types';
 import { buildMomente, buildRoadmap, resumable } from './momente';
 
 const today = {
@@ -27,7 +27,9 @@ describe('Momente order', () => {
 
   it('puts lessons you can play above the ones still being written', () => {
     const l2: Profile = { ...PERSONAS.maria, quizLevel: 2, level: 2 };
-    const statuses = buildMomente(l2, today, SEED_LESSONS).forYourLevel.map((x) => x.status);
+    // every seeded lesson is written now, so add one that isn't
+    const soon: LibraryMoment = { id: 'in_curand', title: 'În curând', hook: 'H', series: 'S', level: 2, core: false, minutes: 4, assetIds: [], steps: [], takeaways: [] };
+    const statuses = buildMomente(l2, today, [soon, ...SEED_LESSONS]).forYourLevel.map((x) => x.status);
     expect(statuses.indexOf('soon')).toBeGreaterThan(statuses.lastIndexOf('todo'));
   });
 
@@ -95,7 +97,7 @@ describe('roadmap', () => {
   it('marks done lessons, and lessons above your level as locked', () => {
     const roadmap = buildRoadmap({ ...l0, completedMomentIds: ['fondul_urgenta'] }, SEED_LESSONS);
     const state = Object.fromEntries(roadmap.flatMap((l) => l.nodes).map((n) => [n.id, n.state]));
-    expect(state).toMatchObject({ fondul_urgenta: 'done', economii_vs_depozit: 'current', dobanda_compusa: 'open', etf: 'locked', actiuni: 'soon' });
+    expect(state).toMatchObject({ fondul_urgenta: 'done', economii_vs_depozit: 'current', dobanda_compusa: 'open', etf: 'locked', actiuni: 'locked', aur: 'locked' });
     expect(roadmap[0]).toMatchObject({ coreDone: 1, coreTotal: 3, reached: true });
     expect(roadmap[1].reached).toBe(false);
   });

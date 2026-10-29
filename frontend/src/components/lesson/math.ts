@@ -50,3 +50,24 @@ export function growth(monthly: number, ratePct: number, years: number) {
   }
   return out;
 }
+
+/** How much a price must rise after falling `fallPct`% to get back where it started: 50 → 100. */
+export const recoveryPct = (fallPct: number) => (fallPct >= 100 ? Infinity : (100 / (100 - fallPct) - 1) * 100);
+
+/** Whole years to get back after a fall, growing `ratePct`% a year. */
+export function yearsToRecover(fallPct: number, ratePct: number): number {
+  if (fallPct <= 0) return 0;
+  if (fallPct >= 100 || ratePct <= 0) return Infinity;
+  return Math.ceil(Math.log(100 / (100 - fallPct)) / Math.log(1 + ratePct / 100));
+}
+
+/**
+ * Calendar-year returns in dollars, %: shares = MSCI World (gross), gold = GLD, commodities =
+ * Bloomberg Commodity Index (total return). Four years where they went different ways.
+ */
+export const MARKET_YEARS = [
+  { year: 2008, shares: -40.33, gold: 4.92, commodities: -35.65 },
+  { year: 2013, shares: 27.37, gold: -28.33, commodities: -9.52 },
+  { year: 2020, shares: 16.5, gold: 24.81, commodities: -3.12 },
+  { year: 2022, shares: -17.73, gold: -0.77, commodities: 16.09 },
+] as const;

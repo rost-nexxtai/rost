@@ -5,9 +5,9 @@ import { Slider } from '@/components/ui/Slider';
 import { DEFAULT_EXPENSES_LEI, type FundStart } from '@/data/mock/money';
 import { useLang } from '@/i18n/client';
 import { copy } from '@/i18n/lang';
-import { bondsVsDeposit, fundTarget, growth, LESSON_RATES, lossIfOneFails, monthsToGoal, netDepositPct, savingsVsDeposit } from './math';
+import { bondsVsDeposit, fundTarget, growth, LESSON_RATES, lossIfOneFails, MARKET_YEARS, monthsToGoal, netDepositPct, recoveryPct, savingsVsDeposit, yearsToRecover } from './math';
 
-export type WidgetId = 'fund_builder' | 'compound' | 'savings_vs_deposit' | 'diversify' | 'bonds_vs_deposit';
+export type WidgetId = 'fund_builder' | 'compound' | 'savings_vs_deposit' | 'diversify' | 'bonds_vs_deposit' | 'recovery' | 'market_years';
 
 const T = copy(
   {
@@ -53,6 +53,25 @@ const T = copy(
     depositHigh: (gross: string, net: string) => `Depozit ${gross} brut → ${net} net`,
     bond: (rate: string) => `Tezaur ${rate}, fără impozit`,
     bondWins: ['Într-un an, titlul de stat îți aduce cu ', ' mai mult, deși dobânda afișată e mai mică.'],
+    // Recovery
+    falls: 'Acțiunea scade cu',
+    path: (start: string, low: string) => `${start} → ${low} → ${start}`,
+    toGetBack: 'Ca să revii de unde ai pornit, trebuie să crească cu',
+    fallBar: 'Cât a scăzut',
+    riseBar: 'Cât trebuie să crească',
+    recoverYears: (y: string) => ['Chiar și cu 7% pe an, o creștere bună, îți ia ', y, '.'],
+    // Market years
+    whichYear: 'Anul',
+    yearStory: {
+      2008: 'Criza financiară: aurul a ținut, acțiunile și mărfurile au căzut împreună.',
+      2013: 'Un an liniștit: bursele au crescut, aurul a pierdut mult.',
+      2020: 'Pandemia: aurul a crescut cel mai mult.',
+      2022: 'Inflație mare: mărfurile au crescut odată cu prețurile, acțiunile au scăzut.',
+    } as Record<number, string>,
+    shares: 'Acțiuni',
+    gold: 'Aur',
+    commodities: 'Mărfuri',
+    marketSource: 'Randamente pe an, în dolari. Acțiuni: MSCI World. Aur: GLD. Mărfuri: Bloomberg Commodity Index.',
   },
   {
     months: (n) => (n === Infinity ? 'never' : n === 1 ? '1 month' : `${n} months`),
@@ -92,6 +111,23 @@ const T = copy(
     depositHigh: (gross, net) => `Deposit ${gross} gross → ${net} net`,
     bond: (rate) => `Tezaur ${rate}, tax-free`,
     bondWins: ['In a year, the state bond earns you ', ' more, even though its headline rate is lower.'],
+    falls: 'The share falls by',
+    path: (start, low) => `${start} → ${low} → ${start}`,
+    toGetBack: 'To get back where you started, it has to rise by',
+    fallBar: 'How far it fell',
+    riseBar: 'How far it has to rise',
+    recoverYears: (y) => ['Even at 7% a year, a good rise, it takes you ', y, '.'],
+    whichYear: 'Year',
+    yearStory: {
+      2008: 'The financial crisis: gold held up, shares and commodities fell together.',
+      2013: 'A calm year: stock markets rose, gold lost a lot.',
+      2020: 'The pandemic: gold rose the most.',
+      2022: 'High inflation: commodities rose with prices, shares fell.',
+    },
+    shares: 'Shares',
+    gold: 'Gold',
+    commodities: 'Commodities',
+    marketSource: 'Yearly returns, in dollars. Shares: MSCI World. Gold: GLD. Commodities: Bloomberg Commodity Index.',
   },
 );
 
@@ -303,6 +339,79 @@ function BondsVsDeposit({ onTouch }: { onTouch: () => void }) {
   );
 }
 
+/** A fall needs a bigger rise to undo it: -50% needs +100%, and the years add up. */
+function Recovery({ onTouch }: { onTouch: () => void }) {
+  const { t, f } = useWidget();
+  const touch = useTouch(onTouch);
+  const [fall, setFall] = useState(30);
+  const start = 1000;
+  const years = yearsToRecover(fall, 7);
+  const [before, bold, after] = t.recoverYears(t.years(years));
+  return (
+    <div className="play">
+      <Slider label={t.falls} min={10} max={90} step={5} value={fall} onChange={touch(setFall)} format={(v) => f.pct(v, 0)} />
+      <div className="play-caption money">{t.path(f.lei(start), f.lei(start * (1 - fall / 100)))}</div>
+      <div>
+        <div className="play-caption">{t.toGetBack}</div>
+        <div className="play-big neg">+{f.pct(recoveryPct(fall), 0)}</div>
+      </div>
+      <Bar label={t.fallBar} value={fall} max={recoveryPct(fall)} color="var(--accent)" right={`−${f.pct(fall, 0)}`} />
+      <Bar label={t.riseBar} value={recoveryPct(fall)} max={recoveryPct(fall)} color="var(--primary)" right={`+${f.pct(recoveryPct(fall), 0)}`} />
+      <p className="lesson-text">
+        {before}
+        <strong>{bold}</strong>
+        {after}
+      </p>
+    </div>
+  );
+}
+
+const signedPct = (f: ReturnType<typeof useWidget>['f'], v: number) => (Math.round(v) === 0 ? f.pct(0, 0) : `${v > 0 ? '+' : '−'}${f.pct(Math.abs(v), 0)}`);
+
+/** Shares, gold and commodities in four years that went different ways: no one of them always protects you. */
+function MarketYears({ onTouch }: { onTouch: () => void }) {
+  const { t, f } = useWidget();
+  const touch = useTouch(onTouch);
+  const [year, setYear] = useState<number>(MARKET_YEARS[0].year);
+  const y = MARKET_YEARS.find((m) => m.year === year)!;
+  const rows = [
+    { label: t.shares, v: y.shares },
+    { label: t.gold, v: y.gold },
+    { label: t.commodities, v: y.commodities },
+  ];
+  const max = 45;
+  return (
+    <div className="play">
+      <div className="tiles-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }} role="group" aria-label={t.whichYear}>
+        {MARKET_YEARS.map((m) => (
+          <button key={m.year} type="button" className="tile" style={{ minHeight: 52, padding: 8 }} aria-pressed={year === m.year} onClick={() => touch(setYear)(m.year)}>
+            {m.year}
+          </button>
+        ))}
+      </div>
+      <p className="lesson-text">{t.yearStory[year]}</p>
+      {rows.map((r) => (
+        <div className="hbar" key={r.label}>
+          <div className="row small">
+            <span>{r.label}</span>
+            <strong className={`money ${r.v < 0 ? 'neg' : 'pos'}`}>{signedPct(f, r.v)}</strong>
+          </div>
+          <div className="dbar-track" aria-hidden="true">
+            <div
+              style={{
+                width: `${(Math.min(Math.abs(r.v), max) / max) * 50}%`,
+                left: r.v < 0 ? `${50 - (Math.min(-r.v, max) / max) * 50}%` : '50%',
+                background: r.v < 0 ? 'var(--accent)' : 'var(--primary)',
+              }}
+            />
+          </div>
+        </div>
+      ))}
+      <p className="note">{t.marketSource}</p>
+    </div>
+  );
+}
+
 export function Widget({ id, onTouch, you }: { id: WidgetId; onTouch: () => void; you?: FundStart }) {
   switch (id) {
     case 'fund_builder':
@@ -315,5 +424,9 @@ export function Widget({ id, onTouch, you }: { id: WidgetId; onTouch: () => void
       return <Diversify onTouch={onTouch} />;
     case 'bonds_vs_deposit':
       return <BondsVsDeposit onTouch={onTouch} />;
+    case 'recovery':
+      return <Recovery onTouch={onTouch} />;
+    case 'market_years':
+      return <MarketYears onTouch={onTouch} />;
   }
 }

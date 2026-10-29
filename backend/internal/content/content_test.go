@@ -33,8 +33,7 @@ func TestSeedIsValid(t *testing.T) {
 			playable = append(playable, m.ID)
 		}
 	}
-	// actiuni and aur are still "în curând"
-	if strings.Join(playable, ",") != "fondul_urgenta,economii_vs_depozit,dobanda_compusa,titluri_stat,etf" {
+	if strings.Join(playable, ",") != "fondul_urgenta,economii_vs_depozit,dobanda_compusa,titluri_stat,etf,actiuni,aur" {
 		t.Errorf("playable = %v", playable)
 	}
 }
