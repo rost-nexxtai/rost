@@ -36,7 +36,7 @@ Click **Continuă ca Maria (demo)**. The browser only talks to the Next.js app; 
 `docker-compose.yml` is the production stack. In Dokploy:
 
 1. Create a **Docker Compose** service from this repository, with compose path `./docker-compose.yml`.
-2. In **Environment**, set at least `POSTGRES_PASSWORD` (URL-safe, e.g. `openssl rand -hex 24`). Optional: `ADMIN_EMAIL` and `ADMIN_PASSWORD`, `POSTBACK_SECRET`, `ALLOW_DEMO_TOKEN=true` for a stage demo, `EMBED_FRAME_ANCESTORS` for the partner sites that may frame the bank view. `.env.example` lists them all.
+2. In **Environment**, set at least `POSTGRES_PASSWORD` (URL-safe, e.g. `openssl rand -hex 24`). Optional: `ADMIN_EMAIL` and `ADMIN_PASSWORD`, `POSTBACK_SECRET`, `ALLOW_DEMO_TOKEN=true` for a stage demo, `EMBED_FRAME_ANCESTORS` for the partner sites that may frame the bank view. With `SMTP_HOST` (login emails), set `APP_URL` to the public address, e.g. `https://rost.ro`: the links in the emails point there, and the API won't start with SMTP and no `APP_URL`. `.env.example` lists them all.
 3. In **Domains**, add your domain for service `frontend`, port `3000`, with HTTPS on, and set `HSTS=true` in **Environment**. Point the domain's DNS `A` record at the server.
 4. Deploy. Use **Preview Compose** first to see the labels Dokploy adds.
 
