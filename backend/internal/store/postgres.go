@@ -25,7 +25,7 @@ type Postgres struct{ db *pgxpool.Pool }
 func NewPostgres(db *pgxpool.Pool) *Postgres { return &Postgres{db: db} }
 
 // Migrate applies migrations/*.sql in order, once each, then seeds the demo personas
-// (existing rows are left alone). Safe to run on every start.
+// (existing rows are left alone, except a missing quiz is filled in). Safe to run on every start.
 func (s *Postgres) Migrate(ctx context.Context, seed []domain.User) error {
 	if _, err := s.db.Exec(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())`); err != nil {
 		return fmt.Errorf("migrations table: %w", err)
@@ -62,6 +62,12 @@ func (s *Postgres) Migrate(ctx context.Context, seed []domain.User) error {
 		}
 		if err := s.insertUser(ctx, s.db, u, true); err != nil {
 			return fmt.Errorf("seed %s: %w", u.ID, err)
+		}
+		// a persona seeded before the quiz column gets the seed's quiz; one it already has is kept
+		if u.Quiz != nil {
+			if _, err := s.db.Exec(ctx, `UPDATE users SET quiz = $2::jsonb WHERE id = $1 AND quiz IS NULL`, u.ID, jsonb(u.Quiz)); err != nil {
+				return fmt.Errorf("seed %s quiz: %w", u.ID, err)
+			}
 		}
 	}
 	return nil

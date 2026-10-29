@@ -134,6 +134,19 @@ func TestPostgresContentAdminsTracking(t *testing.T) {
 	if err := s.ResetUsers(ctx, reference.DemoUsers()); err != nil {
 		t.Fatal(err)
 	}
+	// a Maria saved before the quiz column gets her quiz on the next start, and keeps the rest
+	if _, err := pool.Exec(ctx, `UPDATE users SET quiz = NULL, level_earned = 1 WHERE id = 'maria'`); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Migrate(ctx, reference.DemoUsers()); err != nil {
+		t.Fatal(err)
+	}
+	if back, _ := s.GetUser(ctx, "maria"); back.Quiz == nil || back.Quiz.AgeBand != "sub_25" || back.LevelEarned != 1 {
+		t.Errorf("maria after migrate = %+v, level earned %d", back.Quiz, back.LevelEarned)
+	}
+	if err := s.ResetUsers(ctx, reference.DemoUsers()); err != nil {
+		t.Fatal(err)
+	}
 	maria, _ := s.GetUser(ctx, "maria")
 	if maria.Quiz == nil || maria.Quiz.Level != 1 || maria.Quiz.BufferMonths != 0.8 || maria.LevelEarned != 0 {
 		t.Errorf("maria's quiz = %+v, level earned %d", maria.Quiz, maria.LevelEarned)
@@ -142,8 +155,20 @@ func TestPostgresContentAdminsTracking(t *testing.T) {
 	if err := s.UpdateUser(ctx, maria); err != nil {
 		t.Fatal(err)
 	}
-	if back, _ := s.GetUser(ctx, "maria"); back.LevelEarned != 2 {
-		t.Errorf("level earned = %d", back.LevelEarned)
+	if back, _ := s.GetUser(ctx, "maria"); back.LevelEarned != 2 || back.Learning != nil {
+		t.Errorf("level earned = %d, learning %+v", back.LevelEarned, back.Learning)
+	}
+	// lessons left halfway and the days with a lesson come back as saved
+	maria.Learning = &domain.Learning{
+		LessonProgress: map[string]domain.LessonProgress{"etf": {Step: 2, Results: []bool{true}, Answers: []domain.LessonAnswer{{Step: 1, Picked: domain.Ptr(1)}}, Of: 7}},
+		LearnedDays:    []string{"2026-10-28", "2026-10-29"},
+	}
+	if err := s.UpdateUser(ctx, maria); err != nil {
+		t.Fatal(err)
+	}
+	if back, _ := s.GetUser(ctx, "maria"); back.Learning == nil || back.Learning.LessonProgress["etf"].Step != 2 ||
+		*back.Learning.LessonProgress["etf"].Answers[0].Picked != 1 || len(back.Learning.LearnedDays) != 2 {
+		t.Errorf("learning = %+v", back.Learning)
 	}
 
 	// seed only runs once, even after deleting
