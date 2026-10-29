@@ -202,3 +202,24 @@ type AdminSession struct {
 	AdminID   string
 	ExpiresAt string
 }
+
+// ---- user sessions and email login ----
+
+// One signed-in browser. The cookie holds the token; only its hash is kept.
+type Session struct {
+	TokenHash  string `json:"-"`
+	UserID     string `json:"-"`
+	CreatedAt  string `json:"createdAt"`
+	LastSeenAt string `json:"lastSeenAt"`
+	ExpiresAt  string `json:"expiresAt"`
+}
+
+// A one-time email login link. Only the hash of its token is kept.
+type LoginToken struct {
+	TokenHash string
+	Email     string
+	// the session's user when the link was asked for, "" without one
+	UserID    string
+	CreatedAt string
+	ExpiresAt string
+}

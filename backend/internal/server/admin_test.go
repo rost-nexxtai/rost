@@ -12,10 +12,10 @@ import (
 
 const adminPassword = "o-parola-destul-de-lunga"
 
-// fresh server with one admin, not logged in
+// fresh server with one admin, not logged in; demo tools on, so a test can log in as Maria
 func adminClient(t *testing.T) *client {
 	t.Helper()
-	h, st := testServerWithStore(fakeDB{}, config.Config{})
+	h, st := testServerWithStore(fakeDB{}, config.Config{AllowDemoTools: true})
 	if _, err := (app.Service{Store: st}).CreateAdmin(context.Background(), "Admin@Rost.ro", adminPassword); err != nil {
 		t.Fatal(err)
 	}

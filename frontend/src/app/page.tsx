@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { MeResponse } from '@/contract';
@@ -9,6 +10,7 @@ import { getLang } from '@/i18n/server';
 import { getProfile } from '@/data';
 import { entryRoute } from '@/data/mock/scoring';
 import { apiOrNothing } from '@/lib/api';
+import { hasSessionCookie } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,7 @@ const T = copy(
 );
 
 async function hasSession() {
+  if (!hasSessionCookie(await cookies())) return false; // no cookie: no need to ask the backend
   try {
     return Boolean(await apiOrNothing<MeResponse>('/api/me'));
   } catch {

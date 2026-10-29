@@ -13,6 +13,7 @@ import (
 	"rost/backend/internal/app"
 	"rost/backend/internal/auth"
 	"rost/backend/internal/config"
+	"rost/backend/internal/mail"
 	"rost/backend/internal/store"
 )
 
@@ -26,6 +27,8 @@ type Deps struct {
 	DB     Pinger
 	Store  store.Store
 	Config config.Config
+	// Mailer sends login links; nil picks one from Config (SMTP or the log).
+	Mailer mail.Mailer
 }
 
 type server struct {

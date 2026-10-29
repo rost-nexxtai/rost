@@ -53,6 +53,8 @@ export interface User {
   /** never goes down */
   levelEarned: Level;
   createdAt: string;
+  /** lowercase, once the account is tied to an email (POST /api/auth/email) */
+  email?: string;
 }
 
 export interface QuizProfile {
@@ -292,9 +294,23 @@ export interface PublicPartner {
   feeIsExample?: boolean;
 }
 
-// ---- Users and session (cookie `rost_uid`) ----
+// ---- Users and session (cookie `rost_session`, a random token; an old `rost_uid` cookie is swapped for one) ----
 
-/** POST /api/users. Either `{ demo: "maria" }` (demo personas only) or an onboarding profile. */
+/**
+ * DELETE /api/users (Profil → Resetează): erases the account and its data and signs out; a demo persona goes
+ * back to its seed instead. GET /api/me/export: everything kept about the user, as a JSON download.
+ */
+
+/**
+ * POST /api/auth/email `{ email }`: mails a one-time login link (15 minutes). Always 202 `{ ok: true }`, whether
+ * the email has an account or not; 400 for a bad email, 429 after a few a hour. The link, GET /api/auth/verify?token=,
+ * signs in to the email's account, or ties a new email to the account that asked, then redirects to /acasa.
+ */
+export interface EmailLoginRequest {
+  email: string;
+}
+
+/** POST /api/users. Either `{ demo: "maria" }` (demo personas, demo tools only) or an onboarding profile. */
 export interface CreateUserRequest {
   demo?: string;
   name?: string;

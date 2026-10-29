@@ -130,14 +130,21 @@ func (s *server) postQuiz(w http.ResponseWriter, r *http.Request) {
 		fail(w, http.StatusBadRequest, problem)
 		return
 	}
-	userID, _ := currentUserID(r)
+	userID, err := s.sessionUserID(w, r)
+	if err != nil {
+		s.internal(w, r, err)
+		return
+	}
 	out, err := s.svc.SaveQuiz(r.Context(), userID, in)
 	if err != nil {
 		s.internal(w, r, err)
 		return
 	}
 	if out.Created {
-		setUserID(w, out.User.ID)
+		if err := s.startSession(w, r, out.User.ID); err != nil {
+			s.internal(w, r, err)
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"userId": out.User.ID, "profile": out.Profile, "results": out.Results})
 }
@@ -268,7 +275,7 @@ func (s *server) track(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var userID *string
-	if id, ok := currentUserID(r); ok {
+	if id, ok := s.currentUserID(w, r); ok {
 		if _, err := s.Store.GetUser(r.Context(), id); err == nil {
 			userID = &id
 		} else if !isNotFound(err) {

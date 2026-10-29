@@ -44,7 +44,7 @@ func (s *server) payslip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	d := rules.Deduction{Young: r.URL.Query().Get("young") == "true"}
-	if id, ok := currentUserID(r); ok {
+	if id, ok := s.currentUserID(w, r); ok {
 		if u, err := s.Store.GetUser(r.Context(), id); err == nil && u.Quiz != nil {
 			d = rules.DeductionFor(u.AgeBand())
 		}
