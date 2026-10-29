@@ -16,7 +16,7 @@ const T = copy(
     forLevel: 'Pentru nivelul tău',
     later: 'Mai departe',
     laterSub: 'Le poți deschide oricând. Lecțiile lor vin după ce le stăpânești pe cele de mai sus.',
-    note: 'Ordinea e una de învățare, nu o recomandare de investiții. Ratele sunt cele publice ale băncilor și brokerilor, verificate în octombrie 2026; titlurile de stat au dobânzile emisiunii din octombrie. Verifică-le pe site-ul oficial înainte să deschizi ceva.',
+    note: 'Ordinea e una de învățare, nu o recomandare de investiții. Ratele sunt cele publice ale băncilor și brokerilor, cu luna verificării lângă fiecare; titlurile de stat au dobânzile emisiunii din octombrie 2026. Verifică-le pe site-ul oficial înainte să deschizi ceva.',
   },
   {
     hello: (name) => (name ? `Hi, ${name}` : 'Hi'),
@@ -24,7 +24,7 @@ const T = copy(
     forLevel: 'For your level',
     later: 'Next up',
     laterSub: "You can open them any time. Their lessons come after you've got the ones above.",
-    note: "The order is a learning order, not investment advice. Rates are the banks' and brokers' public ones, checked in October 2026; government bonds show the October issue's rates. Check them on the official site before you open anything.",
+    note: "The order is a learning order, not investment advice. Rates are the banks' and brokers' public ones, with the month each was checked next to it; government bonds show the October 2026 issue's rates. Check them on the official site before you open anything.",
   },
 );
 

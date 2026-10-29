@@ -14,6 +14,7 @@ const T = copy(
     months: (n: number) => (n === Infinity ? 'niciodată' : n === 1 ? 'o lună' : n < 20 ? `${n} luni` : `${n} de luni`),
     years: (n: number) => (n === 1 ? '1 an' : n < 20 ? `${n} ani` : `${n} de ani`),
     exampleRates: 'Dobânzi de exemplu.',
+    realRates: 'Dobânzi din octombrie 2026: cel mai bun depozit pe un an din listă și Tezaur pe un an.',
     // Emergency fund
     spend: 'Cheltui pe lună',
     howManyMonths: 'Câte luni acoperă',
@@ -57,6 +58,7 @@ const T = copy(
     months: (n) => (n === Infinity ? 'never' : n === 1 ? '1 month' : `${n} months`),
     years: (n) => (n === 1 ? '1 year' : `${n} years`),
     exampleRates: 'Example rates.',
+    realRates: 'October 2026 rates: the best one-year deposit in the list and one-year Tezaur.',
     spend: 'You spend a month',
     howManyMonths: 'How many months it covers',
     monthsTile: (m) => (m === 6 ? '6 months (unsteady income)' : `${m} months`),
@@ -296,7 +298,7 @@ function BondsVsDeposit({ onTouch }: { onTouch: () => void }) {
         <strong className="pos">{f.lei(r.bond - r.deposit)}</strong>
         {t.bondWins[1]}
       </p>
-      <p className="note">{t.exampleRates}</p>
+      <p className="note">{t.realRates}</p>
     </div>
   );
 }

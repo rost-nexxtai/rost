@@ -21,6 +21,12 @@ export function isClose(guess: number, answer: number, min: number, max: number,
   return Math.abs(guess - answer) <= Math.max(step, (max - min) / 10);
 }
 
+/** How a guess did: on the answer (or inside an accepted range) is right, near it is close. */
+export function verdict(guess: number, answer: number, min: number, max: number, step: number, accept?: [number, number]): 'right' | 'close' | 'wrong' {
+  if (guess === answer || (accept && guess >= accept[0] && guess <= accept[1])) return 'right';
+  return isClose(guess, answer, min, max, step) ? 'close' : 'wrong';
+}
+
 /**
  * Guess first, then see. The slider is the guess; after Verifică the real answer drops onto the
  * same scale next to yours, so the gap is something you see, not just read.
@@ -62,8 +68,8 @@ export function PredictStep({
   const { lang } = useLang();
   const t = LESSON[lang];
   const show = (v: number) => showValue(v, unit, lang);
-  const inRange = !!acceptRange && value >= acceptRange[0] && value <= acceptRange[1];
-  const close = isClose(value, answer, min, max, step, acceptRange);
+  const how = verdict(value, answer, min, max, step, acceptRange);
+  const close = how !== 'wrong';
   const at = (v: number) => `${Math.min(100, Math.max(0, ((v - min) / (max - min)) * 100))}%`;
 
   return (
@@ -114,7 +120,7 @@ export function PredictStep({
       {checked ? (
         <LessonBar
           tone={close ? 'correct' : 'wrong'}
-          title={inRange ? t.correct : close ? t.veryClose : t.theAnswer(show(answer))}
+          title={how === 'right' ? t.correct : how === 'close' ? t.veryClose : t.theAnswer(show(answer))}
           body={
             <>
               {t.youSaid(show(value))} {explain}

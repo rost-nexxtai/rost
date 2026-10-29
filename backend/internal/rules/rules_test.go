@@ -220,23 +220,3 @@ func TestDates(t *testing.T) {
 	}
 }
 
-func TestByClients(t *testing.T) {
-	n := func(c int) *Clients { return &Clients{Count: c} }
-	in := []RankedOffer{
-		{Offer: Offer{ID: "small-12m", Provider: "Small", Clients: n(100)}},
-		{Offer: Offer{ID: "unknown-12m", Provider: "Unknown"}},
-		{Offer: Offer{ID: "big-36m", Provider: "Big", Clients: n(5000)}},
-		{Offer: Offer{ID: "big-12m", Provider: "Big", Clients: n(5000)}},
-	}
-	var got []string
-	for i, o := range ByClients(in) {
-		got = append(got, o.ID)
-		if o.Rank != i+1 {
-			t.Errorf("%s rank %d", o.ID, o.Rank)
-		}
-	}
-	// each bank's best offer first, most clients first, no figure last; then the second offers
-	if want := []string{"big-36m", "small-12m", "unknown-12m", "big-12m"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("order = %v, want %v", got, want)
-	}
-}

@@ -39,7 +39,7 @@ Build one path end to end and fake nothing that a juror can click. Everything si
 
 | Feature | In the MVP | How real |
 | --- | --- | --- |
-| Onboarding quiz: 6 knowledge questions set the level (L0–L2); 5 profile questions (age band, situation, emergency fund, expensive debt, when the money is needed); optional salary and spending mix | Must | Real scoring, unit-tested |
+| Onboarding quiz: up to 4 knowledge questions in two tiers set the level (L0–L2, see [level assessment](docs/level-assessment.md)); profile questions (age band, situation, emergency fund, expensive debt); gross salary for employed users; the rest of the user's numbers in Profil → "Banii tăi" | Must | Real scoring, unit-tested |
 | Acasă: all 6 assets in learning order for the user's level, with "Întâi fundația" on top when the emergency fund is under 3 months | Must | Real |
 | Asset page: what it is, risk, access, 2026 tax; all providers ranked (rate after tax, or cost for brokers); simulation graph; "Vreau să aflu mai multe despre X" | Must | Real formulas; example banks and brokers; Tezaur rates real (October 2026) |
 | Momente: triggered first, then the user's level, then the rest; progress to the next level | Must | Real |
@@ -54,7 +54,7 @@ Build one path end to end and fake nothing that a juror can click. Everything si
 
 **Definition of done, checked at feature freeze:**
 
-- [ ] Two fresh users who score 1 and 6 on the quiz get L0 and L2, and see Acasă in a different order.
+- [ ] Two fresh users, one who misses the basics and one who gets all four questions right, get L0 and L2, and see Acasă in a different order.
 - [ ] A user with under 3 months of emergency fund sees "Întâi fundația" on top, at any level.
 - [ ] No screen says "recomandat pentru tine" next to Fidelis, an ETF, a stock or a commodity.
 - [ ] Every asset page ranks providers the same whether or not they're partners (a unit test proves it).
@@ -71,9 +71,9 @@ Three tabs, one profile. The quiz sets the profile; Acasă and Momente read the 
 
 **Onboarding quiz (about 2 minutes):**
 
-1. Knowledge, 6 questions, "Nu știu" always allowed: inflation and cash, compound interest, one stock vs an index ETF, tax on state bonds, bond prices when rates rise, what an ETF is. Score 0–2 gives L0, 3–4 gives L1, 5–6 gives L2.
+1. Knowledge, up to 4 questions in two tiers, "Nu știu" always allowed: two basics (inflation and cash, compound interest), then two harder ones (one stock vs an ETF, bond prices when rates rise) only for people who got both basics right. Missing either basic gives L0, both basics right gives L1, all four right gives L2. Why: [level assessment](docs/level-assessment.md).
 2. Profile: age band; situation (studying, just graduated, employed, PFA, between jobs); "if your income stopped, how many months could you live on savings?"; expensive debt (credit card, personal loan, buy now pay later); when the money might be needed.
-3. Optional: gross salary, payday and hire date (sets the Pillar II deadline), and a 60-second spending mix for personal inflation and Știri.
+3. "Am un job" adds the gross salary, so the first lesson is the payslip on the user's own salary. Everything else lives in Profil → "Banii tăi" and can change any time: situation (losing the job clears the salary), salary (a raise reopens the payslip moment), payday and hire date (they drive the payday trigger and the Pillar II deadline), monthly spending, savings, fuel, electricity and the spending mix (personal inflation). What the user hasn't given is assumed and marked "presupus".
 
 **Levels:**
 
@@ -83,7 +83,7 @@ Three tabs, one profile. The quiz sets the profile; Acasă and Momente read the 
 | Assets marked "pentru nivelul tău" | Savings account, term deposit | L0 + state bonds (Tezaur, Fidelis), index ETFs | L1 + stocks, gold and commodities |
 | Core moments to move up | Emergency fund, savings vs deposit, compound interest | State bonds, ETFs | Stocks, gold |
 
-**Risk profile** = level + 1 if under 30. A total of 0 is prudent, 1–2 echilibrat, 3 dinamic. Two caps apply:
+**Risk profile** follows the level: L0 prudent, L1 echilibrat, L2 dinamic (the old "+1 under 30" is gone: being young says nothing about knowing what you buy). Two caps apply:
 
 - Money needed within a year: prudent.
 - Emergency fund under 3 months, or expensive debt: at most echilibrat, and "Întâi fundația" shows on Acasă.
@@ -161,7 +161,7 @@ We computed the 10-year figures from the yearly returns on those pages (47 perio
 
 **Event simulator (demo only):** salary received, payslip uploaded, inflation published, a what-if, raise, and a demo clock. Each one writes an event and runs the same trigger code real events will use.
 
-**Partner view:** the bank's app opens Rost with a signed token. The token carries only an age band, the triggering event and spending shares by category, so no customer data reaches us. The action button sends the user back to the bank's own screen.
+**Partner view:** the bank's app opens Rost with a signed token. The token carries no customer identity and no transactions: an age band, the triggering event and spending shares by category, plus, optionally, the amounts the moment needs (salary, monthly spending). Rost computes the moment from them and stores nothing. The action button sends the user back to the bank's own screen.
 
 ## Știri: what the news means for your money
 
@@ -273,7 +273,7 @@ Reference data lives as JSON files in the repo, not in the database, so it's rev
 - Broker cost for an order = max(commission % × amount, minimum commission) + currency spread % × amount. Brokers are ranked by that cost, then name.
 - Simulation = starting amount and monthly amount compounded monthly at the yearly rate, year by year. Run once for fixed products, three times (worst, typical, best) for market assets.
 - Level = the higher of the quiz level and the highest level whose lower-level core moments are all done.
-- Risk profile = level + 1 if under 30 (0 prudent, 1–2 echilibrat, 3 dinamic). Need the money within a year: prudent. Under 3 months of emergency fund or expensive debt: at most echilibrat.
+- Risk profile follows the level (L0 prudent, L1 echilibrat, L2 dinamic). Need the money within a year: prudent. Under 3 months of emergency fund or expensive debt: at most echilibrat.
 
 Every formula gets tests with hand-checked cases, and every number on screen shows its formula and the year of the rules.
 

@@ -22,6 +22,21 @@ const T = copy(
   },
 );
 
+/**
+ * A click to a bank's site is a referral click (POST /api/referrals/clicks): it counts on the
+ * metrics page, and a partner could later report the account as funded. Brokers aren't offers yet.
+ * Fire and forget: the link opens either way.
+ */
+function trackClick(p: RankedProvider) {
+  if (p.netRatePct === undefined) return;
+  void fetch('/api/referrals/clicks', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ offerId: p.id }),
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 /** One real provider: rank, the number that ranks it, its conditions, and a link to its own site. */
 export function ProviderRow({ p, style }: { p: RankedProvider; style?: React.CSSProperties }) {
   const t = T[useLang().lang];
@@ -58,7 +73,7 @@ export function ProviderRow({ p, style }: { p: RankedProvider; style?: React.CSS
             </span>
           )}
           {p.url && (
-            <a href={p.url} target="_blank" rel="noopener noreferrer" className="provider-site" aria-label={t.siteOf(p.name)}>
+            <a href={p.url} target="_blank" rel="noopener noreferrer" className="provider-site" aria-label={t.siteOf(p.name)} onClick={() => trackClick(p)}>
               {t.site} <Icon name="external" size={14} />
             </a>
           )}

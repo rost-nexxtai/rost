@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -210,13 +209,24 @@ func TestProvidersOverHTTP(t *testing.T) {
 	if code != 200 || dep["providerKind"] != "savings" || len(offers) == 0 {
 		t.Fatalf("depozit = %d %v", code, dep)
 	}
-	// best-known bank first (most clients in Romania), with its best rate; the next row is another bank
-	if second := offers[1].(map[string]any); second["provider"] != "BCR" {
-		t.Errorf("second deposit = %v", second)
+	// the public formula: what you keep after tax, best first (MVP plan); the bank's client count is shown, not ranked on
+	for i := 1; i < len(offers); i++ {
+		if prev, cur := offers[i-1].(map[string]any)["netRatePct"].(float64), offers[i].(map[string]any)["netRatePct"].(float64); cur > prev {
+			t.Errorf("deposit %d (%v%%) ranks below a lower rate (%v%%)", i+1, cur, prev)
+		}
 	}
 	first := offers[0].(map[string]any)
-	if first["id"] != "bt-36m" || first["url"] != "https://www.bancatransilvania.ro" || first["isPartner"] != false || first["clients"] == nil {
+	if first["rank"] != 1.0 || first["isPartner"] != false {
 		t.Errorf("first deposit = %v", first)
+	}
+	withClients := 0
+	for _, o := range offers {
+		if o.(map[string]any)["clients"] != nil {
+			withClients++
+		}
+	}
+	if withClients == 0 {
+		t.Error("client counts are no longer shown")
 	}
 	for _, o := range offers {
 		if o.(map[string]any)["id"] == "demo-bank-12m" {
@@ -233,9 +243,11 @@ func TestProvidersOverHTTP(t *testing.T) {
 	for _, b := range brokers {
 		ids = append(ids, b.(map[string]any)["id"])
 	}
-	// the two with a Romanian client count, then the rest cheapest first
-	if want := []any{"tradeville", "bt-capital-partners", "trading212", "xtb", "interactive-brokers"}; !reflect.DeepEqual(ids, want) {
-		t.Errorf("brokers = %v, want %v", ids, want)
+	// cheapest 1,000 lei order first
+	for i := 1; i < len(brokers); i++ {
+		if prev, cur := brokers[i-1].(map[string]any)["costLei"].(float64), brokers[i].(map[string]any)["costLei"].(float64); cur < prev {
+			t.Errorf("broker %v (%v lei) ranks below a dearer one (%v lei)", ids[i], cur, prev)
+		}
 	}
 	if code, _ := c.do("GET", "/api/providers/nope", ""); code != 404 {
 		t.Errorf("unknown asset = %d", code)

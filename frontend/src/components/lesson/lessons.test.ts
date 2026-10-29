@@ -5,7 +5,7 @@ import { PERSONAS } from '@/data/fixtures/personas';
 import { profileFromQuiz } from '@/data/mock/scoring';
 import { bondsVsDeposit, fundTarget, growth, lossIfOneFails, monthsToGoal, netDepositPct, savingsVsDeposit } from './math';
 import { move, shuffled } from './steps/OrderStep';
-import { isClose } from './steps/PredictStep';
+import { isClose, verdict } from './steps/PredictStep';
 
 describe('lesson math', () => {
   it('emergency fund: target and months to get there', () => {
@@ -22,8 +22,8 @@ describe('lesson math', () => {
     expect(savingsVsDeposit(10_000, 12)).toEqual({ savings: 342, deposit: 473 });
   });
 
-  it('a tax-free 7.4% bond beats an 8% deposit after tax', () => {
-    expect(bondsVsDeposit(10_000)).toEqual({ deposit: 720, bond: 740 });
+  it('one-year Tezaur at 6.5% tax-free beats the best 7% deposit after tax (October 2026)', () => {
+    expect(bondsVsDeposit(10_000)).toEqual({ deposit: 630, bond: 650 });
   });
 
   it('diversification and compounding', () => {
@@ -39,6 +39,13 @@ describe('lesson math', () => {
   it('a guess counts as close within a step or a tenth of the scale', () => {
     expect(isClose(4, 3, 0, 12, 1)).toBe(true);
     expect(isClose(6, 3, 0, 12, 1)).toBe(false);
+  });
+
+  it('calls an exact guess right, not "very close"', () => {
+    expect(verdict(2000, 2000, 0, 3000, 50)).toBe('right');
+    expect(verdict(2050, 2000, 0, 3000, 50)).toBe('close');
+    expect(verdict(500, 2000, 0, 3000, 50)).toBe('wrong');
+    expect(verdict(5, 3, 0, 12, 1, [3, 6])).toBe('right');
   });
 
   it('counts any guess inside an accepted range as right', () => {

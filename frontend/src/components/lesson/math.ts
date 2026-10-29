@@ -1,9 +1,9 @@
-// Pure money math behind the lesson widgets. Example rates only; the asset pages hold the ranked offers.
+// Pure money math behind the lesson widgets. The asset pages hold the ranked offers.
 
 const DEPOSIT_TAX = 0.1;
 
-/** Example rates used in the lessons (gross, per year). */
-export const LESSON_RATES = { savingsPct: 3.8, deposit12Pct: 5.25, bondPct: 7.4, depositHighPct: 8 } as const;
+/** Rates used in the lessons (gross, per year): savings and deposit12 are examples; bond and depositHigh are the real October 2026 Tezaur 1 year and best 1-year deposit. */
+export const LESSON_RATES = { savingsPct: 3.8, deposit12Pct: 5.25, bondPct: 6.5, depositHighPct: 7 } as const;
 
 /** Emergency-fund target: monthly expenses × months. */
 export const fundTarget = (monthlyExpenses: number, months: number) => Math.max(0, monthlyExpenses) * months;

@@ -419,8 +419,8 @@ func decodeAll[T any](items []domain.ContentItem) ([]T, error) {
 //go:embed seed
 var seedFiles embed.FS
 
-// bump to seed new stuff into an existing db
-const SeedName = "content-v1"
+// Bump to seed new items into an existing db and refresh the ones no admin has edited since.
+const SeedName = "content-v2"
 
 // the frontend fixtures, all published
 func Seed() ([]domain.ContentItem, error) {

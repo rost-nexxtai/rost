@@ -55,19 +55,12 @@ func (s *Postgres) GetContent(ctx context.Context, kind domain.ContentKind, id s
 	return scanContent(s.db.QueryRow(ctx, `SELECT `+contentCols+` FROM content_items WHERE kind = $1 AND id = $2`, kind, id))
 }
 
-func (s *Postgres) insertContent(ctx context.Context, db execer, c domain.ContentItem, ignoreExisting bool) (domain.ContentItem, error) {
+func (s *Postgres) CreateContent(ctx context.Context, c domain.ContentItem) (domain.ContentItem, error) {
 	now := clock.NowISO()
 	c.CreatedAt, c.UpdatedAt = now, now
-	sql := `INSERT INTO content_items (` + contentCols + `) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)`
-	if ignoreExisting {
-		sql += ` ON CONFLICT DO NOTHING`
-	}
-	_, err := db.Exec(ctx, sql, c.Kind, c.ID, c.Status, c.Position, string(c.Doc), c.CreatedAt, c.UpdatedAt, c.UpdatedBy)
+	_, err := s.db.Exec(ctx, `INSERT INTO content_items (`+contentCols+`) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)`,
+		c.Kind, c.ID, c.Status, c.Position, string(c.Doc), c.CreatedAt, c.UpdatedAt, c.UpdatedBy)
 	return c, conflict(err)
-}
-
-func (s *Postgres) CreateContent(ctx context.Context, c domain.ContentItem) (domain.ContentItem, error) {
-	return s.insertContent(ctx, s.db, c, false)
 }
 
 func (s *Postgres) UpdateContent(ctx context.Context, c domain.ContentItem) (domain.ContentItem, error) {
@@ -93,8 +86,14 @@ func (s *Postgres) SeedContent(ctx context.Context, seedName string, items []dom
 		if err != nil || tag.RowsAffected() == 0 {
 			return err
 		}
+		// New items go in; items nobody edited since an earlier seed get the new version. Anything an
+		// admin touched (updated_by is theirs) stays as they left it.
+		now := clock.NowISO()
 		for _, c := range items {
-			if _, err := s.insertContent(ctx, tx, c, true); err != nil {
+			if _, err := tx.Exec(ctx, `INSERT INTO content_items (`+contentCols+`) VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)
+				ON CONFLICT (kind, id) DO UPDATE SET status = EXCLUDED.status, position = EXCLUDED.position, doc = EXCLUDED.doc, updated_at = EXCLUDED.updated_at
+				WHERE content_items.updated_by = EXCLUDED.updated_by`,
+				c.Kind, c.ID, c.Status, c.Position, string(c.Doc), now, now, c.UpdatedBy); err != nil {
 				return err
 			}
 		}

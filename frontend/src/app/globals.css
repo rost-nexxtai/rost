@@ -314,7 +314,8 @@ legend { font-size: 13px; color: var(--muted); padding: 0; margin-bottom: 8px; }
 .dial-track { position: relative; height: 54px; margin-top: 8px; }
 .dial-track input[type='range'] { position: absolute; inset: 9px 0 auto; }
 .dial-mark {
-  position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px;
+  /* `translate`, not `transform`: the truth mark's rise animation ends on transform: none and would un-centre it */
+  position: absolute; top: 0; translate: -50% 0; display: flex; flex-direction: column; align-items: center; gap: 2px;
   font: 700 12px var(--body); white-space: nowrap; transition: left 600ms var(--ease);
 }
 .dial-mark i { width: 3px; height: 30px; border-radius: 2px; display: block; }
