@@ -63,6 +63,7 @@ func (s *server) routes(mux *http.ServeMux) {
 	s.libraryRoutes(mux)
 	s.adminRoutes(mux)
 	s.authRoutes(mux)
+	s.passwordRoutes(mux)
 }
 
 // ---- users and session ----

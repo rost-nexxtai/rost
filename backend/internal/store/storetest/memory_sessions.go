@@ -34,6 +34,25 @@ func (m *Memory) GetUserByEmail(_ context.Context, email string) (domain.User, e
 	return domain.User{}, store.ErrNotFound
 }
 
+func (m *Memory) PasswordHash(_ context.Context, id string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.users[id]; !ok {
+		return "", store.ErrNotFound
+	}
+	return m.passwords[id], nil
+}
+
+func (m *Memory) SetPasswordHash(_ context.Context, id, hash string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.users[id]; !ok {
+		return store.ErrNotFound
+	}
+	m.passwords[id] = hash
+	return nil
+}
+
 func (m *Memory) SetUserEmail(_ context.Context, id, email string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -56,6 +75,7 @@ func (m *Memory) DeleteUser(_ context.Context, id string) error {
 	if !ok {
 		return store.ErrNotFound
 	}
+	delete(m.passwords, id)
 	for k, r := range m.referrals {
 		if r.UserID != nil && *r.UserID == id {
 			r.UserID = nil

@@ -30,6 +30,9 @@ type Store interface {
 	// SetUserEmail ties an account without an email to one. ErrConflict if another account has this
 	// email or this one has an email already (it is never overwritten).
 	SetUserEmail(ctx context.Context, id, email string) error
+	// PasswordHash is the account's password hash, "" when it has none. ErrNotFound for an unknown user.
+	PasswordHash(ctx context.Context, id string) (string, error)
+	SetPasswordHash(ctx context.Context, id, hash string) error
 	// DeleteUser erases a user and everything they did (events, runs, actions, lessons, sessions,
 	// login links). Referrals and tracking events stay, without the user id. ErrNotFound for an unknown id.
 	DeleteUser(ctx context.Context, id string) error

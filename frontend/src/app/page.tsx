@@ -19,12 +19,14 @@ const T = copy(
     title: 'Banii tăi, pe înțelesul tău.',
     sub: 'Lecții de 3 minute, pe salariul tău și pe știrile care îți mișcă banii. Ghicești, vezi cifrele, faci un pas.',
     start: 'Începe · durează un minut',
+    login: 'Am deja cont',
     note: 'Educație financiară, nu consultanță de investiții. Rost nu îți mută niciodată banii.',
   },
   {
     title: 'Your money, made clear.',
     sub: 'Three-minute lessons on your salary and the news that moves your money. You guess, see the numbers, take one step.',
     start: 'Start · takes a minute',
+    login: 'I have an account',
     note: 'Financial education, not investment advice. Rost never moves your money.',
   },
 );
@@ -66,6 +68,9 @@ export default async function Home() {
           {t.start}
         </Link>
         {demo && <DemoLogin />}
+        <Link href="/intra" className="btn-text" style={{ alignSelf: 'center' }}>
+          {t.login}
+        </Link>
       </div>
       <p className="note" style={{ textAlign: 'center' }}>
         {t.note}

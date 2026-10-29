@@ -54,6 +54,19 @@ func TestPostgresSessionsAndErasure(t *testing.T) {
 	if got, _ := s.GetUser(ctx, ana.ID); *got.Email != email {
 		t.Errorf("ana = %+v", got)
 	}
+	// a password: none until set, kept apart from the user row, unknown user is NotFound
+	if h, err := s.PasswordHash(ctx, ana.ID); h != "" || err != nil {
+		t.Errorf("no password = %q %v", h, err)
+	}
+	if err := s.SetPasswordHash(ctx, ana.ID, "pbkdf2-sha256$1$a$b"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetPasswordHash(ctx, "nobody", "x"); err != store.ErrNotFound {
+		t.Errorf("password for nobody = %v", err)
+	}
+	if _, err := s.PasswordHash(ctx, "nobody"); err != store.ErrNotFound {
+		t.Errorf("hash of nobody = %v", err)
+	}
 	// an update keeps the email
 	ana.Name = domain.Ptr("Ana")
 	if err := s.UpdateUser(ctx, ana); err != nil {
@@ -61,6 +74,9 @@ func TestPostgresSessionsAndErasure(t *testing.T) {
 	}
 	if got, _ := s.GetUser(ctx, ana.ID); got.Email == nil || *got.Email != email {
 		t.Errorf("after update = %+v", got)
+	}
+	if h, _ := s.PasswordHash(ctx, ana.ID); h != "pbkdf2-sha256$1$a$b" {
+		t.Errorf("an update must keep the password, got %q", h)
 	}
 
 	// sessions, by hash; an expired one goes when the next starts

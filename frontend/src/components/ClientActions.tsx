@@ -12,6 +12,7 @@ const T = copy(
     start: 'Începe',
     demoFailed: (e: string) => `Nu am putut porni demo-ul: ${e}`,
     reset: 'Resetează',
+    signOut: 'Ieși din cont',
     weekLater: 'O săptămână mai târziu',
     yes: 'Da, gata',
     notYet: 'Încă nu',
@@ -24,6 +25,7 @@ const T = copy(
     start: 'Start',
     demoFailed: (e) => `Couldn't start the demo: ${e}`,
     reset: 'Reset',
+    signOut: 'Log out',
     weekLater: 'A week later',
     yes: 'Yes, done',
     notYet: 'Not yet',
@@ -82,6 +84,24 @@ export function ResetButton() {
       }}
     >
       {t.reset}
+    </button>
+  );
+}
+
+/** Profil, for a saved account: ends this browser's session only; the account stays, to log back into. */
+export function SignOutButton() {
+  const router = useRouter();
+  const t = T[useLang().lang];
+  return (
+    <button
+      className="btn btn-secondary btn-block"
+      onClick={async () => {
+        await fetch('/api/users', { method: 'DELETE' }).catch(() => undefined);
+        router.push('/');
+        router.refresh();
+      }}
+    >
+      {t.signOut}
     </button>
   );
 }

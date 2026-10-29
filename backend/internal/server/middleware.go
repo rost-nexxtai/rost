@@ -157,6 +157,8 @@ var limitedRoutes = map[string]string{
 	"POST /api/users":            "users",
 	"POST /api/quiz":             "users",
 	"POST /api/auth/email":       "users",
+	"POST /api/auth/register":    "users",
+	"POST /api/auth/login":       "users",
 	"POST /api/me/import":        "users",
 	"POST /api/payslip/read":     "payslip",
 	"POST /api/track":            "track",

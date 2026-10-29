@@ -13,6 +13,7 @@ import { useLang } from '@/i18n/client';
 import { copy, type Lang } from '@/i18n/lang';
 import type { AgeBand, KnowledgeAnswer, Profile, QuizAnswers, Situation } from '@/data/types';
 import { QuizResult } from './QuizResult';
+import { SaveAccountStep } from '@/components/account/SaveAccountStep';
 
 type Answer = string | number | boolean;
 interface Screen {
@@ -107,12 +108,15 @@ export function QuizFlow({ retake = false, hasProfile = false }: { retake?: bool
   // the failure was the API's rate limit (a classroom behind one address), not the server being down
   const [limited, setLimited] = useState(false);
   const [result, setResult] = useState<{ profile: Profile; lesson: Awaited<ReturnType<typeof nextLesson>> }>();
+  // a new user is offered to save the account first (or carry on as a guest); a retake isn't
+  const [offerSave, setOfferSave] = useState(!retake);
   const [gross, setGross] = useState<number>();
   const [askGross, setAskGross] = useState(false);
   const { lang, f } = useLang();
   const t = T[lang];
   const SCREENS = screensFor(lang);
 
+  if (result && offerSave) return <SaveAccountStep onDone={() => setOfferSave(false)} />;
   if (result) return <QuizResult profile={result.profile} lesson={result.lesson} grossMonthly={gross} />;
   const screen = SCREENS[i];
 

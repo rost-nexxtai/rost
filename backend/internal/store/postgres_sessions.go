@@ -28,6 +28,25 @@ func (s *Postgres) SetUserEmail(ctx context.Context, id, email string) error {
 	return ErrConflict
 }
 
+func (s *Postgres) PasswordHash(ctx context.Context, id string) (string, error) {
+	var hash *string
+	if err := s.db.QueryRow(ctx, `SELECT password_hash FROM users WHERE id = $1`, id).Scan(&hash); err != nil {
+		return "", notFound(err)
+	}
+	if hash == nil {
+		return "", nil
+	}
+	return *hash, nil
+}
+
+func (s *Postgres) SetPasswordHash(ctx context.Context, id, hash string) error {
+	tag, err := s.db.Exec(ctx, `UPDATE users SET password_hash = $2 WHERE id = $1`, id, hash)
+	if err == nil && tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return err
+}
+
 func (s *Postgres) DeleteUser(ctx context.Context, id string) error {
 	return pgx.BeginFunc(ctx, s.db, func(tx pgx.Tx) error {
 		for _, sql := range []string{

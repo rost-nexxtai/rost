@@ -29,11 +29,28 @@ var ErrWeakPassword = fmt.Errorf("password must be at least %d characters", MinP
 
 var b64 = base64.RawStdEncoding
 
+// MinUserPasswordLength is for app users' accounts; admins need MinPasswordLength.
+const MinUserPasswordLength = 8
+
+var ErrWeakUserPassword = fmt.Errorf("password must be at least %d characters", MinUserPasswordLength)
+
+// HashUserPassword hashes an app user's password, like HashPassword with a shorter minimum.
+func HashUserPassword(password string) (string, error) {
+	if len([]rune(password)) < MinUserPasswordLength {
+		return "", ErrWeakUserPassword
+	}
+	return hash(password)
+}
+
 // format: pbkdf2-sha256$iter$salt$key
 func HashPassword(password string) (string, error) {
 	if len([]rune(password)) < MinPasswordLength {
 		return "", ErrWeakPassword
 	}
+	return hash(password)
+}
+
+func hash(password string) (string, error) {
 	salt := make([]byte, saltBytes)
 	if _, err := rand.Read(salt); err != nil {
 		return "", err
