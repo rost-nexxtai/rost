@@ -41,15 +41,15 @@ DATABASE_URL='postgres://rost:rost@localhost:5432/rost?sslmode=disable' ALLOW_DE
 | `ANTHROPIC_API_KEY`, `PAYSLIP_MODEL` | empty | Optional payslip photo reading. Without them `/api/payslip/read` answers 501 |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | empty | Both or neither. Create the first admin on start when that email has no account yet. Changing them later does nothing; add more admins with `POST /api/admin/admins` |
 | `TRUST_PROXY` | off (on in `docker-compose.yml`) | `true` when the API is only reachable through a proxy that writes the client's address into `X-Forwarded-For` (Dokploy's Traefik does). Rate limits then key on the right-most public address in it instead of the proxy's. Leave it off when clients can reach the API directly, or they can pick their own address |
-| `RATE_LIMITS` | on | `off` turns off the per-client limits on creating users and quizzes (20 a minute), reading payslip photos (5 per 10 minutes) and tracking and referral clicks (60 a minute). Over a limit the API answers 429 with `Retry-After` |
+| `RATE_LIMITS` | on | `off` turns off the per-client limits on creating users, quizzes, profile imports and login emails (20 a minute), reading payslip photos (5 per 10 minutes) and tracking and referral clicks (60 a minute). Over a limit the API answers 429 with `Retry-After` |
 | `COOKIE_SECURE` | off | `true` marks the session cookie `Secure`. Turn it on when the app is served over HTTPS |
-| `LEGACY_UID_COOKIE` | on | Swaps the old `rost_uid` cookie (the raw user id) for a session on the next visit. Set `false` after one release, and delete `frontend/src/proxy.ts` with it |
-| `APP_URL` | `http://localhost:3000` | Where users open the app; login links in emails point here |
+| `LEGACY_UID_COOKIE` | on | Swaps the old `rost_uid` cookie (the raw user id) for a session on the next visit, once per user and only for users that existed before sessions (`users.legacy_uid`, set by migration 006). Set `false` after one release, with the profile import and the matching parts of `frontend/src/proxy.ts` |
+| `APP_URL` | `http://localhost:3000` | Where users open the app; login links in emails point here. Required with `SMTP_HOST` |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | empty, port `587` | Sending login emails (STARTTLS, or TLS on 465). `MAIL_FROM` is required with `SMTP_HOST`. Without `SMTP_HOST` emails are only logged: with demo tools on the log shows the link, otherwise only that a mail would have gone |
 
 ## Endpoints
 
-App routes are under `/api`; shapes are in `frontend/src/contract.ts`. The session is the `rost_session` cookie: 32 random bytes, HttpOnly, SameSite=Lax. The server keeps only its SHA-256 hash, with an expiry of 90 days that moves (at most once a day) while it's used.
+App routes are under `/api`; shapes are in `frontend/src/contract.ts`. The session is the `rost_session` cookie: 32 random bytes, HttpOnly, SameSite=Lax. The server keeps only its SHA-256 hash, with an expiry of 90 days that moves (at most once a day) while it's used. Pages call the API from the Next server, where a renewed cookie never reaches the browser, so the web app's proxy sets the cookie again (at most once a day) itself. User ids never go to the browser except in `GET /api/me`.
 
 Every response carries an `X-Request-ID` (a sane incoming one is kept), which is also on its log lines, plus `X-Content-Type-Options: nosniff` and `Cache-Control: no-store`. A panic answers 500 and is logged with its stack. A `POST`, `PUT`, `PATCH` or `DELETE` that the browser marks `Sec-Fetch-Site: cross-site` is refused with 403, except the referral postback; requests without the header (servers, the Next.js server) pass.
 
@@ -57,9 +57,11 @@ Every response carries an `X-Request-ID` (a sane incoming one is kept), which is
 | --- | --- |
 | `GET /healthz`, `GET /readyz` | Liveness; readiness (Postgres answers a ping) |
 | `POST /api/users` | Create a user (onboarding) or `{demo:"maria"}` (demo personas, demo tools only); starts a session |
-| `DELETE /api/users` | Profil → Resetează: erase the account and its data, end the session. Referrals and tracking events stay without the user id. A demo persona goes back to its seed instead |
+| `DELETE /api/users` | Sign out: end this session. The account stays |
+| `DELETE /api/me` | Profil → Resetează: erase the account and its data, end the session. Referrals and tracking events stay without the user id. A demo persona goes back to its seed instead |
 | `GET /api/me`, `GET /api/me/export` | The current user; everything kept about them, as a JSON download |
-| `POST /api/auth/email`, `GET /api/auth/verify?token=` | Email login, API only: mail a one-time link (15 minutes, a few per address an hour, always 202); the link signs in to the email's account, or ties a new email to the account that asked for the link, then redirects to `/acasa` |
+| `POST /api/me/import` | The profile an old browser kept in the `rost_profile` cookie (the web app's proxy sends it once): quiz answers, level, money lines, finished lessons (kept as passed, marked `imported`) and the last 14 learned days. Only for a user without a quiz; never overwrites one (409). 400 for a cookie the old app couldn't have written. Without a session it makes the user, like `POST /api/quiz` |
+| `POST /api/auth/email`, `GET /api/auth/verify?token=` | Email login, API only: mail a one-time link (15 minutes, a few per address an hour, 500 a day for the whole server, always 202) and set a `rost_login` nonce cookie. The link works only in the browser that asked: it signs in to the email's account, or ties a new email to the signed-in account that asked (when it has none), or makes a new account with it, then redirects to `/acasa`. In another browser (a mail scanner, a forwarded link) it changes nothing and stays usable |
 | `POST /api/events` | Fire an event: `salary_received`, `inflation_published`, `shock_scenario`, `raise`, `catch_up`, … |
 | `POST /api/calendar` | Run today's computed triggers for the current user |
 | `GET /api/today` | Everything the Today/Momente screen needs |
@@ -72,6 +74,7 @@ Every response carries an `X-Request-ID` (a sane incoming one is kept), which is
 | `GET /api/partner/demo-token`, `GET /api/embed?token=` | Demo partner token; the partner view's data |
 | `GET /api/metrics` | Aggregates only |
 | `POST /api/payslip/read` | Optional payslip photo reader (multipart field `image`); the image is not stored |
+| `GET /api/demo` | `{enabled}`: whether the demo tools are on, so the landing page offers Maria only then |
 | `GET/POST /api/clock`, `POST /api/demo/reset` | Demo tools: move the app clock; reset the demo personas |
 | `GET /api/quiz`, `POST /api/quiz` | Quiz questions (without answers); score the quiz on the server and store the profile. Creates the user when there is no session |
 | `GET /api/library`, `GET /api/library/{id}` | Published library moments, with steps |
@@ -141,4 +144,5 @@ Known limits:
 
 - The personal tax deduction is not applied yet (`rules.PersonalDeductionImplemented = false`), so tax shown for lower salaries is slightly high.
 - Statistics are computed in Go from the rows of the period, which is fine for a hackathon's volume. Move them to SQL aggregates before real traffic.
-- The login rate limit is kept in memory, per instance.
+- The login rate limits are kept in memory, per instance.
+- Writes of a user's row replace the whole row, so two tabs saving different fields at the same moment can lose one of them.

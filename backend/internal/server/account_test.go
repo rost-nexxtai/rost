@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -61,8 +62,10 @@ const onboarding = `{"situations":["student"]}`
 func TestSessionCookie(t *testing.T) {
 	h, st, _ := accountServer(config.Config{CookieSecure: true})
 	c := &client{t: t, h: h}
-	_, out := c.do("POST", "/api/users", onboarding)
-	id := out["userId"].(string)
+	if _, out := c.do("POST", "/api/users", onboarding); len(out) != 1 || out["ok"] != true {
+		t.Errorf("the id stays on the server: %v", out)
+	}
+	id := c.id()
 
 	ck := c.cookies[SessionCookie]
 	if ck == nil || !ck.HttpOnly || !ck.Secure || ck.SameSite != http.SameSiteLaxMode || ck.Path != "/" || ck.MaxAge != 90*24*60*60 {
@@ -88,30 +91,56 @@ func TestSessionCookie(t *testing.T) {
 	}
 	// the quiz starts a session too
 	q := &client{t: t, h: h}
-	if q.do("POST", "/api/quiz", quizAllNuStiu); q.cookies[SessionCookie] == nil || q.cookies[UIDCookie] != nil {
-		t.Errorf("quiz cookies = %v", q.cookies)
+	if _, out := q.do("POST", "/api/quiz", quizAllNuStiu); q.cookies[SessionCookie] == nil || q.cookies[UIDCookie] != nil || out["userId"] != nil {
+		t.Errorf("quiz cookies = %v, answer %v", q.cookies, out)
 	}
 }
 
 func TestLegacyUIDCookie(t *testing.T) {
 	h, st, _ := accountServer(config.Config{LegacyUIDCookie: true, AllowDemoTools: true})
-	c := &client{t: t, h: h, cookies: map[string]*http.Cookie{UIDCookie: {Name: UIDCookie, Value: "maria"}}}
-	if _, out := c.do("GET", "/api/me", ""); get(out, "user", "id") != "maria" {
+	ctx := context.Background()
+	// ana existed before sessions (migration 006 marked her); newer was made after
+	for _, id := range []string{"ana", "newer"} {
+		if _, err := st.CreateUser(ctx, domain.User{ID: id, Situations: []domain.Situation{}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	st.MarkLegacy("ana")
+	withUID := func(id string) *client {
+		return &client{t: t, h: h, cookies: map[string]*http.Cookie{UIDCookie: {Name: UIDCookie, Value: id}}}
+	}
+
+	c := withUID("ana")
+	if _, out := c.do("GET", "/api/me", ""); get(out, "user", "id") != "ana" {
 		t.Fatalf("me = %v", out)
 	}
 	if c.cookies[UIDCookie] != nil || c.cookies[SessionCookie] == nil {
 		t.Fatalf("the old cookie is swapped for a session: %v", c.cookies)
 	}
-	if _, out := c.do("GET", "/api/me", ""); get(out, "user", "id") != "maria" {
+	if _, out := c.do("GET", "/api/me", ""); get(out, "user", "id") != "ana" {
 		t.Errorf("me with the session = %v", out)
 	}
-	if ss, _ := st.ListSessions(context.Background(), "maria"); len(ss) != 1 {
+	if ss, _ := st.ListSessions(ctx, "ana"); len(ss) != 1 {
 		t.Errorf("one session, not one per request: %v", ss)
 	}
+	// once only: the id alone doesn't sign anyone in again
+	if again := withUID("ana"); again.id() != "" || again.cookies[SessionCookie] != nil {
+		t.Errorf("second swap = %v", again.cookies)
+	}
 
-	unknown := &client{t: t, h: h, cookies: map[string]*http.Cookie{UIDCookie: {Name: UIDCookie, Value: "nobody"}}}
-	if code, _ := unknown.do("GET", "/api/me", ""); code != 401 || unknown.cookies[SessionCookie] != nil {
-		t.Errorf("unknown id = %d %v", code, unknown.cookies)
+	// an id is never a password for users made after sessions, nor for unknown ones
+	for _, id := range []string{"newer", "nobody"} {
+		c := withUID(id)
+		if code, _ := c.do("GET", "/api/me", ""); code != 401 || c.cookies[SessionCookie] != nil || c.cookies[UIDCookie] != nil {
+			t.Errorf("%s = %d %v", id, code, c.cookies)
+		}
+	}
+
+	// the shared demo persona, which anyone can enter, with demo tools
+	for range 2 {
+		if c := withUID("maria"); c.id() != "maria" {
+			t.Errorf("maria = %v", c.cookies)
+		}
 	}
 
 	// a demo persona only with demo tools; and with the swap off, the old cookie is only cleared
@@ -135,12 +164,40 @@ func TestDemoPersonaNeedsDemoTools(t *testing.T) {
 	}
 }
 
+func TestSignOutKeepsTheAccount(t *testing.T) {
+	h, st, _ := accountServer(config.Config{})
+	ctx := context.Background()
+	c := &client{t: t, h: h}
+	c.do("POST", "/api/users", `{"situations":["employed"],"grossMonthly":7000}`)
+	id := c.id()
+	c.do("POST", "/api/events", `{"type":"salary_received"}`)
+	token := c.cookies[SessionCookie]
+
+	if code, _ := c.do("DELETE", "/api/users", ""); code != 200 || c.cookies[SessionCookie] != nil {
+		t.Fatalf("sign out = %d %v", code, c.cookies)
+	}
+	if u, err := st.GetUser(ctx, id); err != nil || *u.GrossMonthly != 7000 {
+		t.Errorf("the account stays: %+v %v", u, err)
+	}
+	if evs, _ := st.ListEvents(ctx, id); len(evs) != 1 {
+		t.Errorf("events = %v", evs)
+	}
+	// the session is over on the server too
+	c.cookies[SessionCookie] = token
+	if code, _ := c.do("GET", "/api/me", ""); code != 401 {
+		t.Errorf("me after sign-out = %d", code)
+	}
+	if code, _ := c.do("DELETE", "/api/users", ""); code != 200 {
+		t.Errorf("sign out without a session = %d", code)
+	}
+}
+
 func TestResetErasesTheUser(t *testing.T) {
 	h, st, _ := accountServer(config.Config{})
 	ctx := context.Background()
 	c := &client{t: t, h: h}
-	_, out := c.do("POST", "/api/users", `{"situations":["first_job"],"grossMonthly":6000,"payday":10}`)
-	id := out["userId"].(string)
+	c.do("POST", "/api/users", `{"situations":["first_job"],"grossMonthly":6000,"payday":10}`)
+	id := c.id()
 	c.do("POST", "/api/events", `{"type":"salary_received"}`)
 	if _, err := st.CreateRun(ctx, domain.MomentRun{UserID: id, MomentID: "payslip_explained", State: domain.RunPending}); err != nil {
 		t.Fatal(err)
@@ -149,7 +206,7 @@ func TestResetErasesTheUser(t *testing.T) {
 	c.do("POST", "/api/track", `{"events":[{"name":"page_view","path":"/acasa"}]}`)
 	token := c.cookies[SessionCookie]
 
-	if code, _ := c.do("DELETE", "/api/users", ""); code != 200 || c.cookies[SessionCookie] != nil {
+	if code, _ := c.do("DELETE", "/api/me", ""); code != 200 || c.cookies[SessionCookie] != nil {
 		t.Fatalf("reset = %d %v", code, c.cookies)
 	}
 	if _, err := st.GetUser(ctx, id); err != store.ErrNotFound {
@@ -169,7 +226,7 @@ func TestResetErasesTheUser(t *testing.T) {
 	if code, _ := c.do("GET", "/api/me", ""); code != 401 {
 		t.Errorf("me after reset = %d", code)
 	}
-	if code, _ := c.do("DELETE", "/api/users", ""); code != 200 {
+	if code, _ := c.do("DELETE", "/api/me", ""); code != 200 {
 		t.Errorf("reset without a session = %d", code)
 	}
 }
@@ -183,7 +240,7 @@ func TestResetPutsTheDemoPersonaBack(t *testing.T) {
 	a.do("POST", "/api/events", `{"type":"salary_received"}`)
 	a.do("PUT", "/api/me/salary", `{"grossMonthly":9000}`)
 
-	if code, _ := a.do("DELETE", "/api/users", ""); code != 200 {
+	if code, _ := a.do("DELETE", "/api/me", ""); code != 200 {
 		t.Fatalf("reset = %d", code)
 	}
 	if u, err := st.GetUser(ctx, "maria"); err != nil || *u.GrossMonthly != 6000 {
@@ -206,9 +263,10 @@ func TestExportOverHTTP(t *testing.T) {
 	if code, _ := c.do("GET", "/api/me/export", ""); code != 401 {
 		t.Errorf("export without a session = %d", code)
 	}
-	_, out := c.do("POST", "/api/users", `{"situations":["first_job"],"grossMonthly":6000,"payday":10}`)
+	c.do("POST", "/api/users", `{"situations":["first_job"],"grossMonthly":6000,"payday":10}`)
+	id := c.id()
 	c.do("POST", "/api/events", `{"type":"salary_received"}`)
-	if _, err := st.CreateRun(context.Background(), domain.MomentRun{UserID: out["userId"].(string), MomentID: "payslip_explained", State: domain.RunPending}); err != nil {
+	if _, err := st.CreateRun(context.Background(), domain.MomentRun{UserID: id, MomentID: "payslip_explained", State: domain.RunPending}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -217,7 +275,7 @@ func TestExportOverHTTP(t *testing.T) {
 		t.Fatalf("export = %d %v", rec.Code, rec.Header())
 	}
 	_, ex := c.do("GET", "/api/me/export", "")
-	if get(ex, "user", "id") != out["userId"] || len(ex["events"].([]any)) != 1 || len(ex["momentRuns"].([]any)) == 0 {
+	if get(ex, "user", "id") != id || len(ex["events"].([]any)) != 1 || len(ex["momentRuns"].([]any)) == 0 {
 		t.Errorf("export = %v", ex)
 	}
 	sessions := ex["sessions"].([]any)
@@ -227,33 +285,52 @@ func TestExportOverHTTP(t *testing.T) {
 }
 
 func TestEmailLogin(t *testing.T) {
-	h, st, box := accountServer(config.Config{})
+	h, st, box := accountServer(config.Config{CookieSecure: true})
 	ctx := context.Background()
 	laptop := &client{t: t, h: h}
-	_, out := laptop.do("POST", "/api/users", onboarding)
-	id := out["userId"].(string)
+	laptop.do("POST", "/api/users", onboarding)
+	id := laptop.id()
 	token := laptop.cookies[SessionCookie].Value
 
 	if code, _ := laptop.do("POST", "/api/auth/email", `{"email":"nope"}`); code != 400 {
 		t.Errorf("bad email = %d", code)
 	}
 
-	// a new email goes to the account that asked; the session stays
+	// asking sets a nonce in this browser; the link works only with it
 	code, known := laptop.do("POST", "/api/auth/email", `{"email":" Ana@Example.RO"}`)
 	if code != 202 || box.sent[0].To != "ana@example.ro" {
 		t.Fatalf("ask = %d %v", code, box.sent)
 	}
+	nonce := laptop.cookies[LoginCookie]
+	if nonce == nil || !nonce.HttpOnly || !nonce.Secure || nonce.SameSite != http.SameSiteLaxMode || nonce.MaxAge != 15*60 {
+		t.Fatalf("nonce cookie = %+v", nonce)
+	}
 	link := box.link(t)
+
+	// opened in another browser (or by a mail scanner): nothing happens, and the link still works here
+	phone := &client{t: t, h: h}
+	if rec := phone.send("GET", link, ""); rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/acasa" || len(phone.cookies) != 0 {
+		t.Fatalf("other browser = %d %v %v", rec.Code, rec.Header(), phone.cookies)
+	}
+	if u, _ := st.GetUser(ctx, id); u.Email != nil {
+		t.Fatalf("another browser attached the email: %+v", u)
+	}
+
+	// a new email goes to the account that asked, in the browser that asked; the session stays
 	rec := laptop.send("GET", link, "")
 	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/acasa" || laptop.cookies[SessionCookie].Value != token {
 		t.Fatalf("verify = %d %v %v", rec.Code, rec.Header(), laptop.cookies)
 	}
+	if laptop.cookies[LoginCookie] != nil {
+		t.Error("the nonce is cleared after use")
+	}
 	if _, me := laptop.do("GET", "/api/me", ""); get(me, "user", "email") != "ana@example.ro" {
 		t.Errorf("me = %v", me)
 	}
-	// once only
-	if rec := laptop.send("GET", link, ""); rec.Code != 400 {
-		t.Errorf("reused link = %d", rec.Code)
+	// once only: a used link changes nothing
+	laptop.cookies[LoginCookie] = nonce
+	if rec := laptop.send("GET", link, ""); rec.Code != http.StatusSeeOther || laptop.cookies[SessionCookie].Value != token {
+		t.Errorf("reused link = %d %v", rec.Code, laptop.cookies)
 	}
 
 	// the same answer for an email nobody has
@@ -261,28 +338,30 @@ func TestEmailLogin(t *testing.T) {
 		t.Errorf("unknown email = %d %v, known = %v", code, unknown, known)
 	}
 
-	// another device logs in to the same account
-	phone := &client{t: t, h: h}
+	// another device logs in to the same account, with a link it asked for
 	phone.do("POST", "/api/auth/email", `{"email":"ana@example.ro"}`)
 	if rec := phone.send("GET", box.link(t), ""); rec.Code != http.StatusSeeOther || phone.cookies[SessionCookie] == nil {
 		t.Fatalf("phone verify = %d %v", rec.Code, phone.cookies)
 	}
-	if _, me := phone.do("GET", "/api/me", ""); get(me, "user", "id") != id {
-		t.Errorf("phone = %v", me)
+	if phone.id() != id {
+		t.Errorf("phone = %v", phone.id())
 	}
 
-	// a link someone else asked for never gives their email to your account
-	stranger := &client{t: t, h: h}
-	stranger.do("POST", "/api/auth/email", `{"email":"eve@example.ro"}`)
+	// an account with an email keeps it: another address gets an account of its own
+	laptop.do("POST", "/api/auth/email", `{"email":"ana.work@example.ro"}`)
 	laptop.send("GET", box.link(t), "")
 	if u, _ := st.GetUser(ctx, id); *u.Email != "ana@example.ro" {
 		t.Errorf("ana = %+v", u)
 	}
-	if eve, err := st.GetUserByEmail(ctx, "eve@example.ro"); err != nil || eve.ID == id {
-		t.Errorf("eve = %+v %v", eve, err)
+	if other := laptop.id(); other == id || other == "" {
+		t.Errorf("second email = %q", other)
+	}
+	if u, err := st.GetUserByEmail(ctx, "ana.work@example.ro"); err != nil || u.ID == id {
+		t.Errorf("ana.work = %+v %v", u, err)
 	}
 
 	// a few mails per address an hour
+	stranger := &client{t: t, h: h}
 	codes := []int{}
 	for range loginMailsPerHour {
 		code, _ := stranger.do("POST", "/api/auth/email", `{"email":"busy@example.ro"}`)
@@ -290,6 +369,72 @@ func TestEmailLogin(t *testing.T) {
 	}
 	if code, _ := stranger.do("POST", "/api/auth/email", `{"email":"BUSY@example.ro"}`); code != 429 {
 		t.Errorf("after %v: %d", codes, code)
+	}
+}
+
+// An attacker asks for a link with the victim's email: the victim opening it gets nothing from the
+// attacker's account, and the attacker's account never gets the victim's email.
+func TestEmailLoginNoTakeover(t *testing.T) {
+	h, st, box := accountServer(config.Config{})
+	ctx := context.Background()
+	eve, victim := &client{t: t, h: h}, &client{t: t, h: h}
+	eve.do("POST", "/api/users", onboarding)
+	victim.do("POST", "/api/users", onboarding)
+	eveID, victimID, victimToken := eve.id(), victim.id(), victim.cookies[SessionCookie].Value
+
+	eve.do("POST", "/api/auth/email", `{"email":"victim@example.ro"}`)
+	if rec := victim.send("GET", box.link(t), ""); rec.Code != http.StatusSeeOther || victim.cookies[SessionCookie].Value != victimToken {
+		t.Fatalf("victim = %d %v", rec.Code, victim.cookies)
+	}
+	if victim.id() != victimID {
+		t.Error("the victim was signed in to another account")
+	}
+	if u, _ := st.GetUser(ctx, eveID); u.Email != nil {
+		t.Errorf("eve's account got the victim's email: %+v", u)
+	}
+	if _, err := st.GetUserByEmail(ctx, "victim@example.ro"); err == nil {
+		t.Error("an account has the victim's email")
+	}
+}
+
+// Login CSRF: the attacker sends the victim a link for the attacker's own account. The victim's
+// session is left alone.
+func TestEmailLoginNoCSRF(t *testing.T) {
+	h, st, box := accountServer(config.Config{})
+	ctx := context.Background()
+	eve, victim := &client{t: t, h: h}, &client{t: t, h: h}
+	eve.do("POST", "/api/users", onboarding)
+	eve.do("POST", "/api/auth/email", `{"email":"eve@example.ro"}`)
+	eve.send("GET", box.link(t), "")
+	eveID := eve.id()
+	if u, err := st.GetUserByEmail(ctx, "eve@example.ro"); err != nil || u.ID != eveID {
+		t.Fatalf("eve = %+v %v", u, err)
+	}
+
+	victim.do("POST", "/api/users", onboarding)
+	victimID, victimToken := victim.id(), victim.cookies[SessionCookie].Value
+	eve.do("POST", "/api/auth/email", `{"email":"eve@example.ro"}`)
+	if rec := victim.send("GET", box.link(t), ""); rec.Code != http.StatusSeeOther || victim.cookies[SessionCookie].Value != victimToken {
+		t.Fatalf("victim = %d %v", rec.Code, victim.cookies)
+	}
+	if victim.id() != victimID {
+		t.Error("the victim was signed in to eve's account")
+	}
+	if ss, _ := st.ListSessions(ctx, eveID); len(ss) != 1 {
+		t.Errorf("eve's sessions = %v", ss)
+	}
+}
+
+func TestLoginMailsHaveADailyCap(t *testing.T) {
+	h, _, box := accountServer(config.Config{RateLimitsOff: true}) // as if from many clients
+	c := &client{t: t, h: h}
+	for i := range loginMailsPerDay {
+		if code, _ := c.do("POST", "/api/auth/email", fmt.Sprintf(`{"email":"user%d@example.ro"}`, i)); code != 202 {
+			t.Fatalf("mail %d = %d", i, code)
+		}
+	}
+	if code, _ := c.do("POST", "/api/auth/email", `{"email":"one-more@example.ro"}`); code != 429 || len(box.sent) != loginMailsPerDay {
+		t.Errorf("over the cap = %d, %d sent", code, len(box.sent))
 	}
 }
 
@@ -307,5 +452,14 @@ func TestLoginMailHasNoTokenInProductionLogs(t *testing.T) {
 	_ = (mail.Log{Logger: logger, ShowBody: true}).Send(context.Background(), m)
 	if !strings.Contains(logs.String(), "s3cret") {
 		t.Errorf("a dev log shows the link: %s", logs.String())
+	}
+}
+
+func TestDemoFlag(t *testing.T) {
+	for _, on := range []bool{true, false} {
+		h, _, _ := accountServer(config.Config{AllowDemoTools: on})
+		if _, out := (&client{t: t, h: h}).do("GET", "/api/demo", ""); out["enabled"] != on {
+			t.Errorf("demo tools %v: %v", on, out)
+		}
 	}
 }

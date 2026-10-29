@@ -81,6 +81,15 @@ func (c *client) do(method, path, body string) (int, map[string]any) {
 	return rec.Code, out
 }
 
+// id is the signed-in user's id, from GET /api/me ("" without a session).
+func (c *client) id() string {
+	c.t.Helper()
+	_, out := c.do("GET", "/api/me", "")
+	user, _ := out["user"].(map[string]any)
+	id, _ := user["id"].(string)
+	return id
+}
+
 // send is do without reading the answer as JSON.
 func (c *client) send(method, path, body string) *httptest.ResponseRecorder {
 	c.t.Helper()
@@ -116,7 +125,7 @@ func TestDemoPathOverHTTP(t *testing.T) {
 	if code, _ := c.do("POST", "/api/users", `{"demo":"someone"}`); code != 404 {
 		t.Errorf("non-demo id = %d", code)
 	}
-	if code, out := c.do("POST", "/api/users", `{"demo":"maria"}`); code != 200 || out["userId"] != "maria" {
+	if code, out := c.do("POST", "/api/users", `{"demo":"maria"}`); code != 200 || out["userId"] != nil || c.id() != "maria" {
 		t.Fatalf("demo login = %d %v", code, out)
 	}
 	if _, out := c.do("GET", "/api/me", ""); out["user"].(map[string]any)["name"] != "Maria" {

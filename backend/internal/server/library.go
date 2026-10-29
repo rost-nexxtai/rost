@@ -70,8 +70,6 @@ type quizRequest struct {
 	SavedLei       *float64          `json:"savedLei"`
 }
 
-var situations = []domain.Situation{domain.Student, domain.Graduate, domain.Employed, domain.Freelance, domain.BetweenJobs}
-
 func (q quizRequest) input() (app.QuizInput, string) {
 	questions := reference.Quiz()
 	if len(q.Knowledge) != len(questions) {
@@ -96,7 +94,7 @@ func (q quizRequest) input() (app.QuizInput, string) {
 	switch {
 	case !slices.Contains(learning.AgeBands, q.AgeBand):
 		return in, "unknown ageBand"
-	case !slices.Contains(situations, q.Situation):
+	case !slices.Contains(app.Situations, q.Situation):
 		return in, "unknown situation"
 	case !slices.Contains(learning.Horizons, q.Horizon):
 		return in, "unknown horizon"
@@ -146,7 +144,7 @@ func (s *server) postQuiz(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"userId": out.User.ID, "profile": out.Profile, "results": out.Results})
+	writeJSON(w, http.StatusOK, map[string]any{"profile": out.Profile, "results": out.Results})
 }
 
 // ---- library ----

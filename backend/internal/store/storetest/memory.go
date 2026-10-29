@@ -30,6 +30,8 @@ type Memory struct {
 
 	userSessions map[string]domain.Session
 	loginTokens  map[string]domain.LoginToken
+	// users whose old rost_uid cookie may still become a session (users.legacy_uid)
+	legacy map[string]bool
 }
 
 var _ store.Store = (*Memory)(nil)
@@ -49,6 +51,7 @@ func New(users ...domain.User) *Memory {
 
 		userSessions: map[string]domain.Session{},
 		loginTokens:  map[string]domain.LoginToken{},
+		legacy:       map[string]bool{},
 	}
 	for _, u := range users {
 		if u.CreatedAt == "" {
@@ -93,9 +96,12 @@ func (m *Memory) GetUser(_ context.Context, id string) (domain.User, error) {
 func (m *Memory) UpdateUser(_ context.Context, u domain.User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.users[u.ID]; !ok {
+	cur, ok := m.users[u.ID]
+	if !ok {
 		return store.ErrNotFound
 	}
+	// like Postgres: the email only changes through SetUserEmail, the creation date never
+	u.Email, u.CreatedAt = cur.Email, cur.CreatedAt
 	m.users[u.ID] = clone(u)
 	return nil
 }

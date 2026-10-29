@@ -153,6 +153,7 @@ var limitedRoutes = map[string]string{
 	"POST /api/users":            "users",
 	"POST /api/quiz":             "users",
 	"POST /api/auth/email":       "users",
+	"POST /api/me/import":        "users",
 	"POST /api/payslip/read":     "payslip",
 	"POST /api/track":            "track",
 	"POST /api/referrals/clicks": "track",
@@ -250,8 +251,10 @@ func newLimiters(now func() time.Time) map[string]*rateLimiter {
 // X-Forwarded-For entry that isn't a private or loopback address: the hop our own proxies saw.
 // Entries further left are written by the client and can't be trusted. If every entry is private,
 // the client is on the same network and the left-most entry is it.
-// The Next.js rewrite passes X-Forwarded-For through as the client sent it, so only turn this on
-// when a proxy in front of Next.js (Dokploy's Traefik) writes it.
+// The Next.js rewrite passes X-Forwarded-For through as the client sent it, and the Next server's
+// own calls (pages, the proxy that imports old profiles, the referral redirect) forward the
+// incoming one unchanged, so only turn this on when a proxy in front of Next.js (Dokploy's Traefik)
+// writes it. Without it every call the Next server makes shares the Next server's address.
 func clientIP(r *http.Request, trustProxy bool) string {
 	peer := r.RemoteAddr
 	if host, _, err := net.SplitHostPort(peer); err == nil {

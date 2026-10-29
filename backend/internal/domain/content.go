@@ -219,7 +219,9 @@ type LoginToken struct {
 	TokenHash string
 	Email     string
 	// the session's user when the link was asked for, "" without one
-	UserID    string
+	UserID string
+	// hash of the nonce in the asking browser's rost_login cookie
+	NonceHash string
 	CreatedAt string
 	ExpiresAt string
 }

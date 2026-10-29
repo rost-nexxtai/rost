@@ -14,7 +14,8 @@ import (
 const SessionCookie = "rost_session"
 
 // UIDCookie held the raw user id before sessions. While Config.LegacyUIDCookie is on, a request
-// with only this cookie gets a session in its place. Remove after one release.
+// with only this cookie gets a session in its place, once, for users from before sessions. Remove
+// after one release.
 const UIDCookie = "rost_uid"
 
 func newUserID() string { return store.NewID() }
@@ -82,18 +83,29 @@ func (s *server) sessionUserID(w http.ResponseWriter, r *http.Request) (string, 
 	return id, err
 }
 
-// upgradeLegacy swaps a rost_uid cookie of a real user for a session. With the swap off, the old
+// upgradeLegacy swaps a rost_uid cookie for a session, once per user, and only for users from before
+// sessions (store.TakeLegacyUID), so an id is never a password again. With the swap off, the old
 // cookie is only cleared.
 func (s *server) upgradeLegacy(w http.ResponseWriter, r *http.Request, uid string) (string, error) {
 	if uid == "" {
 		return "", nil
 	}
-	// a demo persona only with demo tools, like POST /api/users
-	if !s.Config.LegacyUIDCookie || (reference.IsDemoUser(uid) && !s.Config.AllowDemoTools) {
+	if !s.Config.LegacyUIDCookie {
 		clearUIDCookie(w)
 		return "", nil
 	}
-	if _, err := s.Store.GetUser(r.Context(), uid); isNotFound(err) {
+	var err error
+	if reference.IsDemoUser(uid) {
+		// a shared persona anyone can enter with POST /api/users, so only demo tools matter
+		if !s.Config.AllowDemoTools {
+			clearUIDCookie(w)
+			return "", nil
+		}
+		_, err = s.Store.GetUser(r.Context(), uid)
+	} else {
+		err = s.Store.TakeLegacyUID(r.Context(), uid)
+	}
+	if isNotFound(err) {
 		clearUIDCookie(w)
 		return "", nil
 	} else if err != nil {

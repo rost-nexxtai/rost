@@ -26,12 +26,15 @@ func (s *server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/users", s.signOut)
 	mux.HandleFunc("GET /api/me", s.me)
 	mux.HandleFunc("PATCH /api/me", s.updateMe)
+	mux.HandleFunc("DELETE /api/me", s.eraseMe)
 	mux.HandleFunc("GET /api/me/export", s.exportMe)
+	mux.HandleFunc("POST /api/me/import", s.importProfile)
 
 	mux.HandleFunc("POST /api/events", s.fireEvent)
 	mux.HandleFunc("POST /api/calendar", s.runCalendar)
 	mux.HandleFunc("GET /api/clock", s.getClock)
 	mux.HandleFunc("POST /api/clock", s.setClock)
+	mux.HandleFunc("GET /api/demo", s.getDemo)
 	mux.HandleFunc("POST /api/demo/reset", s.resetDemo)
 
 	mux.HandleFunc("GET /api/today", s.today)
@@ -129,12 +132,24 @@ func (s *server) createUser(w http.ResponseWriter, r *http.Request) {
 		s.internal(w, r, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"userId": userID})
+	// the id stays on the server: the session cookie is all the browser needs
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
-// DELETE /api/users (Profil → Resetează): erases the account and its data, then signs out. A demo
-// persona goes back to its seed instead.
+// DELETE /api/users: signs this browser out. The account and its data stay.
 func (s *server) signOut(w http.ResponseWriter, r *http.Request) {
+	if err := s.svc.EndSession(r.Context(), cookieValue(r, SessionCookie)); err != nil {
+		s.internal(w, r, err)
+		return
+	}
+	s.clearSessionCookie(w)
+	clearUIDCookie(w)
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
+}
+
+// DELETE /api/me (Profil → Resetează): erases the account and its data, then signs out. A demo
+// persona goes back to its seed instead.
+func (s *server) eraseMe(w http.ResponseWriter, r *http.Request) {
 	id, err := s.sessionUserID(w, r)
 	if err != nil {
 		s.internal(w, r, err)
@@ -255,6 +270,11 @@ func clockResponse() map[string]any {
 
 func (s *server) getClock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, clockResponse())
+}
+
+// GET /api/demo: whether the demo tools are on, so the app shows "Continuă ca Maria" only then.
+func (s *server) getDemo(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]bool{"enabled": s.Config.AllowDemoTools})
 }
 
 // POST /api/clock moves the app clock forward (e.g. "7 days later" for follow-ups). Demo tools only.

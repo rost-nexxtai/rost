@@ -25,7 +25,7 @@ var ClientEvents = []string{
 }
 
 // only the api writes these
-var ServerEvents = []string{"user_created", "quiz_completed", "library_completed", "level_up"}
+var ServerEvents = []string{"user_created", "quiz_completed", "library_completed", "level_up", "profile_imported"}
 
 const (
 	MaxTrackBatch    = 50

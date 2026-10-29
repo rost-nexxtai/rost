@@ -2,8 +2,10 @@ package store
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"rost/backend/internal/domain"
 )
@@ -15,11 +17,15 @@ func (s *Postgres) GetUserByEmail(ctx context.Context, email string) (domain.Use
 }
 
 func (s *Postgres) SetUserEmail(ctx context.Context, id, email string) error {
-	tag, err := s.db.Exec(ctx, `UPDATE users SET email = $2 WHERE id = $1`, id, email)
-	if err == nil && tag.RowsAffected() == 0 {
-		return ErrNotFound
+	tag, err := s.db.Exec(ctx, `UPDATE users SET email = $2 WHERE id = $1 AND email IS NULL`, id, email)
+	if err != nil || tag.RowsAffected() == 1 {
+		return conflict(err)
 	}
-	return conflict(err)
+	// unknown, or it has an email
+	if _, err := s.GetUser(ctx, id); err != nil {
+		return err
+	}
+	return ErrConflict
 }
 
 func (s *Postgres) DeleteUser(ctx context.Context, id string) error {
@@ -107,6 +113,14 @@ func (s *Postgres) ListSessions(ctx context.Context, userID string) ([]domain.Se
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (domain.Session, error) { return scanSession(row) })
 }
 
+func (s *Postgres) TakeLegacyUID(ctx context.Context, userID string) error {
+	tag, err := s.db.Exec(ctx, `UPDATE users SET legacy_uid = false WHERE id = $1 AND legacy_uid`, userID)
+	if err == nil && tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return err
+}
+
 // ---- email login links ----
 
 func (s *Postgres) CreateLoginToken(ctx context.Context, t domain.LoginToken) error {
@@ -117,16 +131,21 @@ func (s *Postgres) CreateLoginToken(ctx context.Context, t domain.LoginToken) er
 	if t.UserID != "" {
 		userID = &t.UserID
 	}
-	_, err := s.db.Exec(ctx, `INSERT INTO login_tokens (token_hash, email, user_id, created_at, expires_at) VALUES ($1, $2, $3, $4, $5)`,
-		t.TokenHash, t.Email, userID, t.CreatedAt, t.ExpiresAt)
+	_, err := s.db.Exec(ctx, `INSERT INTO login_tokens (token_hash, email, user_id, nonce_hash, created_at, expires_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+		t.TokenHash, t.Email, userID, t.NonceHash, t.CreatedAt, t.ExpiresAt)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23503" { // the user is gone
+		return ErrNotFound
+	}
 	return conflict(err)
 }
 
-func (s *Postgres) TakeLoginToken(ctx context.Context, tokenHash string) (domain.LoginToken, error) {
+func (s *Postgres) TakeLoginToken(ctx context.Context, tokenHash, nonceHash string) (domain.LoginToken, error) {
 	var t domain.LoginToken
 	var userID *string
-	err := s.db.QueryRow(ctx, `DELETE FROM login_tokens WHERE token_hash = $1 RETURNING token_hash, email, user_id, created_at, expires_at`, tokenHash).
-		Scan(&t.TokenHash, &t.Email, &userID, &t.CreatedAt, &t.ExpiresAt)
+	err := s.db.QueryRow(ctx, `DELETE FROM login_tokens WHERE token_hash = $1 AND nonce_hash = $2 AND nonce_hash <> ''
+		RETURNING token_hash, email, user_id, nonce_hash, created_at, expires_at`, tokenHash, nonceHash).
+		Scan(&t.TokenHash, &t.Email, &userID, &t.NonceHash, &t.CreatedAt, &t.ExpiresAt)
 	if userID != nil {
 		t.UserID = *userID
 	}

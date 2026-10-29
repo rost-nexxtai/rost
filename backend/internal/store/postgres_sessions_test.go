@@ -47,6 +47,13 @@ func TestPostgresSessionsAndErasure(t *testing.T) {
 	if err := s.SetUserEmail(ctx, "nobody", "x@example.ro"); err != store.ErrNotFound {
 		t.Errorf("unknown user = %v", err)
 	}
+	// an email is never overwritten
+	if err := s.SetUserEmail(ctx, ana.ID, "other-"+email); err != store.ErrConflict {
+		t.Errorf("second email = %v", err)
+	}
+	if got, _ := s.GetUser(ctx, ana.ID); *got.Email != email {
+		t.Errorf("ana = %+v", got)
+	}
 	// an update keeps the email
 	ana.Name = domain.Ptr("Ana")
 	if err := s.UpdateUser(ctx, ana); err != nil {
@@ -91,23 +98,48 @@ func TestPostgresSessionsAndErasure(t *testing.T) {
 		t.Errorf("deleted session = %v", err)
 	}
 
-	// login links work once
-	link := domain.LoginToken{TokenHash: store.NewID(), Email: email, UserID: bob.ID, CreatedAt: "2026-03-01T12:00:00.000Z", ExpiresAt: "2026-03-01T12:15:00.000Z"}
+	// login links work once, with the nonce of the browser that asked
+	link := domain.LoginToken{TokenHash: store.NewID(), Email: email, UserID: bob.ID, NonceHash: "nonce", CreatedAt: "2026-03-01T12:00:00.000Z", ExpiresAt: "2026-03-01T12:15:00.000Z"}
 	if err := s.CreateLoginToken(ctx, link); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := s.TakeLoginToken(ctx, link.TokenHash); err != nil || got != link {
+	for _, nonce := range []string{"another", ""} {
+		if _, err := s.TakeLoginToken(ctx, link.TokenHash, nonce); err != store.ErrNotFound {
+			t.Errorf("take with nonce %q = %v", nonce, err)
+		}
+	}
+	if got, err := s.TakeLoginToken(ctx, link.TokenHash, "nonce"); err != nil || got != link {
 		t.Errorf("take = %+v %v", got, err)
 	}
-	if _, err := s.TakeLoginToken(ctx, link.TokenHash); err != store.ErrNotFound {
+	if _, err := s.TakeLoginToken(ctx, link.TokenHash, "nonce"); err != store.ErrNotFound {
 		t.Errorf("take twice = %v", err)
 	}
-	anon := domain.LoginToken{TokenHash: store.NewID(), Email: "x@example.ro", CreatedAt: "2026-03-01T12:00:00.000Z", ExpiresAt: "2026-03-01T12:15:00.000Z"}
+	anon := domain.LoginToken{TokenHash: store.NewID(), Email: "x@example.ro", NonceHash: "nonce", CreatedAt: "2026-03-01T12:00:00.000Z", ExpiresAt: "2026-03-01T12:15:00.000Z"}
 	if err := s.CreateLoginToken(ctx, anon); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := s.TakeLoginToken(ctx, anon.TokenHash); got.UserID != "" {
+	if got, _ := s.TakeLoginToken(ctx, anon.TokenHash, "nonce"); got.UserID != "" {
 		t.Errorf("link without a session = %+v", got)
+	}
+	if err := s.CreateLoginToken(ctx, domain.LoginToken{TokenHash: store.NewID(), Email: "x@example.ro", UserID: "nobody", NonceHash: "nonce", CreatedAt: "2026-03-01T12:00:00.000Z", ExpiresAt: "2026-03-01T12:15:00.000Z"}); err != store.ErrNotFound {
+		t.Errorf("link for an unknown user = %v", err)
+	}
+
+	// the old rost_uid swap: once, for users from before sessions only
+	if err := s.TakeLegacyUID(ctx, bob.ID); err != store.ErrNotFound {
+		t.Errorf("a user made after sessions = %v", err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE users SET legacy_uid = true WHERE id = $1`, bob.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.TakeLegacyUID(ctx, bob.ID); err != nil {
+		t.Errorf("legacy user = %v", err)
+	}
+	if err := s.TakeLegacyUID(ctx, bob.ID); err != store.ErrNotFound {
+		t.Errorf("second swap = %v", err)
+	}
+	if err := s.TakeLegacyUID(ctx, "nobody"); err != store.ErrNotFound {
+		t.Errorf("unknown user = %v", err)
 	}
 
 	// erasure: everything goes, referrals and tracking stay without the user
@@ -127,7 +159,7 @@ func TestPostgresSessionsAndErasure(t *testing.T) {
 	if evs, _ := s.ListUserTrackEvents(ctx, ana.ID); len(evs) != 1 {
 		t.Errorf("tracking = %+v", evs)
 	}
-	_ = s.CreateLoginToken(ctx, domain.LoginToken{TokenHash: "erase-me", Email: email, CreatedAt: "2026-03-01T12:00:00.000Z", ExpiresAt: "2026-03-01T12:15:00.000Z"})
+	_ = s.CreateLoginToken(ctx, domain.LoginToken{TokenHash: "erase-me", Email: email, NonceHash: "nonce", CreatedAt: "2026-03-01T12:00:00.000Z", ExpiresAt: "2026-03-01T12:15:00.000Z"})
 
 	if err := s.DeleteUser(ctx, ana.ID); err != nil {
 		t.Fatal(err)
@@ -147,7 +179,7 @@ func TestPostgresSessionsAndErasure(t *testing.T) {
 	if len(evs)+len(runs)+len(acts)+len(done)+len(sess)+len(track) != 0 {
 		t.Errorf("left: %v %v %v %v %v %v", evs, runs, acts, done, sess, track)
 	}
-	if _, err := s.TakeLoginToken(ctx, "erase-me"); err != store.ErrNotFound {
+	if _, err := s.TakeLoginToken(ctx, "erase-me", "nonce"); err != store.ErrNotFound {
 		t.Errorf("login link for the email = %v", err)
 	}
 	if got, err := s.GetReferralByClick(ctx, ref.ClickID); err != nil || got.UserID != nil {

@@ -88,6 +88,7 @@ type Limiter struct {
 
 	mu       sync.Mutex
 	failures map[string][]time.Time
+	swept    time.Time
 }
 
 func NewLimiter() *Limiter {
@@ -109,9 +110,24 @@ func (l *Limiter) recent(key string, now time.Time) []time.Time {
 	return kept
 }
 
+// sweep drops the keys with nothing left in the window, at most once per window, so keys seen
+// once don't pile up (caller holds the lock).
+func (l *Limiter) sweep(now time.Time) {
+	if now.Sub(l.swept) < l.Window {
+		return
+	}
+	l.swept = now
+	for key, times := range l.failures {
+		if len(times) == 0 || now.Sub(times[len(times)-1]) >= l.Window {
+			delete(l.failures, key)
+		}
+	}
+}
+
 func (l *Limiter) Allow(key string, now time.Time) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.sweep(now)
 	if len(l.recent(key, now)) >= l.MaxFailures {
 		return ErrTooManyAttempts
 	}
@@ -121,6 +137,7 @@ func (l *Limiter) Allow(key string, now time.Time) error {
 func (l *Limiter) Fail(key string, now time.Time) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.sweep(now)
 	l.failures[key] = append(l.recent(key, now), now)
 }
 

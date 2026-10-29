@@ -69,33 +69,64 @@ func TestSessionsSlideAndExpire(t *testing.T) {
 
 func TestLoginLinks(t *testing.T) {
 	ctx := context.Background()
-	st := storetest.New(domain.User{ID: "ana"}, domain.User{ID: "bob"}, maria(t))
+	st := storetest.New(domain.User{ID: "ana"}, domain.User{ID: "bob"}, domain.User{ID: "cleo", Email: domain.Ptr("cleo@example.ro")}, maria(t))
 	s, now := clocked(st)
+	const here, elsewhere = "nonce-of-this-browser", "nonce-of-another-browser"
 
-	if _, _, err := s.RequestLogin(ctx, "not an email", ""); !errors.Is(err, ErrBadEmail) {
+	if _, _, err := s.RequestLogin(ctx, "not an email", "", here); !errors.Is(err, ErrBadEmail) {
 		t.Errorf("bad email = %v", err)
 	}
+	if _, _, err := s.RequestLogin(ctx, "ana@example.ro", "nobody", here); err == nil {
+		t.Error("a link for a user that isn't there")
+	}
 
-	// a new email goes to the account that asked, lowercase
-	email, token, err := s.RequestLogin(ctx, "  Ana@Example.RO ", "ana")
+	// a new email goes to the account that asked, lowercase, when it opens the link in the same browser
+	email, token, err := s.RequestLogin(ctx, "  Ana@Example.RO ", "ana", here)
 	if err != nil || email != "ana@example.ro" {
 		t.Fatalf("request = %q %v", email, err)
 	}
-	if id, err := s.UseLoginLink(ctx, token); id != "ana" || err != nil {
+	// another browser (a mail scanner, a forwarded link) changes nothing and leaves the link usable
+	for _, nonce := range []string{elsewhere, ""} {
+		if _, err := s.UseLoginLink(ctx, token, nonce, "ana"); !errors.Is(err, ErrBadLink) {
+			t.Errorf("nonce %q = %v", nonce, err)
+		}
+	}
+	if u, _ := st.GetUser(ctx, "ana"); u.Email != nil {
+		t.Errorf("another browser attached the email: %+v", u)
+	}
+	if id, err := s.UseLoginLink(ctx, token, here, "ana"); id != "ana" || err != nil {
 		t.Fatalf("attach = %q %v", id, err)
 	}
 	if u, _ := st.GetUser(ctx, "ana"); u.Email == nil || *u.Email != "ana@example.ro" {
 		t.Errorf("ana = %+v", u)
 	}
 	// once only
-	if _, err := s.UseLoginLink(ctx, token); !errors.Is(err, ErrBadLink) {
+	if _, err := s.UseLoginLink(ctx, token, here, "ana"); !errors.Is(err, ErrBadLink) {
 		t.Errorf("reused link = %v", err)
 	}
 
 	// an email with an account logs in to it, whoever asked
-	_, token, _ = s.RequestLogin(ctx, "ana@example.ro", "bob")
-	if id, err := s.UseLoginLink(ctx, token); id != "ana" || err != nil {
+	_, token, _ = s.RequestLogin(ctx, "ana@example.ro", "bob", here)
+	if id, err := s.UseLoginLink(ctx, token, here, "bob"); id != "ana" || err != nil {
 		t.Errorf("log in = %q %v", id, err)
+	}
+	if u, _ := st.GetUser(ctx, "bob"); u.Email != nil {
+		t.Errorf("bob got an email: %+v", u)
+	}
+
+	// a new email never replaces one: cleo asked with another address, so it gets an account of its own
+	_, token, _ = s.RequestLogin(ctx, "cleo2@example.ro", "cleo", here)
+	if id, err := s.UseLoginLink(ctx, token, here, "cleo"); id == "cleo" || id == "" || err != nil {
+		t.Errorf("second email = %q %v", id, err)
+	}
+	if u, _ := st.GetUser(ctx, "cleo"); *u.Email != "cleo@example.ro" {
+		t.Errorf("cleo = %+v", u)
+	}
+
+	// the account that asked isn't the one signed in here anymore: a new account, not bob's
+	_, token, _ = s.RequestLogin(ctx, "moved@example.ro", "bob", here)
+	if id, err := s.UseLoginLink(ctx, token, here, "maria"); id == "bob" || id == "maria" || err != nil {
+		t.Errorf("signed in as someone else = %q %v", id, err)
 	}
 	if u, _ := st.GetUser(ctx, "bob"); u.Email != nil {
 		t.Errorf("bob got an email: %+v", u)
@@ -103,8 +134,8 @@ func TestLoginLinks(t *testing.T) {
 
 	// without a session (or as a demo persona), a new email gets a new account
 	for _, asker := range []string{"", "maria"} {
-		_, token, _ = s.RequestLogin(ctx, "new-"+asker+"@example.ro", asker)
-		id, err := s.UseLoginLink(ctx, token)
+		_, token, _ = s.RequestLogin(ctx, "new-"+asker+"@example.ro", asker, here)
+		id, err := s.UseLoginLink(ctx, token, here, asker)
 		if err != nil || id == "" || id == "maria" {
 			t.Fatalf("new account for %q = %q %v", asker, id, err)
 		}
@@ -114,15 +145,15 @@ func TestLoginLinks(t *testing.T) {
 	}
 
 	// 15 minutes
-	_, token, _ = s.RequestLogin(ctx, "late@example.ro", "bob")
+	_, token, _ = s.RequestLogin(ctx, "late@example.ro", "bob", here)
 	*now = now.Add(LoginLinkTTL)
-	if _, err := s.UseLoginLink(ctx, token); !errors.Is(err, ErrBadLink) {
+	if _, err := s.UseLoginLink(ctx, token, here, "bob"); !errors.Is(err, ErrBadLink) {
 		t.Errorf("expired link = %v", err)
 	}
 	if u, _ := st.GetUser(ctx, "bob"); u.Email != nil {
 		t.Errorf("an expired link attached an email: %+v", u)
 	}
-	if _, err := s.UseLoginLink(ctx, ""); !errors.Is(err, ErrBadLink) {
+	if _, err := s.UseLoginLink(ctx, "", here, ""); !errors.Is(err, ErrBadLink) {
 		t.Errorf("no token = %v", err)
 	}
 }
@@ -150,7 +181,7 @@ func TestEraseAndExport(t *testing.T) {
 	if err := s.Track(ctx, domain.Ptr("ana"), []TrackInput{{Name: "page_view", Path: "/acasa"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := s.RequestLogin(ctx, "ana@example.ro", ""); err != nil {
+	if _, _, err := s.RequestLogin(ctx, "ana@example.ro", "", "nonce"); err != nil {
 		t.Fatal(err)
 	}
 

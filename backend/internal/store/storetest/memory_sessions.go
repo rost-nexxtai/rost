@@ -41,7 +41,7 @@ func (m *Memory) SetUserEmail(_ context.Context, id, email string) error {
 	if !ok {
 		return store.ErrNotFound
 	}
-	if m.emailTaken(&email, id) {
+	if u.Email != nil || m.emailTaken(&email, id) {
 		return store.ErrConflict
 	}
 	u.Email = &email
@@ -102,6 +102,7 @@ func (m *Memory) DeleteUser(_ context.Context, id string) error {
 		}
 	}
 	delete(m.users, id)
+	delete(m.legacy, id)
 	return nil
 }
 
@@ -181,6 +182,25 @@ func (m *Memory) ListSessions(_ context.Context, userID string) ([]domain.Sessio
 	return out, nil
 }
 
+// MarkLegacy gives users the mark migration 006 gave every user that existed before sessions.
+func (m *Memory) MarkLegacy(ids ...string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, id := range ids {
+		m.legacy[id] = true
+	}
+}
+
+func (m *Memory) TakeLegacyUID(_ context.Context, userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.users[userID]; !ok || !m.legacy[userID] {
+		return store.ErrNotFound
+	}
+	delete(m.legacy, userID)
+	return nil
+}
+
 // ---- email login links ----
 
 func (m *Memory) CreateLoginToken(_ context.Context, t domain.LoginToken) error {
@@ -191,6 +211,9 @@ func (m *Memory) CreateLoginToken(_ context.Context, t domain.LoginToken) error 
 			delete(m.loginTokens, h)
 		}
 	}
+	if _, ok := m.users[t.UserID]; t.UserID != "" && !ok {
+		return store.ErrNotFound // the foreign key
+	}
 	if _, ok := m.loginTokens[t.TokenHash]; ok {
 		return store.ErrConflict
 	}
@@ -198,11 +221,11 @@ func (m *Memory) CreateLoginToken(_ context.Context, t domain.LoginToken) error 
 	return nil
 }
 
-func (m *Memory) TakeLoginToken(_ context.Context, tokenHash string) (domain.LoginToken, error) {
+func (m *Memory) TakeLoginToken(_ context.Context, tokenHash, nonceHash string) (domain.LoginToken, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	t, ok := m.loginTokens[tokenHash]
-	if !ok {
+	if !ok || t.NonceHash == "" || t.NonceHash != nonceHash {
 		return t, store.ErrNotFound
 	}
 	delete(m.loginTokens, tokenHash)

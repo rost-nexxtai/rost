@@ -83,11 +83,15 @@ func (s Service) EndSession(ctx context.Context, token string) error {
 
 // RequestLogin makes a one-time login link for email and returns the email as kept (lowercase)
 // and the link's token. userID is the session's user, "" without one: a new email goes to that
-// account when the link is opened. The answer is the same whether the email has an account or not.
-func (s Service) RequestLogin(ctx context.Context, email, userID string) (string, string, error) {
+// account when it opens the link. nonce is the asking browser's rost_login cookie; only that browser
+// can use the link. The answer is the same whether the email has an account or not.
+func (s Service) RequestLogin(ctx context.Context, email, userID, nonce string) (string, string, error) {
 	email = NormalizeEmail(email)
 	if !validEmail(email) {
 		return "", "", ErrBadEmail
+	}
+	if nonce == "" {
+		return "", "", errors.New("login link without a nonce")
 	}
 	// a shared persona never gets an email
 	if reference.IsDemoUser(userID) {
@@ -99,22 +103,26 @@ func (s Service) RequestLogin(ctx context.Context, email, userID string) (string
 	}
 	now := s.now()
 	err = s.Store.CreateLoginToken(ctx, domain.LoginToken{
-		TokenHash: hash, Email: email, UserID: userID, CreatedAt: clock.ISO(now), ExpiresAt: clock.ISO(now.Add(LoginLinkTTL)),
+		TokenHash: hash, Email: email, UserID: userID, NonceHash: auth.HashToken(nonce), CreatedAt: clock.ISO(now), ExpiresAt: clock.ISO(now.Add(LoginLinkTTL)),
 	})
 	return email, token, err
 }
 
-// UseLoginLink opens a login link, once, and answers the account to sign in as: the one with
-// the link's email (log in on another device); else the one that asked for the link, which gets
-// the email; else a new account with it. ErrBadLink for an unknown, used or expired link.
+// UseLoginLink opens a login link, once, in the browser that asked for it (nonce, its rost_login
+// cookie), and answers the account to sign in as: the one with the link's email (log in on another
+// device); else the account that asked, when it is still the one signed in here (currentUserID) and
+// has no email, which gets this one; else a new account with the email. ErrBadLink for an unknown,
+// used or expired link or another browser's: that leaves the link as it is, so a mail scanner or a
+// forwarded link neither burns it nor signs anyone in.
 //
-// A new email never goes to the account of whoever opens the link: someone could send you a link
-// for their own email and so get into your account.
-func (s Service) UseLoginLink(ctx context.Context, token string) (string, error) {
-	if token == "" {
+// A new email never goes to an account that didn't ask for it from this browser: someone could
+// otherwise send you a link for their own email, or ask for one with yours, and so share an account
+// with you.
+func (s Service) UseLoginLink(ctx context.Context, token, nonce, currentUserID string) (string, error) {
+	if token == "" || nonce == "" {
 		return "", ErrBadLink
 	}
-	t, err := s.Store.TakeLoginToken(ctx, auth.HashToken(token))
+	t, err := s.Store.TakeLoginToken(ctx, auth.HashToken(token), auth.HashToken(nonce))
 	if errors.Is(err, store.ErrNotFound) {
 		return "", ErrBadLink
 	}
@@ -132,13 +140,15 @@ func (s Service) UseLoginLink(ctx context.Context, token string) (string, error)
 	if err == nil || !errors.Is(err, store.ErrNotFound) {
 		return id, err
 	}
-	if t.UserID != "" {
+	if t.UserID != "" && t.UserID == currentUserID {
 		err := s.Store.SetUserEmail(ctx, t.UserID, t.Email)
 		switch {
 		case err == nil:
 			return t.UserID, nil
-		case errors.Is(err, store.ErrConflict): // another link for this email won
-			return byEmail()
+		case errors.Is(err, store.ErrConflict): // another link for this email won, or the account has an email now
+			if id, err := byEmail(); !errors.Is(err, store.ErrNotFound) {
+				return id, err
+			}
 		case !errors.Is(err, store.ErrNotFound): // not erased since: a real error
 			return "", err
 		}

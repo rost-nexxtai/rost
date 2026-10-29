@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"rost/backend/internal/app"
 	"rost/backend/internal/domain"
 	"rost/backend/internal/reference"
 	"rost/backend/internal/rules"
@@ -64,7 +65,7 @@ func (s *server) updateMe(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, sit := range body.Situations {
-			if !slices.Contains(situations, sit) {
+			if !slices.Contains(app.Situations, sit) {
 				fail(w, http.StatusBadRequest, "unknown situation")
 				return
 			}

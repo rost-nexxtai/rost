@@ -27,7 +27,8 @@ type Store interface {
 	ListUsers(ctx context.Context) ([]domain.User, error)
 	// GetUserByEmail returns ErrNotFound when no account has this (lowercase) email.
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
-	// SetUserEmail ties an account to an email; ErrConflict if another account has it.
+	// SetUserEmail ties an account without an email to one. ErrConflict if another account has this
+	// email or this one has an email already (it is never overwritten).
 	SetUserEmail(ctx context.Context, id, email string) error
 	// DeleteUser erases a user and everything they did (events, runs, actions, lessons, sessions,
 	// login links). Referrals and tracking events stay, without the user id. ErrNotFound for an unknown id.
@@ -88,11 +89,15 @@ type SessionStore interface {
 	DeleteSession(ctx context.Context, tokenHash string) error
 	// oldest first
 	ListSessions(ctx context.Context, userID string) ([]domain.Session, error)
+	// TakeLegacyUID clears the mark that lets the user's old rost_uid cookie become a session, so it
+	// works once. ErrNotFound for an unknown user or one without the mark (made after sessions, or swapped).
+	TakeLegacyUID(ctx context.Context, userID string) error
 
-	// also drops expired links
+	// also drops expired links. ErrNotFound when t.UserID is set and isn't a user.
 	CreateLoginToken(ctx context.Context, t domain.LoginToken) error
-	// TakeLoginToken deletes the link and returns it, so it works once. ErrNotFound for an unknown or used one.
-	TakeLoginToken(ctx context.Context, tokenHash string) (domain.LoginToken, error)
+	// TakeLoginToken deletes the link and returns it, so it works once, but only with the nonce of the
+	// browser that asked for it. ErrNotFound for an unknown or used link or another nonce, which leaves it.
+	TakeLoginToken(ctx context.Context, tokenHash, nonceHash string) (domain.LoginToken, error)
 }
 
 type ProgressStore interface {

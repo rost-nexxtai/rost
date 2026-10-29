@@ -64,7 +64,7 @@ func Load() (Config, error) {
 		RateLimitsOff:   os.Getenv("RATE_LIMITS") == "off",
 		CookieSecure:    os.Getenv("COOKIE_SECURE") == "true",
 		LegacyUIDCookie: os.Getenv("LEGACY_UID_COOKIE") != "false",
-		AppURL:          strings.TrimRight(getenv("APP_URL", "http://localhost:3000"), "/"),
+		AppURL:          strings.TrimRight(getenv("APP_URL", defaultAppURL), "/"),
 		SMTPHost:        os.Getenv("SMTP_HOST"),
 		SMTPPort:        getenv("SMTP_PORT", "587"),
 		SMTPUser:        os.Getenv("SMTP_USER"),
@@ -87,8 +87,14 @@ func Load() (Config, error) {
 	if cfg.SMTPHost != "" && cfg.MailFrom == "" {
 		return Config{}, errors.New("MAIL_FROM is not set (needed with SMTP_HOST)")
 	}
+	// real login emails must not link to localhost
+	if cfg.SMTPHost != "" && cfg.AppURL == defaultAppURL {
+		return Config{}, errors.New("APP_URL is not set (needed with SMTP_HOST): the address users open the app at, e.g. https://rost.ro")
+	}
 	return cfg, nil
 }
+
+const defaultAppURL = "http://localhost:3000"
 
 func getenv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
