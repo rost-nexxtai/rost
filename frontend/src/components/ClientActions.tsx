@@ -68,7 +68,7 @@ export function DemoLogin() {
   );
 }
 
-/** Profil → Resetează: signs out of the session, back to the landing page. */
+/** Profil → Resetează: erases the account and its data (a demo persona goes back to its seed), back to the landing page. */
 export function ResetButton() {
   const router = useRouter();
   const t = T[useLang().lang];
@@ -76,7 +76,7 @@ export function ResetButton() {
     <button
       className="btn btn-ghost btn-block"
       onClick={async () => {
-        await fetch('/api/users', { method: 'DELETE' }).catch(() => undefined);
+        await fetch('/api/me', { method: 'DELETE' }).catch(() => undefined);
         router.push('/');
         router.refresh();
       }}

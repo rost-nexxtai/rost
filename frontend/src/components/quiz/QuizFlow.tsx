@@ -94,8 +94,9 @@ function screensFor(lang: Lang): Screen[] {
 /**
  * Onboarding: six to eight screens, one tap each, no Continue button. Under a minute.
  * `retake` (from Profil) keeps the session, name and finished lessons; a new user starts fresh.
+ * `hasProfile`: this browser's session already has a profile (someone took the quiz here before).
  */
-export function QuizFlow({ retake = false }: { retake?: boolean }) {
+export function QuizFlow({ retake = false, hasProfile = false }: { retake?: boolean; hasProfile?: boolean }) {
   const [i, setI] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [tapped, setTapped] = useState<Answer>();
@@ -122,10 +123,14 @@ export function QuizFlow({ retake = false }: { retake?: boolean }) {
     };
     setFailed(undefined);
     try {
-      // A new user starts a new session (someone else may have used this browser); a retake from
-      // Profil keeps theirs, with its lessons and numbers. The backend scores the quiz and, for a
-      // new user, sets the session cookie on this response.
-      if (!retake) await fetch('/api/users', { method: 'DELETE' });
+      // A retake from Profil keeps the session, with its lessons and numbers, and so does an account
+      // without a profile yet (its salary and moments stay). When this browser's session already has
+      // a profile, someone else may have used it: sign out (never erase) and start a new user. The
+      // backend scores the quiz and, for a new user, sets the session cookie on this response.
+      if (!retake && hasProfile) {
+        const out = await fetch('/api/users', { method: 'DELETE' });
+        if (!out.ok) throw new Error(String(out.status));
+      }
       const res = await fetch('/api/quiz', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

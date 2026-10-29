@@ -1,29 +1,78 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { LEGACY_UID_COOKIE, SESSION_COOKIE, sessionFromSetCookie, withSession } from '@/lib/session';
+import {
+  cookieHeader,
+  forwardedHeaders,
+  importSettled,
+  isHttps,
+  LEGACY_PROFILE_COOKIE,
+  LEGACY_UID_COOKIE,
+  RENEWED_COOKIE,
+  SESSION_COOKIE,
+  SESSION_MAX_AGE,
+  sessionFromSetCookie,
+  withSession,
+} from '@/lib/session';
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080';
 
 /**
- * Swaps the old `rost_uid` cookie for a session before a page renders. Pages call the backend from the
- * server (lib/api.ts), where a cookie the backend sets never reaches the browser, so the swap is done here
- * once: the backend makes the session, and the page and the browser both get it.
- * Delete this file when the backend's LEGACY_UID_COOKIE goes.
+ * Runs before a page renders. Pages call the backend from the server (lib/api.ts), where a cookie the
+ * backend sets never reaches the browser, so what changes the browser's cookies happens here, where the
+ * page and the browser both get it:
+ * - swaps the old `rost_uid` cookie for a session (the backend makes it);
+ * - moves the old `rost_profile` cookie to the backend once (POST /api/me/import), then deletes it;
+ * - sets the session cookie again, at most once a day, so it lives 90 days from the last visit like the
+ *   session on the server, not 90 days from sign-in.
+ * The first two go when the backend's LEGACY_UID_COOKIE does.
  */
 export async function proxy(request: NextRequest) {
+  const forwarded = forwardedHeaders(request.headers);
+  const backend = (path: string, init: RequestInit) =>
+    fetch(`${BACKEND_URL}${path}`, { ...init, headers: { ...forwarded, ...init.headers }, cache: 'no-store' }).catch(() => undefined);
+  const setCookies: string[] = [];
+  const sent = request.cookies.get(SESSION_COOKIE)?.value;
+  let token = sent;
+  let reachable = true;
+
   const uid = request.cookies.get(LEGACY_UID_COOKIE)?.value;
-  if (!uid || request.cookies.has(SESSION_COOKIE)) return NextResponse.next();
+  if (uid && !token) {
+    const res = await backend('/api/me', { headers: { cookie: `${LEGACY_UID_COOKIE}=${uid}` } });
+    reachable = !!res;
+    if (res) {
+      setCookies.push(...res.headers.getSetCookie());
+      token = sessionFromSetCookie(setCookies);
+    }
+  }
 
-  const res = await fetch(`${BACKEND_URL}/api/me`, {
-    headers: { cookie: `${LEGACY_UID_COOKIE}=${uid}` },
-    cache: 'no-store',
-  }).catch(() => undefined);
-  if (!res) return NextResponse.next(); // backend down: the page handles it as before
-  const setCookies = res.headers.getSetCookie();
-  const token = sessionFromSetCookie(setCookies);
+  let profileDone = false;
+  const profile = request.cookies.get(LEGACY_PROFILE_COOKIE)?.value;
+  // not while the swap couldn't run: the import would make a second account
+  if (profile && reachable) {
+    const res = await backend('/api/me/import', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(token && { cookie: `${SESSION_COOKIE}=${token}` }) },
+      body: profile,
+    });
+    if (res) {
+      const set = res.headers.getSetCookie();
+      setCookies.push(...set);
+      token = sessionFromSetCookie(set) ?? token;
+      profileDone = importSettled(res.status);
+    }
+  }
 
-  const headers = new Headers(request.headers);
-  if (token) headers.set('cookie', withSession(request.cookies.getAll(), token));
-  const response = NextResponse.next({ request: { headers } });
+  const secure = isHttps(request.headers, request.url);
+  const renew = !!token && !request.cookies.has(RENEWED_COOKIE);
+  if (renew && token === sent) setCookies.push(cookieHeader(SESSION_COOKIE, token!, SESSION_MAX_AGE, secure));
+  if (renew) setCookies.push(cookieHeader(RENEWED_COOKIE, '1', 24 * 60 * 60, secure));
+  if (profileDone) setCookies.push(cookieHeader(LEGACY_PROFILE_COOKIE, '', 0, secure));
+
+  let response = NextResponse.next();
+  if (token && token !== sent) {
+    const headers = new Headers(request.headers);
+    headers.set('cookie', withSession(request.cookies.getAll(), token));
+    response = NextResponse.next({ request: { headers } });
+  }
   for (const c of setCookies) response.headers.append('set-cookie', c);
   return response;
 }

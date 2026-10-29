@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasSessionCookie, sessionFromSetCookie, withSession } from './session';
+import { forwardedHeaders, hasSessionCookie, importSettled, isHttps, sessionFromSetCookie, withSession } from './session';
 
 describe('session cookie', () => {
   it('counts the session or the old id cookie', () => {
@@ -23,5 +23,24 @@ describe('session cookie', () => {
       { name: 'rost_uid', value: 'maria' },
     ];
     expect(withSession(cookies, 'tok')).toBe('rost_lang=en; rost_session=tok');
+  });
+
+  it('knows https from the proxy in front, or the URL', () => {
+    const h = (proto?: string) => new Headers(proto ? { 'x-forwarded-proto': proto } : {});
+    expect(isHttps(h('https'), 'http://web:3000/acasa')).toBe(true);
+    expect(isHttps(h('http'), 'https://rost.ro/acasa')).toBe(false);
+    expect(isHttps(h('https, http'), 'http://web:3000/')).toBe(true);
+    expect(isHttps(h(), 'https://rost.ro/')).toBe(true);
+    expect(isHttps(h(), 'http://localhost:3000/')).toBe(false);
+  });
+
+  it('passes on X-Forwarded-For only when there is one', () => {
+    expect(forwardedHeaders(new Headers({ 'x-forwarded-for': '203.0.113.7, 10.0.0.2' }))).toEqual({ 'x-forwarded-for': '203.0.113.7, 10.0.0.2' });
+    expect(forwardedHeaders(new Headers())).toEqual({});
+  });
+
+  it('drops the old profile once imported or when there is nothing to import', () => {
+    expect([200, 400, 409].every(importSettled)).toBe(true);
+    expect([401, 429, 500, 502].some(importSettled)).toBe(false);
   });
 });

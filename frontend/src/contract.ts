@@ -297,14 +297,21 @@ export interface PublicPartner {
 // ---- Users and session (cookie `rost_session`, a random token; an old `rost_uid` cookie is swapped for one) ----
 
 /**
- * DELETE /api/users (Profil → Resetează): erases the account and its data and signs out; a demo persona goes
- * back to its seed instead. GET /api/me/export: everything kept about the user, as a JSON download.
+ * DELETE /api/users: signs this browser out; the account stays. DELETE /api/me (Profil → Resetează): erases the
+ * account and its data and signs out; a demo persona goes back to its seed instead. GET /api/me/export: everything
+ * kept about the user, as a JSON download.
+ *
+ * POST /api/me/import, body: the old `rost_profile` cookie as it is (the Profile JSON the app kept in the browser).
+ * The web app's proxy sends it once: 200 `{ imported: true }`; 400 for a cookie the old app couldn't have written and
+ * 409 when the user has a profile already, both "nothing to import". Without a session it makes the user and sets one.
  */
 
 /**
- * POST /api/auth/email `{ email }`: mails a one-time login link (15 minutes). Always 202 `{ ok: true }`, whether
- * the email has an account or not; 400 for a bad email, 429 after a few a hour. The link, GET /api/auth/verify?token=,
- * signs in to the email's account, or ties a new email to the account that asked, then redirects to /acasa.
+ * POST /api/auth/email `{ email }`: mails a one-time login link (15 minutes) and sets the `rost_login` nonce cookie.
+ * Always 202 `{ ok: true }`, whether the email has an account or not; 400 for a bad email, 429 after a few an hour
+ * (or too many on the server that day). The link, GET /api/auth/verify?token=, works only in the browser that asked:
+ * it signs in to the email's account, or ties a new email to the signed-in account that asked (when it has none),
+ * or makes a new account with it, then redirects to /acasa. In another browser it changes nothing.
  */
 export interface EmailLoginRequest {
   email: string;
@@ -322,8 +329,9 @@ export interface CreateUserRequest {
   firstsDone?: FirstDone[];
   spending?: SpendingProfile;
 }
+/** The user's id stays on the server; the session cookie is all the browser gets. */
 export interface CreateUserResponse {
-  userId: string;
+  ok: true;
 }
 
 /** PUT /api/me/salary, body `{ grossMonthly }`: the salary changed. A raise reopens the payslip moment. */
@@ -386,7 +394,6 @@ export interface LessonAnswer {
 
 /** POST /api/quiz: scored on the server; the session cookie comes back for a new user. */
 export interface QuizResponse {
-  userId: string;
   profile: Profile;
 }
 
@@ -423,6 +430,11 @@ export interface EventResponse {
 export interface CalendarResponse {
   today: string;
   results: EventResponse[];
+}
+
+/** GET /api/demo: whether the demo tools are on (the stage server), so the landing page offers Maria only then. */
+export interface DemoResponse {
+  enabled: boolean;
 }
 
 /** GET/POST /api/clock (demo tools only). POST body: `{ days: number }`. */
@@ -592,7 +604,6 @@ export interface QuizResponse {
 /** POST /api/quiz, creates the user if there is no session */
 export type QuizRequest = QuizAnswers;
 export interface QuizSaveResponse {
-  userId: string;
   profile: Profile;
   results: { id: string; correct: boolean; correctIndex: number; explain?: string }[];
 }
