@@ -39,6 +39,7 @@ const T = copy(
     screen: (n: number, of: number) => `Ecranul ${n} din ${of}`,
     preparing: 'Îți pregătim prima lecție…',
     saveFailed: 'Nu am putut salva răspunsurile: serverul nu răspunde. Mai încearcă o dată.',
+    tooMany: 'Prea multe încercări de pe această rețea. Mai încearcă peste un minut.',
     tryAgain: 'Încearcă din nou',
     gross: 'Cât e salariul tău brut pe lună?',
     grossHint: 'Suma din contract, înainte de taxe. O folosim doar ca să-ți arătăm unde merg banii din el.',
@@ -60,6 +61,7 @@ const T = copy(
     screen: (n, of) => `Screen ${n} of ${of}`,
     preparing: 'Getting your first lesson ready…',
     saveFailed: "We couldn't save your answers: the server isn't answering. Please try again.",
+    tooMany: 'Too many tries from this network. Try again in a minute.',
     tryAgain: 'Try again',
     gross: "What's your gross monthly salary?",
     grossHint: 'The amount in your contract, before tax. We only use it to explain your payslip.',
@@ -102,6 +104,8 @@ export function QuizFlow({ retake = false, hasProfile = false }: { retake?: bool
   const [tapped, setTapped] = useState<Answer>();
   const [finishing, setFinishing] = useState(false);
   const [failed, setFailed] = useState<Answer[]>();
+  // the failure was the API's rate limit (a classroom behind one address), not the server being down
+  const [limited, setLimited] = useState(false);
   const [result, setResult] = useState<{ profile: Profile; lesson: Awaited<ReturnType<typeof nextLesson>> }>();
   const [gross, setGross] = useState<number>();
   const [askGross, setAskGross] = useState(false);
@@ -139,8 +143,9 @@ export function QuizFlow({ retake = false, hasProfile = false }: { retake?: bool
       if (!res.ok) throw new Error(String(res.status));
       const { profile } = (await res.json()) as QuizResponse;
       setResult({ profile, lesson: await nextLesson(profile) });
-    } catch {
+    } catch (e) {
       setFinishing(false);
+      setLimited(e instanceof Error && e.message === '429');
       setFailed(all);
     }
   }
@@ -249,7 +254,7 @@ export function QuizFlow({ retake = false, hasProfile = false }: { retake?: bool
         {finishing && <p className="play-hint">{t.preparing}</p>}
         {failed && (
           <div className="stack" style={{ gap: 10 }}>
-            <p className="error">{t.saveFailed}</p>
+            <p className="error">{limited ? t.tooMany : t.saveFailed}</p>
             <button
               type="button"
               className="btn btn-secondary btn-block"

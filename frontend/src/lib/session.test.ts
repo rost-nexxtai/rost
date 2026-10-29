@@ -23,6 +23,8 @@ describe('session cookie', () => {
       { name: 'rost_uid', value: 'maria' },
     ];
     expect(withSession(cookies, 'tok')).toBe('rost_lang=en; rost_session=tok');
+    // a JSON cookie goes back encoded, so the page reads the same value
+    expect(withSession([{ name: 'rost_profile', value: '{"a":"b c;d"}' }], 'tok')).toBe('rost_profile=%7B%22a%22%3A%22b%20c%3Bd%22%7D; rost_session=tok');
   });
 
   it('knows https from the proxy in front, or the URL', () => {
@@ -40,7 +42,7 @@ describe('session cookie', () => {
   });
 
   it('drops the old profile once imported or when there is nothing to import', () => {
-    expect([200, 400, 409].every(importSettled)).toBe(true);
+    expect([200, 400, 404, 409].every(importSettled)).toBe(true);
     expect([401, 429, 500, 502].some(importSettled)).toBe(false);
   });
 });

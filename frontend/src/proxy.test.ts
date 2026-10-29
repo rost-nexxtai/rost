@@ -74,11 +74,22 @@ describe('proxy', () => {
     expect(setCookies(res).some((c) => c.startsWith('rost_session=new;'))).toBe(true);
   });
 
-  it("doesn't import while the swap couldn't run, so no second account is made", async () => {
-    const calls = backend({ '/api/me': 'down' });
-    const res = await proxy(page({ rost_uid: 'u1', rost_profile: OLD }));
-    expect(calls).toHaveLength(1);
-    expect(setCookies(res)).toEqual([]);
+  it("never imports without a session while the browser has an old id, so no second account is made", async () => {
+    // the swap couldn't run (API down, a 5xx), or gave no session (another request took it, an unknown id)
+    const swaps: Parameters<typeof backend>[0][string][] = ['down', { status: 500 }, { status: 401, setCookie: ['rost_uid=; Path=/; Max-Age=0'] }];
+    for (const swap of swaps) {
+      const calls = backend({ '/api/me': swap, '/api/me/import': { status: 200 } });
+      const res = await proxy(page({ rost_uid: 'u1', rost_profile: OLD }));
+      expect(calls.map((c) => new URL(c.url).pathname)).toEqual(['/api/me']);
+      // the profile cookie stays for the next visit
+      expect(setCookies(res).some((c) => c.startsWith('rost_profile='))).toBe(false);
+    }
+  });
+
+  it('gives the backend calls a timeout', async () => {
+    const calls = backend({ '/api/me': { status: 200 } });
+    await proxy(page({ rost_uid: 'u1' }));
+    expect(calls[0].init.signal).toBeInstanceOf(AbortSignal);
   });
 
   it('renews the session cookie at most once a day, with the backend attributes', async () => {

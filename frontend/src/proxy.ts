@@ -14,6 +14,8 @@ import {
 } from '@/lib/session';
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080';
+/** A hung API must not stall every page: past this the page renders as if the call failed. */
+const BACKEND_TIMEOUT_MS = 5000;
 
 /**
  * Runs before a page renders. Pages call the backend from the server (lib/api.ts), where a cookie the
@@ -28,16 +30,19 @@ const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080';
 export async function proxy(request: NextRequest) {
   const forwarded = forwardedHeaders(request.headers);
   const backend = (path: string, init: RequestInit) =>
-    fetch(`${BACKEND_URL}${path}`, { ...init, headers: { ...forwarded, ...init.headers }, cache: 'no-store' }).catch(() => undefined);
+    fetch(`${BACKEND_URL}${path}`, {
+      ...init,
+      headers: { ...forwarded, ...init.headers },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+    }).catch(() => undefined);
   const setCookies: string[] = [];
   const sent = request.cookies.get(SESSION_COOKIE)?.value;
   let token = sent;
-  let reachable = true;
 
   const uid = request.cookies.get(LEGACY_UID_COOKIE)?.value;
   if (uid && !token) {
     const res = await backend('/api/me', { headers: { cookie: `${LEGACY_UID_COOKIE}=${uid}` } });
-    reachable = !!res;
     if (res) {
       setCookies.push(...res.headers.getSetCookie());
       token = sessionFromSetCookie(setCookies);
@@ -46,8 +51,9 @@ export async function proxy(request: NextRequest) {
 
   let profileDone = false;
   const profile = request.cookies.get(LEGACY_PROFILE_COOKIE)?.value;
-  // not while the swap couldn't run: the import would make a second account
-  if (profile && reachable) {
+  // Without a session, only when this browser had no old id: one with an id waits for the swap (the
+  // next visit, if it failed now), or the import would make a second account beside the old one.
+  if (profile && (token || !uid)) {
     const res = await backend('/api/me/import', {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...(token && { cookie: `${SESSION_COOKIE}=${token}` }) },
@@ -78,6 +84,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // pages only: /api/* goes straight to the backend, which does the swap itself
-  matcher: ['/((?!api/|_next/|favicon.ico).*)'],
+  // pages only: /api/* goes straight to the backend, which does the swap itself; /healthz is the container's
+  matcher: ['/((?!api/|_next/|favicon.ico|healthz).*)'],
 };

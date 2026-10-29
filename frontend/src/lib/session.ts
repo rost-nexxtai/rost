@@ -28,11 +28,11 @@ export function sessionFromSetCookie(setCookies: string[]): string | undefined {
   return undefined;
 }
 
-/** A Cookie header with the old cookie swapped for the session. */
+/** A Cookie header with the old cookie swapped for the session. Values are encoded again, as the parsed ones came decoded. */
 export function withSession(cookies: { name: string; value: string }[], token: string): string {
   return cookies
     .filter((c) => c.name !== SESSION_COOKIE && c.name !== LEGACY_UID_COOKIE)
-    .map((c) => `${c.name}=${c.value}`)
+    .map((c) => `${c.name}=${encodeURIComponent(c.value)}`)
     .concat(`${SESSION_COOKIE}=${token}`)
     .join('; ');
 }
@@ -50,11 +50,11 @@ export function cookieHeader(name: string, value: string, maxAge: number, secure
 
 /**
  * Whether POST /api/me/import is done with the old profile cookie: imported, or nothing to import (a
- * cookie the old app couldn't have written, or a user who already has a profile). Anything else is tried
- * again on the next page.
+ * cookie the old app couldn't have written, a user who already has a profile, or the import turned off
+ * with the old-cookie swap). Anything else is tried again on the next page.
  */
 export function importSettled(status: number): boolean {
-  return (status >= 200 && status < 300) || status === 400 || status === 409;
+  return (status >= 200 && status < 300) || status === 400 || status === 404 || status === 409;
 }
 
 /** The headers a server-side call to the backend passes on, so its rate limits see the browser, not this server. */

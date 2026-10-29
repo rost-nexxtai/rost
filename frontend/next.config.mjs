@@ -36,8 +36,9 @@ const nextConfig = {
   // Type-check the app without tests: they read backend seed files that aren't in the Docker build context.
   typescript: { tsconfigPath: 'tsconfig.build.json' },
   poweredByHeader: false,
-  // The proxy to the backend gives up after 30 s by default; reading a payslip photo can take a model call of up to 60 s.
-  experimental: { proxyTimeout: 90_000 },
+  // The proxy to the backend gives up after 30 s by default; reading a payslip photo is a slow upload (the API
+  // allows 90 s) plus a model call of up to 60 s. Just above the API's own 160 s write timeout.
+  experimental: { proxyTimeout: 170_000 },
   // The browser calls /api/* on this origin; Next proxies it to the backend, so the session cookie stays first-party.
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${backend}/api/:path*` }];

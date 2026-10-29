@@ -24,6 +24,7 @@ COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 USER node
 EXPOSE 3000
-# The landing page, rendered by the server. busybox wget comes with the alpine base.
-HEALTHCHECK --interval=10s --timeout=4s --start-period=20s --retries=3 CMD wget -q -O /dev/null "http://127.0.0.1:$PORT/" || exit 1
+# /healthz answers without rendering a page or calling the API, so an API outage doesn't restart the
+# web app too. busybox wget comes with the alpine base.
+HEALTHCHECK --interval=10s --timeout=4s --start-period=20s --retries=3 CMD wget -q -O /dev/null "http://127.0.0.1:$PORT/healthz" || exit 1
 CMD ["node", "server.js"]
