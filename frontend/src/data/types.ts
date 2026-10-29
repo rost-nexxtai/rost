@@ -175,7 +175,7 @@ export interface AssetResponse {
 }
 
 /** Hands-on calculators a lesson can embed (components/lesson/widgets.tsx). */
-export type LessonWidget = 'fund_builder' | 'compound' | 'savings_vs_deposit' | 'diversify' | 'bonds_vs_deposit';
+export type LessonWidget = 'fund_builder' | 'compound' | 'savings_vs_deposit' | 'diversify' | 'bonds_vs_deposit' | 'recovery' | 'market_years';
 
 /**
  * One screen of a lesson, one idea each. choice, predict, sort and order are graded; explore, stat

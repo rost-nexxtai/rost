@@ -352,6 +352,10 @@ legend { font-size: 13px; color: var(--muted); padding: 0; margin-bottom: 8px; }
 .hbar { display: flex; flex-direction: column; gap: 6px; }
 .hbar-track { height: 26px; border-radius: 8px; background: var(--track); overflow: hidden; }
 .hbar-track > div { height: 100%; border-radius: 8px; transition: width var(--dur-ui) var(--ease-out); }
+/* diverging bar: losses grow left of the middle line, gains right */
+.dbar-track { position: relative; height: 26px; border-radius: 8px; background: var(--track); overflow: hidden; }
+.dbar-track::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--line-strong); }
+.dbar-track > div { position: absolute; top: 0; bottom: 0; transition: width var(--dur-ui) var(--ease-out), left var(--dur-ui) var(--ease-out); }
 .dotgrid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 3px; }
 .dotgrid i { aspect-ratio: 1; border-radius: 50%; background: var(--primary); display: block; transition: background-color var(--dur-ui) ease; }
 .dotgrid i[data-off] { background: var(--track); }
@@ -544,7 +548,7 @@ a.road-row:active { transform: scale(0.985); }
   .sort-card[data-fly] { animation: fade 160ms ease reverse forwards; }
   .confetti, .play-hint::before { display: none; }
   .btn:active, .chip:active, .tile:active, .card-link:active, a.road-row:active, .provider-site:active { transform: none !important; }
-  .segments i::after, .progress > div, .hbar-track > div, .dial-mark, .order-item, .provider-toggle-icon { transition-duration: 0ms !important; }
+  .segments i::after, .progress > div, .hbar-track > div, .dbar-track > div, .dial-mark, .order-item, .provider-toggle-icon { transition-duration: 0ms !important; }
 }
 
 /* ---------- Admin (/admin, for the team) ---------- */

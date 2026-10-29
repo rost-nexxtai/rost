@@ -40,3 +40,14 @@ Lessons were already short and hands-on. This change makes them more interactive
 ## Where the state lives
 
 The days with a finished lesson sit in the profile cookie (`learnedDays`, the last two weeks), next to the completed lessons, like the rest of the progress until the backend serves `GET /api/me`.
+
+## Level 2: shares, gold and commodities
+
+The last two "în curând" lessons are written, so every lesson on the roadmap can be played.
+
+| Lesson | Screens |
+| --- | --- |
+| Acțiuni | What a share is · guess the rise needed after a 50% fall · `recovery` widget (pick a fall, see the rise and the years it takes at 7% a year) · sort: one company's risk or the whole market's · BET lost 80% from July 2007 to February 2009 · the market's range |
+| Aur și mărfuri | Gold pays nothing · guess oil's fall from $147 in July 2008 (−72% to −80% counts) · `market_years` widget (shares, gold and commodities in 2008, 2013, 2020 and 2022) · sort: good or weak reasons to buy gold · gold's range |
+
+The widget data is calendar-year returns in dollars: MSCI World (gross), GLD, and the Bloomberg Commodity Index (total return). It's in `MARKET_YEARS` in `components/lesson/math.ts`.
